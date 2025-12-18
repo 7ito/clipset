@@ -36,3 +36,62 @@ export function useDeactivateUser() {
     }
   })
 }
+
+export async function getUserByUsername(username: string): Promise<UserProfile | UserWithQuota> {
+  const response = await apiClient.get<UserProfile | UserWithQuota>(
+    `/api/users/by-username/${username.toLowerCase()}`
+  )
+  return response.data
+}
+
+export interface AdminStats {
+  totalUsers: number
+  totalVideos: number
+  videosByStatus: {
+    completed: number
+    processing: number
+    pending: number
+    failed: number
+  }
+  totalStorageBytes: number
+}
+
+export async function getAdminStats(): Promise<AdminStats> {
+  // Fetch users (limit to reasonable number for small communities)
+  const usersResponse = await apiClient.get<UserResponse[]>("/api/users", {
+    params: { skip: 0, limit: 500 }
+  })
+  
+  // Fetch videos (limit to reasonable number)
+  const videosResponse = await apiClient.get<{
+    videos: Array<{ processing_status: string; file_size_bytes: number }>
+    total: number
+  }>("/api/videos", {
+    params: { skip: 0, limit: 1000 }
+  })
+  
+  // Aggregate video stats
+  const videosByStatus = {
+    completed: 0,
+    processing: 0,
+    pending: 0,
+    failed: 0
+  }
+  
+  let totalStorageBytes = 0
+  
+  videosResponse.data.videos.forEach(video => {
+    const status = video.processing_status as keyof typeof videosByStatus
+    if (status in videosByStatus) {
+      videosByStatus[status]++
+    }
+    totalStorageBytes += video.file_size_bytes
+  })
+  
+  return {
+    totalUsers: usersResponse.data.length,
+    totalVideos: videosResponse.data.total,
+    videosByStatus,
+    totalStorageBytes
+  }
+}

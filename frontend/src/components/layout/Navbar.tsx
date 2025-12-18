@@ -1,5 +1,6 @@
-import { Link } from "@tanstack/react-router"
-import { LogOut, User, Moon, Sun } from "lucide-react"
+import { Link, useNavigate } from "@tanstack/react-router"
+import { LogOut, User, Moon, Sun, Menu, X, Home, Upload as UploadIcon, Shield } from "lucide-react"
+import { useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { useTheme } from "@/contexts/theme-context"
 import { useLogout } from "@/api/auth"
@@ -19,6 +20,8 @@ export function Navbar() {
   const { user, isAdmin } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const logout = useLogout()
+  const navigate = useNavigate()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleLogout = () => {
     logout.mutate(undefined, {
@@ -45,13 +48,7 @@ export function Navbar() {
                 to="/dashboard"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Dashboard
-              </Link>
-              <Link
-                to="/videos"
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Videos
+                Home
               </Link>
               <Link
                 to="/upload"
@@ -71,6 +68,16 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Mobile menu button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X className="size-4" /> : <Menu className="size-4" />}
+            </Button>
+
             <Button
               variant="ghost"
               size="sm"
@@ -100,11 +107,13 @@ export function Navbar() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem asChild>
-                  <Link to="/profile">
-                    <User />
-                    Profile
-                  </Link>
+                <DropdownMenuItem 
+                  onClick={() => {
+                    navigate({ to: "/profile/$username", params: { username: user.username } })
+                  }}
+                >
+                  <User />
+                  Profile
                 </DropdownMenuItem>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
@@ -117,6 +126,40 @@ export function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* Mobile slide-down menu */}
+      {mobileMenuOpen && (
+        <div className="md:hidden border-b bg-background shadow-lg transition-all duration-200 ease-in-out">
+          <nav className="px-4 py-4 space-y-2">
+            <Link
+              to="/dashboard"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-accent transition-colors"
+            >
+              <Home className="w-4 h-4" />
+              <span>Home</span>
+            </Link>
+            <Link
+              to="/upload"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-accent transition-colors"
+            >
+              <UploadIcon className="w-4 h-4" />
+              <span>Upload</span>
+            </Link>
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-accent transition-colors"
+              >
+                <Shield className="w-4 h-4" />
+                <span>Admin</span>
+              </Link>
+            )}
+          </nav>
+        </div>
+      )}
     </nav>
   )
 }

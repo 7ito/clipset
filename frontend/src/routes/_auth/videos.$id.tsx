@@ -65,7 +65,7 @@ function VideoPlayerPage() {
     mutationFn: () => deleteVideo(id),
     onSuccess: () => {
       toast.success("Video deleted successfully")
-      navigate({ to: "/videos" })
+      navigate({ to: "/dashboard" })
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || "Failed to delete video")
@@ -111,10 +111,10 @@ function VideoPlayerPage() {
         <p className="text-muted-foreground mb-8">
           The video you're looking for doesn't exist or has been removed
         </p>
-        <Link to="/videos">
+        <Link to="/dashboard">
           <Button>
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Videos
+            Back to Home
           </Button>
         </Link>
       </div>
@@ -128,17 +128,9 @@ function VideoPlayerPage() {
 
   return (
     <div className="space-y-6">
-      {/* Back Button */}
-      <Link to="/videos">
-        <Button variant="ghost" size="sm" className="gap-2">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Videos
-        </Button>
-      </Link>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-6xl mx-auto space-y-6">
         {/* Main Video Player */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
           {/* Video Player */}
           <Card className="overflow-hidden">
             <CardContent className="p-0">
@@ -311,13 +303,19 @@ function VideoPlayerPage() {
                 <div className="flex items-center gap-2 text-sm">
                   <User className="w-4 h-4 text-muted-foreground" />
                   <span className="text-muted-foreground">Uploaded by</span>
-                  <span className="font-medium">{video.uploader_username}</span>
+                  <Link 
+                    to="/profile/$username" 
+                    params={{ username: video.uploader_username }}
+                    className="font-medium hover:text-primary transition-colors"
+                  >
+                    {video.uploader_username}
+                  </Link>
                 </div>
                 {video.category_name && (
                   <div className="flex items-center gap-2 text-sm">
                     <Folder className="w-4 h-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Category</span>
-                    <Link to="/videos" search={{ category_id: video.category_id || undefined }}>
+                    <Link to="/dashboard" search={{ category_id: video.category_id || undefined }}>
                       <Badge variant="outline" className="cursor-pointer hover:bg-accent">
                         {video.category_name}
                       </Badge>
@@ -327,13 +325,6 @@ function VideoPlayerPage() {
               </CardContent>
             </Card>
           </div>
-        </div>
-
-        {/* Sidebar - Related Videos */}
-        <div className="space-y-4">
-          <h3 className="font-semibold">More from {video.uploader_username}</h3>
-          {/* TODO: Add related videos */}
-          <p className="text-sm text-muted-foreground">Coming soon</p>
         </div>
       </div>
     </div>

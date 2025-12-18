@@ -4,7 +4,7 @@ from typing import List
 
 class Settings(BaseSettings):
     # Database
-    DATABASE_URL: str = "sqlite+aiosqlite:///./data/clipset.db"
+    DATABASE_URL: str = "sqlite+aiosqlite:///../data/clipset.db"
 
     # Security
     SECRET_KEY: str
@@ -23,16 +23,21 @@ class Settings(BaseSettings):
     FRONTEND_BASE_URL: str = "http://localhost:5173"
 
     # Storage Paths
-    VIDEO_STORAGE_PATH: str = "./data/uploads/videos"
-    THUMBNAIL_STORAGE_PATH: str = "./data/uploads/thumbnails"
-    TEMP_STORAGE_PATH: str = "./data/uploads/temp"
+    VIDEO_STORAGE_PATH: str = "../data/uploads/videos"
+    THUMBNAIL_STORAGE_PATH: str = "../data/uploads/thumbnails"
+    TEMP_STORAGE_PATH: str = "../data/uploads/temp"
+    CATEGORY_IMAGE_STORAGE_PATH: str = "../data/uploads/category-images"
 
     # Upload Limits (bytes)
     MAX_FILE_SIZE_BYTES: int = 2_147_483_648  # 2GB
     WEEKLY_UPLOAD_LIMIT_BYTES: int = 4_294_967_296  # 4GB
+    MAX_CATEGORY_IMAGE_SIZE_BYTES: int = 5_242_880  # 5MB
 
     # Accepted Video Formats (comma-separated)
     ACCEPTED_VIDEO_FORMATS: str = "mp4,mov,avi,mkv,webm"
+
+    # Category Images
+    CATEGORY_IMAGE_SIZE: tuple[int, int] = (400, 400)  # Square images
 
     # FFmpeg
     FFMPEG_PATH: str = "ffmpeg"  # Uses system PATH

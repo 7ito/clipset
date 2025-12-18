@@ -84,20 +84,44 @@ Clipset provides a simple solution for sharing large video files without compres
 - Category filtering and search
 - Processing status polling for pending videos
 
-### 🚧 Phase 5: UI/UX Refinement (In Progress)
+### ✅ Phase 5: UI/UX Refinement & Social Features (Completed)
 - ✅ Created reusable shared components (EmptyState, PageHeader, LoadingSpinner, Skeletons)
-- ✅ Refined dashboard page with enhanced stats cards and better spacing
-- ✅ Improved videos listing page with better cards, animations, and empty states
+- ✅ Transformed dashboard into community-first home feed
+- ✅ Implemented Instagram-style user profiles (`/profile/:username`)
+- ✅ Added username lookup backend endpoint (`/api/users/by-username/{username}`)
+- ✅ Profile pages with avatar (initials), video count, and user's uploads
+- ✅ "My Profile" dialog with quota and account information (own profile only)
+- ✅ Video sorting (Newest | Most Viewed) on home feed
 - ✅ Enhanced upload page with better drag-drop zone and quota display
 - ✅ Polished video player page with back button and better loading states
-- ✅ Redesigned profile page with icon-based layout
-- ⏳ Mobile navigation improvements (planned)
-- ⏳ Admin page refinements (planned)
 
-### 📋 Phase 6-8: Advanced Features & Deployment (Planned)
-- User profiles showing uploaded videos
-- Admin dashboard with statistics
+### ✅ Phase 6: Navigation & Social Links (Completed)
+- ✅ Update navbar: "Dashboard" → "Home", remove "Videos" link
+- ✅ Make all usernames clickable throughout the app (link to profiles)
+- ✅ Update Profile link in navbar to use dynamic route
+- ✅ Fixed all broken /videos references to use /dashboard
+- ✅ Upload page now redirects to user profile after success
+
+### ✅ Phase 7: Admin Dashboard (Completed)
+- ✅ Admin dashboard with statistics (total users, videos by status, storage used)
+- ✅ Recent activity feed on admin dashboard
+- ✅ Video processing status breakdown with visual indicators
+- ✅ Admin-only route protection
+
+### 🚧 Phase 8: Twitch-Style Categories (In Progress)
+- ✅ Database schema for category images and playlists
+- ✅ Backend API endpoints for category images (upload/serve/delete)
+- ✅ Image processing service (resize to 400x400, convert to WebP)
+- ✅ Category descriptions support
+- ✅ Slug-based category lookups for clean URLs
+- ⏳ Frontend category types and API client (next)
+- ⏳ Admin UI for image uploads (next)
+- ⏳ Public category browse page (next)
+- ⏳ Individual category pages (next)
+
+### 📋 Phase 9: Final Polish (Planned)
 - System configuration management UI
+- Mobile navigation improvements
 - Additional end-to-end tests
 - Docker deployment configuration
 

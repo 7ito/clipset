@@ -22,6 +22,14 @@ export async function getCategory(id: string): Promise<Category> {
 }
 
 /**
+ * Get a category by slug (for clean URLs)
+ */
+export async function getCategoryBySlug(slug: string): Promise<Category> {
+  const response = await apiClient.get<Category>(`/api/categories/slug/${slug}`)
+  return response.data
+}
+
+/**
  * Create a new category (admin only)
  */
 export async function createCategory(data: CategoryCreate): Promise<Category> {
@@ -42,4 +50,41 @@ export async function updateCategory(id: string, data: CategoryUpdate): Promise<
  */
 export async function deleteCategory(id: string): Promise<void> {
   await apiClient.delete(`/api/categories/${id}`)
+}
+
+/**
+ * Upload image for a category (admin only)
+ * @param id - Category ID
+ * @param file - Image file (will be resized to 400x400 and converted to WebP)
+ */
+export async function uploadCategoryImage(id: string, file: File): Promise<Category> {
+  const formData = new FormData()
+  formData.append("file", file)
+  
+  const response = await apiClient.post<Category>(
+    `/api/categories/${id}/image`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    }
+  )
+  return response.data
+}
+
+/**
+ * Delete category image (admin only)
+ */
+export async function deleteCategoryImage(id: string): Promise<void> {
+  await apiClient.delete(`/api/categories/${id}/image`)
+}
+
+/**
+ * Get category image URL
+ * Helper function to construct image URL
+ */
+export function getCategoryImageUrl(id: string): string {
+  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000"
+  return `${baseUrl}/api/categories/${id}/image`
 }

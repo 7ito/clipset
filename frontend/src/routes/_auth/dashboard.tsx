@@ -1,176 +1,237 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
+import { useState } from "react"
 import { useQuery } from "@tanstack/react-query"
-import { Upload, VideoIcon, Eye, HardDrive } from "lucide-react"
-import { useAuth } from "@/hooks/useAuth"
-import { getVideos, getQuotaInfo } from "@/api/videos"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Progress } from "@/components/ui/progress"
+import { Search, VideoIcon } from "lucide-react"
+import { getVideos, getThumbnailUrl } from "@/api/videos"
+import { getCategories } from "@/api/categories"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { formatFileSize } from "@/lib/formatters"
+import { formatDuration, formatUploadDate, formatFileSize, getStatusColor } from "@/lib/formatters"
+import type { Video } from "@/types/video"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { EmptyState } from "@/components/shared/EmptyState"
+import { VideoGridSkeleton } from "@/components/shared/VideoCardSkeleton"
 
 export const Route = createFileRoute("/_auth/dashboard")({
   component: DashboardPage
 })
 
+function VideoCard({ video }: { video: Video }) {
+  const thumbnailUrl = video.thumbnail_filename
+    ? getThumbnailUrl(video.id)
+    : "/placeholder-video.jpg"
+
+  const statusColor = getStatusColor(video.processing_status)
+
+  return (
+    <Link to={`/videos/${video.id}`} className="block group">
+      <Card className="overflow-hidden hover:shadow-lg transition-all duration-200 hover:-translate-y-1">
+        <div className="relative aspect-video bg-muted overflow-hidden">
+          {video.thumbnail_filename ? (
+            <img
+              src={thumbnailUrl}
+              alt={video.title}
+              className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-gradient-to-br from-muted to-muted/50">
+              <VideoIcon className="w-16 h-16 opacity-50" />
+            </div>
+          )}
+          {video.duration_seconds !== null && video.processing_status === "completed" && (
+            <div className="absolute bottom-2 right-2 bg-black/80 text-white text-xs font-medium px-2 py-1 rounded backdrop-blur-sm">
+              {formatDuration(video.duration_seconds)}
+            </div>
+          )}
+          <div className="absolute top-2 right-2">
+            <Badge variant={statusColor === "green" ? "default" : "secondary"} className="capitalize backdrop-blur-sm bg-background/80">
+              {video.processing_status}
+            </Badge>
+          </div>
+        </div>
+        <CardContent className="p-4 space-y-2">
+          <h3 className="font-semibold line-clamp-2 leading-snug group-hover:text-primary transition-colors">
+            {video.title}
+          </h3>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Link 
+              to="/profile/$username" 
+              params={{ username: video.uploader_username }}
+              className="font-medium hover:text-primary transition-colors"
+            >
+              {video.uploader_username}
+            </Link>
+            <span>•</span>
+            <span>{formatUploadDate(video.created_at)}</span>
+          </div>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
+            {video.view_count > 0 && (
+              <>
+                <span>{video.view_count} {video.view_count === 1 ? "view" : "views"}</span>
+                <span>•</span>
+              </>
+            )}
+            <span>{formatFileSize(video.file_size_bytes)}</span>
+            {video.category_name && (
+              <>
+                <span>•</span>
+                <Badge variant="outline" className="text-xs">
+                  {video.category_name}
+                </Badge>
+              </>
+            )}
+          </div>
+          {video.processing_status === "failed" && video.error_message && (
+            <p className="text-xs text-destructive line-clamp-1 pt-1">
+              Error: {video.error_message}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
 function DashboardPage() {
-  const { user } = useAuth()
+  const [search, setSearch] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState<string>("")
+  const [sortBy, setSortBy] = useState<"newest" | "views">("newest")
+  const [skip, setSkip] = useState(0)
+  const limit = 20
 
-  // Fetch user's videos
-  const { data: videosData } = useQuery({
-    queryKey: ["videos", "me"],
-    queryFn: () => getVideos({ uploaded_by: user?.id })
+  // Fetch all community videos
+  const { data: videosData, isLoading } = useQuery({
+    queryKey: ["videos", "community", { search, category_id: categoryFilter, sortBy, skip, limit }],
+    queryFn: () => getVideos({
+      search: search || undefined,
+      category_id: categoryFilter || undefined,
+      skip,
+      limit
+    })
   })
 
-  // Fetch quota
-  const { data: quota } = useQuery({
-    queryKey: ["quota", "me"],
-    queryFn: getQuotaInfo
+  // Fetch categories for filter
+  const { data: categoriesData } = useQuery({
+    queryKey: ["categories"],
+    queryFn: getCategories
   })
 
-  // Calculate total views
-  const totalViews = videosData?.videos.reduce((sum, video) => sum + video.view_count, 0) || 0
+  // Client-side sorting (since backend doesn't support sort param yet)
+  const sortedVideos = videosData?.videos ? [...videosData.videos].sort((a, b) => {
+    if (sortBy === "views") {
+      return b.view_count - a.view_count
+    }
+    // Newest first (default)
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  }) : []
+
+  const handleSearchChange = (value: string) => {
+    setSearch(value)
+    setSkip(0)
+  }
+
+  const handleCategoryChange = (value: string) => {
+    setCategoryFilter(value === "__all__" ? "" : value)
+    setSkip(0)
+  }
+
+  const handleSortChange = (value: string) => {
+    setSortBy(value as "newest" | "views")
+    setSkip(0)
+  }
+
+  const handleLoadMore = () => {
+    setSkip(skip + limit)
+  }
+
+  const hasMore = videosData && videosData.total > skip + videosData.videos.length
 
   return (
     <div className="space-y-8">
       <PageHeader
-        title={`Welcome back, ${user?.username}!`}
-        description="Your personal video sharing dashboard"
+        title="Home"
+        description={`${videosData?.total || 0} video${videosData?.total === 1 ? "" : "s"} from the community`}
       />
 
-      {/* Quick Stats */}
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Videos Uploaded</CardTitle>
-            <VideoIcon className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{videosData?.total || 0}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Total uploads
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Views</CardTitle>
-            <Eye className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{totalViews}</div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Across all videos
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Storage Used</CardTitle>
-            <HardDrive className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {quota ? formatFileSize(quota.used_bytes) : "0 MB"}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              of {quota ? formatFileSize(quota.limit_bytes) : "4 GB"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Upload Quota</CardTitle>
-            <Upload className="h-5 w-5 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {quota ? `${quota.percentage_used.toFixed(0)}%` : "0%"}
-            </div>
-            <Progress value={quota?.percentage_used || 0} className="mt-3" />
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Get started with your videos</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col sm:flex-row gap-3">
-          <Link to="/upload" className="flex-1 sm:flex-initial">
-            <Button className="w-full sm:w-auto">
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Video
-            </Button>
-          </Link>
-          <Link to="/videos" className="flex-1 sm:flex-initial">
-            <Button variant="outline" className="w-full sm:w-auto">
-              <VideoIcon className="w-4 h-4 mr-2" />
-              Browse Videos
-            </Button>
-          </Link>
-        </CardContent>
+      {/* Filters */}
+      <Card className="p-4">
+        <div className="flex gap-4 flex-col sm:flex-row">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <Input
+              placeholder="Search videos by title..."
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Select value={categoryFilter || "__all__"} onValueChange={handleCategoryChange}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All Categories</SelectItem>
+              {categoriesData?.categories.map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={handleSortChange}>
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="views">Most Viewed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </Card>
 
-      {/* Recent Uploads */}
-      {videosData && videosData.videos.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Recent Uploads</CardTitle>
-                <CardDescription>Your latest videos</CardDescription>
-              </div>
-              <Link to="/videos" search={{ uploaded_by: user?.id }}>
-                <Button variant="ghost" size="sm">View All</Button>
-              </Link>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              {videosData.videos.slice(0, 5).map((video) => (
-                <Link key={video.id} to={`/videos/${video.id}`}>
-                  <div className="flex items-center justify-between p-3 rounded-lg hover:bg-accent transition-colors group">
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate group-hover:text-primary transition-colors">
-                        {video.title}
-                      </p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge 
-                          variant={video.processing_status === "completed" ? "default" : "secondary"} 
-                          className="text-xs capitalize"
-                        >
-                          {video.processing_status}
-                        </Badge>
-                        <span className="text-sm text-muted-foreground">
-                          {video.view_count} {video.view_count === 1 ? "view" : "views"}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      ) : videosData ? (
+      {/* Videos Grid */}
+      {isLoading ? (
+        <VideoGridSkeleton count={8} />
+      ) : sortedVideos.length === 0 ? (
         <EmptyState
-          icon={VideoIcon}
-          title="No videos yet"
-          description="You haven't uploaded any videos. Get started by uploading your first video!"
-          action={{
-            label: "Upload Video",
-            onClick: () => window.location.href = "/upload"
-          }}
+          icon={search || categoryFilter ? Search : VideoIcon}
+          title={search || categoryFilter ? "No videos found" : "No videos yet"}
+          description={
+            search || categoryFilter
+              ? "Try adjusting your search or filters to find what you're looking for."
+              : "Be the first to upload a video and share it with the community!"
+          }
+          action={
+            !search && !categoryFilter
+              ? {
+                  label: "Upload Video",
+                  onClick: () => window.location.href = "/upload"
+                }
+              : undefined
+          }
         />
-      ) : null}
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {sortedVideos.map((video) => (
+              <VideoCard key={video.id} video={video} />
+            ))}
+          </div>
+
+          {/* Load More */}
+          {hasMore && (
+            <div className="flex justify-center pt-4">
+              <Button onClick={handleLoadMore} variant="outline" size="lg">
+                Load More Videos
+              </Button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

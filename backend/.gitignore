@@ -13,3 +13,5 @@ venv/
 *.db
 *.sqlite
 alembic/versions/__pycache__/
+data/
+data.backup/

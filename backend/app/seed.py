@@ -33,16 +33,41 @@ from app.utils.security import hash_password
 # This is needed for Base.metadata.create_all() to work properly
 import app.models.user
 import app.models.invitation
+import app.models.playlist
 
 
 # Sample data
 CATEGORIES = [
-    {"name": "Gaming", "slug": "gaming"},
-    {"name": "Tutorials", "slug": "tutorials"},
-    {"name": "Vlogs", "slug": "vlogs"},
-    {"name": "Music", "slug": "music"},
-    {"name": "Sports", "slug": "sports"},
-    {"name": "Cooking", "slug": "cooking"},
+    {
+        "name": "Gaming",
+        "slug": "gaming",
+        "description": "Gaming videos, live streams, walkthroughs, and gameplay highlights",
+    },
+    {
+        "name": "Tutorials",
+        "slug": "tutorials",
+        "description": "Educational content, how-to guides, and step-by-step instructions",
+    },
+    {
+        "name": "Vlogs",
+        "slug": "vlogs",
+        "description": "Daily life, personal stories, and behind-the-scenes content",
+    },
+    {
+        "name": "Music",
+        "slug": "music",
+        "description": "Live performances, covers, original songs, and music production",
+    },
+    {
+        "name": "Sports",
+        "slug": "sports",
+        "description": "Sports highlights, match analysis, training videos, and fitness content",
+    },
+    {
+        "name": "Cooking",
+        "slug": "cooking",
+        "description": "Recipes, cooking tips, food reviews, and culinary adventures",
+    },
 ]
 
 USERS = [
@@ -116,8 +141,11 @@ async def clear_database(db: AsyncSession):
     from app.models.video import Video
     from app.models.category import Category
     from app.models.config import Config
+    from app.models.playlist import Playlist, PlaylistVideo
 
     # Clear in correct order due to foreign keys
+    await db.execute(delete(PlaylistVideo))
+    await db.execute(delete(Playlist))
     await db.execute(delete(Video))
     await db.execute(delete(Category))
     await db.execute(delete(Invitation))
@@ -141,7 +169,10 @@ async def create_categories(db: AsyncSession) -> list:
     categories = []
     for cat_data in CATEGORIES:
         category = Category(
-            name=cat_data["name"], slug=cat_data["slug"], created_by=admin_user.id
+            name=cat_data["name"],
+            slug=cat_data["slug"],
+            description=cat_data.get("description"),
+            created_by=admin_user.id,
         )
         db.add(category)
         categories.append(category)
@@ -275,6 +306,74 @@ async def create_videos(db: AsyncSession, users: list, categories: list) -> list
     return videos
 
 
+async def create_playlists(db: AsyncSession, users: list, videos: list) -> list:
+    """Create sample playlists with videos."""
+    print("📝 Creating sample playlists...")
+
+    from app.models.playlist import Playlist, PlaylistVideo
+    from app.models.video import ProcessingStatus
+
+    if not videos:
+        print("⚠️  No videos available, skipping playlist creation")
+        return []
+
+    # Filter to only completed videos for playlists
+    completed_videos = [
+        v for v in videos if v.processing_status == ProcessingStatus.COMPLETED
+    ]
+    if not completed_videos:
+        print("⚠️  No completed videos, skipping playlist creation")
+        return []
+
+    playlists = []
+
+    # Create playlists for each user
+    playlist_templates = [
+        {"name": "Favorites", "description": "My favorite videos", "is_public": True},
+        {
+            "name": "Watch Later",
+            "description": "Videos to watch later",
+            "is_public": False,
+        },
+        {
+            "name": "Best of {year}",
+            "description": "Top picks from this year",
+            "is_public": True,
+        },
+    ]
+
+    for user in users[:2]:  # Create playlists for first 2 users (alice and bob)
+        for i, template in enumerate(playlist_templates[:2]):  # 2 playlists per user
+            playlist_name = template["name"].format(year=datetime.utcnow().year)
+            playlist = Playlist(
+                name=playlist_name,
+                description=template["description"],
+                created_by=user.id,
+                is_public=template["is_public"],
+            )
+            db.add(playlist)
+            await db.flush()  # Get ID before adding videos
+
+            # Add 3-5 random completed videos to each playlist
+            num_videos = min(random.randint(3, 5), len(completed_videos))
+            selected_videos = random.sample(completed_videos, num_videos)
+
+            for position, video in enumerate(selected_videos):
+                playlist_video = PlaylistVideo(
+                    playlist_id=playlist.id,
+                    video_id=video.id,
+                    position=position,
+                    added_by=user.id,
+                )
+                db.add(playlist_video)
+
+            playlists.append(playlist)
+
+    await db.commit()
+    print(f"✅ Created {len(playlists)} playlists")
+    return playlists
+
+
 async def create_config(db: AsyncSession):
     """Create default config record."""
     print("⚙️  Creating config...")
@@ -316,6 +415,7 @@ async def seed_database(reset: bool = True):
         categories = await create_categories(db)
         users = await create_users(db)
         videos = await create_videos(db, users, categories)
+        playlists = await create_playlists(db, users, videos)
         await create_config(db)
 
     print("\n" + "=" * 60)
@@ -325,6 +425,7 @@ async def seed_database(reset: bool = True):
     print(f"   Categories: {len(categories)}")
     print(f"   Users: {len(users)}")
     print(f"   Videos: {len(videos)}")
+    print(f"   Playlists: {len(playlists)}")
     print("\n🔐 Test User Credentials:")
     print("   Username: alice   | Password: password123 | Quota: 0%")
     print("   Username: bob     | Password: password123 | Quota: 50%")

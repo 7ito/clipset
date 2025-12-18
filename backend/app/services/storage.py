@@ -26,11 +26,13 @@ def ensure_directories() -> None:
     - VIDEO_STORAGE_PATH
     - THUMBNAIL_STORAGE_PATH
     - TEMP_STORAGE_PATH
+    - CATEGORY_IMAGE_STORAGE_PATH
     """
     directories = [
         settings.VIDEO_STORAGE_PATH,
         settings.THUMBNAIL_STORAGE_PATH,
         settings.TEMP_STORAGE_PATH,
+        settings.CATEGORY_IMAGE_STORAGE_PATH,
     ]
 
     for directory in directories:
@@ -206,3 +208,91 @@ def cleanup_temp_files(older_than_hours: int = 24) -> int:
     except Exception as e:
         logger.error(f"Failed to cleanup temp files: {e}")
         return deleted_count
+
+
+# Category Image Functions
+
+
+def save_category_image(upload_file: UploadFile, category_id: str) -> tuple[str, int]:
+    """
+    Save and process a category image.
+
+    Uploads are saved to temp, processed with image_processor, then moved to final location.
+
+    Args:
+        upload_file: Uploaded image file
+        category_id: Category ID (used for filename)
+
+    Returns:
+        Tuple of (filename, file_size_bytes)
+
+    Raises:
+        ValueError: If image is invalid or too large
+        IOError: If file operations fail
+    """
+    from app.services.image_processor import (
+        validate_image_file,
+        resize_and_convert_image,
+    )
+
+    # Generate filename: {category_id}.webp
+    filename = f"{category_id}.webp"
+
+    # Save to temp first
+    temp_dir = Path(settings.TEMP_STORAGE_PATH)
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    temp_path = temp_dir / f"temp_{filename}_{uuid.uuid4()}.tmp"
+
+    try:
+        # Save uploaded file to temp
+        save_uploaded_file(upload_file, temp_path)
+
+        # Validate image
+        validate_image_file(temp_path, settings.MAX_CATEGORY_IMAGE_SIZE_BYTES)
+
+        # Process and convert to WebP
+        final_path = Path(settings.CATEGORY_IMAGE_STORAGE_PATH) / filename
+        final_path.parent.mkdir(parents=True, exist_ok=True)
+
+        file_size = resize_and_convert_image(
+            temp_path, final_path, size=settings.CATEGORY_IMAGE_SIZE, quality=85
+        )
+
+        # Clean up temp file
+        temp_path.unlink()
+
+        logger.info(f"Saved category image: {filename} ({file_size} bytes)")
+        return filename, file_size
+
+    except Exception as e:
+        # Clean up temp file on error
+        if temp_path.exists():
+            temp_path.unlink()
+        raise
+
+
+def delete_category_image(image_filename: str) -> bool:
+    """
+    Delete a category image from storage.
+
+    Args:
+        image_filename: Name of the image file to delete
+
+    Returns:
+        True if deleted, False if file didn't exist
+    """
+    image_path = Path(settings.CATEGORY_IMAGE_STORAGE_PATH) / image_filename
+    return delete_file(image_path)
+
+
+def get_category_image_path(image_filename: str) -> Path:
+    """
+    Get the full path to a category image file.
+
+    Args:
+        image_filename: Name of the image file
+
+    Returns:
+        Path object to the image file
+    """
+    return Path(settings.CATEGORY_IMAGE_STORAGE_PATH) / image_filename

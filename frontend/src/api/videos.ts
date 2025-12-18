@@ -115,3 +115,18 @@ export function getThumbnailUrl(id: string): string {
   const token = localStorage.getItem("clipset_token")
   return `http://localhost:8000/api/videos/${id}/thumbnail?token=${token}`
 }
+
+/**
+ * Reset all users' upload quotas (admin only)
+ */
+export interface QuotaResetResponse {
+  reset_count: number
+  message: string
+}
+
+export async function resetAllQuotas(): Promise<QuotaResetResponse> {
+  const response = await apiClient.post<QuotaResetResponse>(
+    "/api/videos/admin/quota/reset-all"
+  )
+  return response.data
+}

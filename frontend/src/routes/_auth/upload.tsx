@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "@tanstack/react-query"
 import { Upload, X, FileVideo } from "lucide-react"
 import { uploadVideo, getQuotaInfo } from "@/api/videos"
 import { getCategories } from "@/api/categories"
+import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -23,6 +24,7 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024 // 2GB
 
 function UploadPage() {
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -49,7 +51,10 @@ function UploadPage() {
     onSuccess: (video) => {
       toast.success("Video uploaded successfully! Processing started.")
       refetchQuota()
-      navigate({ to: `/videos/${video.id}` })
+      // Redirect to user's profile page
+      if (user) {
+        navigate({ to: "/profile/$username", params: { username: user.username } })
+      }
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || "Failed to upload video")

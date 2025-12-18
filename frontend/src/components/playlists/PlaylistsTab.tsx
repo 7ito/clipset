@@ -61,23 +61,33 @@ export function PlaylistsTab({ username, isOwnProfile }: PlaylistsTabProps) {
   // Empty state
   if (!sortedPlaylists || sortedPlaylists.length === 0) {
     return (
-      <EmptyState
-        icon={ListVideo}
-        title={isOwnProfile ? "No playlists yet" : `${username} hasn't created any playlists yet`}
-        description={
-          isOwnProfile
-            ? "Create your first playlist to start organizing your favorite videos!"
-            : "Check back later to see their playlists."
-        }
-        action={
-          isOwnProfile
-            ? {
-                label: "Create Playlist",
-                onClick: () => setIsCreateDialogOpen(true)
-              }
-            : undefined
-        }
-      />
+      <>
+        <EmptyState
+          icon={ListVideo}
+          title={isOwnProfile ? "No playlists yet" : `${username} hasn't created any playlists yet`}
+          description={
+            isOwnProfile
+              ? "Create your first playlist to start organizing your favorite videos!"
+              : "Check back later to see their playlists."
+          }
+          action={
+            isOwnProfile
+              ? {
+                  label: "Create Playlist",
+                  onClick: () => setIsCreateDialogOpen(true)
+                }
+              : undefined
+          }
+        />
+
+        {/* Create playlist dialog */}
+        {isOwnProfile && (
+          <CreatePlaylistDialog
+            isOpen={isCreateDialogOpen}
+            onClose={() => setIsCreateDialogOpen(false)}
+          />
+        )}
+      </>
     )
   }
 

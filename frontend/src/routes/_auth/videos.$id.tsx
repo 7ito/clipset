@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Edit, Trash2, Eye, Calendar, User, Folder, FileVideo, Loader2, ArrowLeft } from "lucide-react"
+import { Edit, Trash2, Eye, Calendar, User, Folder, FileVideo, Loader2, ArrowLeft, ListPlus } from "lucide-react"
 import { getVideo, deleteVideo, updateVideo, incrementViewCount, getVideoStreamUrl, getThumbnailUrl } from "@/api/videos"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -15,6 +15,7 @@ import { toast } from "@/lib/toast"
 import { formatDuration, formatUploadDate, formatFileSize, getStatusColor } from "@/lib/formatters"
 import { useAuth } from "@/hooks/useAuth"
 import { LoadingPage } from "@/components/shared/LoadingSpinner"
+import { AddToPlaylistDialog } from "@/components/playlists/AddToPlaylistDialog"
 
 export const Route = createFileRoute("/_auth/videos/$id")({
   component: VideoPlayerPage
@@ -29,6 +30,7 @@ function VideoPlayerPage() {
   const [editDescription, setEditDescription] = useState("")
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [hasIncrementedView, setHasIncrementedView] = useState(false)
+  const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false)
 
   // Fetch video
   const { data: video, isLoading, refetch } = useQuery({
@@ -214,77 +216,92 @@ function VideoPlayerPage() {
               </div>
 
               {/* Actions */}
-              {canEdit && (
-                <div className="flex gap-2">
-                  <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="sm" onClick={handleEditClick}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Edit Video</DialogTitle>
-                        <DialogDescription>Update video title and description</DialogDescription>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-title">Title</Label>
-                          <Input
-                            id="edit-title"
-                            value={editTitle}
-                            onChange={(e) => setEditTitle(e.target.value)}
-                            maxLength={200}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-description">Description</Label>
-                          <Textarea
-                            id="edit-description"
-                            value={editDescription}
-                            onChange={(e) => setEditDescription(e.target.value)}
-                            rows={4}
-                            maxLength={2000}
-                          />
-                        </div>
-                      </div>
-                      <DialogFooter>
-                        <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button onClick={handleEditSubmit} disabled={!editTitle.trim()}>
-                          Save Changes
-                        </Button>
-                      </DialogFooter>
-                    </DialogContent>
-                  </Dialog>
+              <div className="flex gap-2">
+                {/* Add to Playlist button - available for completed videos */}
+                {video.processing_status === "completed" && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setIsAddToPlaylistOpen(true)}
+                  >
+                    <ListPlus className="w-4 h-4 mr-2" />
+                    Add to Playlist
+                  </Button>
+                )}
 
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="destructive" size="sm">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Video</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to delete "{video.title}"? This action cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => deleteMutation.mutate()}
-                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                          Delete
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                </div>
-              )}
+                {/* Edit and Delete - only for owners/admins */}
+                {canEdit && (
+                  <>
+                    <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" onClick={handleEditClick}>
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Edit Video</DialogTitle>
+                          <DialogDescription>Update video title and description</DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-title">Title</Label>
+                            <Input
+                              id="edit-title"
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              maxLength={200}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-description">Description</Label>
+                            <Textarea
+                              id="edit-description"
+                              value={editDescription}
+                              onChange={(e) => setEditDescription(e.target.value)}
+                              rows={4}
+                              maxLength={2000}
+                            />
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button onClick={handleEditSubmit} disabled={!editTitle.trim()}>
+                            Save Changes
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="sm">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete Video</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete "{video.title}"? This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => deleteMutation.mutate()}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Description */}
@@ -327,6 +344,14 @@ function VideoPlayerPage() {
           </div>
         </div>
       </div>
+
+      {/* Add to Playlist Dialog */}
+      <AddToPlaylistDialog
+        isOpen={isAddToPlaylistOpen}
+        onClose={() => setIsAddToPlaylistOpen(false)}
+        videoId={id}
+        videoTitle={video.title}
+      />
     </div>
   )
 }

@@ -24,6 +24,7 @@ import { Route as AuthProfileUsernameRouteImport } from './routes/_auth/profile.
 import { Route as AuthCategoriesSlugRouteImport } from './routes/_auth/categories.$slug'
 import { Route as AuthAdminInvitationsRouteImport } from './routes/_auth/admin.invitations'
 import { Route as AuthAdminCategoriesRouteImport } from './routes/_auth/admin.categories'
+import { Route as AuthProfileUsernameIndexRouteImport } from './routes/_auth/profile.$username.index'
 import { Route as AuthProfileUsernamePlaylistIdRouteImport } from './routes/_auth/profile.$username.playlist.$id'
 
 const LoginRoute = LoginRouteImport.update({
@@ -100,6 +101,12 @@ const AuthAdminCategoriesRoute = AuthAdminCategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => AuthAdminRoute,
 } as any)
+const AuthProfileUsernameIndexRoute =
+  AuthProfileUsernameIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthProfileUsernameRoute,
+  } as any)
 const AuthProfileUsernamePlaylistIdRoute =
   AuthProfileUsernamePlaylistIdRouteImport.update({
     id: '/playlist/$id',
@@ -122,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/videos/$id': typeof AuthVideosIdRoute
   '/admin/': typeof AuthAdminIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
+  '/profile/$username/': typeof AuthProfileUsernameIndexRoute
   '/profile/$username/playlist/$id': typeof AuthProfileUsernamePlaylistIdRoute
 }
 export interface FileRoutesByTo {
@@ -134,10 +142,10 @@ export interface FileRoutesByTo {
   '/admin/categories': typeof AuthAdminCategoriesRoute
   '/admin/invitations': typeof AuthAdminInvitationsRoute
   '/categories/$slug': typeof AuthCategoriesSlugRoute
-  '/profile/$username': typeof AuthProfileUsernameRouteWithChildren
   '/videos/$id': typeof AuthVideosIdRoute
   '/admin': typeof AuthAdminIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
+  '/profile/$username': typeof AuthProfileUsernameIndexRoute
   '/profile/$username/playlist/$id': typeof AuthProfileUsernamePlaylistIdRoute
 }
 export interface FileRoutesById {
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/_auth/videos/$id': typeof AuthVideosIdRoute
   '/_auth/admin/': typeof AuthAdminIndexRoute
   '/_auth/categories/': typeof AuthCategoriesIndexRoute
+  '/_auth/profile/$username/': typeof AuthProfileUsernameIndexRoute
   '/_auth/profile/$username/playlist/$id': typeof AuthProfileUsernamePlaylistIdRoute
 }
 export interface FileRouteTypes {
@@ -176,6 +185,7 @@ export interface FileRouteTypes {
     | '/videos/$id'
     | '/admin/'
     | '/categories'
+    | '/profile/$username/'
     | '/profile/$username/playlist/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -188,10 +198,10 @@ export interface FileRouteTypes {
     | '/admin/categories'
     | '/admin/invitations'
     | '/categories/$slug'
-    | '/profile/$username'
     | '/videos/$id'
     | '/admin'
     | '/categories'
+    | '/profile/$username'
     | '/profile/$username/playlist/$id'
   id:
     | '__root__'
@@ -210,6 +220,7 @@ export interface FileRouteTypes {
     | '/_auth/videos/$id'
     | '/_auth/admin/'
     | '/_auth/categories/'
+    | '/_auth/profile/$username/'
     | '/_auth/profile/$username/playlist/$id'
   fileRoutesById: FileRoutesById
 }
@@ -327,6 +338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminCategoriesRouteImport
       parentRoute: typeof AuthAdminRoute
     }
+    '/_auth/profile/$username/': {
+      id: '/_auth/profile/$username/'
+      path: '/'
+      fullPath: '/profile/$username/'
+      preLoaderRoute: typeof AuthProfileUsernameIndexRouteImport
+      parentRoute: typeof AuthProfileUsernameRoute
+    }
     '/_auth/profile/$username/playlist/$id': {
       id: '/_auth/profile/$username/playlist/$id'
       path: '/playlist/$id'
@@ -354,10 +372,12 @@ const AuthAdminRouteWithChildren = AuthAdminRoute._addFileChildren(
 )
 
 interface AuthProfileUsernameRouteChildren {
+  AuthProfileUsernameIndexRoute: typeof AuthProfileUsernameIndexRoute
   AuthProfileUsernamePlaylistIdRoute: typeof AuthProfileUsernamePlaylistIdRoute
 }
 
 const AuthProfileUsernameRouteChildren: AuthProfileUsernameRouteChildren = {
+  AuthProfileUsernameIndexRoute: AuthProfileUsernameIndexRoute,
   AuthProfileUsernamePlaylistIdRoute: AuthProfileUsernamePlaylistIdRoute,
 }
 

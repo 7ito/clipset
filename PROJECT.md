@@ -192,34 +192,55 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 - Navigation updated (Home | Categories | Upload)
 - Full Playwright testing completed
 
-### ✅ Phase 9: Playlist Feature (90% Complete)
+### ✅ Phase 9: Playlist Feature (Complete)
 
 **Architecture:**
 - All playlists are public (no private/public toggle)
 - Playlists live on user profiles (`/profile/{username}` with tabs)
 - User flow: Profile → Playlists Tab → Create/Open Playlist → Add Videos Dialog
+- Layout pattern: Index page shows profile header, playlist detail pages are completely separate
 
-**Backend (✅ COMPLETE):**
+**Backend (✅ 100% COMPLETE):**
 - Playlist database schema (from Phase 8)
-- 8 REST API endpoints for full CRUD operations
+- 9 REST API endpoints for full CRUD operations
 - Permission model: creator can edit, anyone can view
 - Position-based video ordering with atomic reordering
 - Automatic position management on add/remove
 
-**Frontend (✅ 90% COMPLETE):**
+**Frontend (✅ 100% COMPLETE):**
 - ✅ Tabs component integration
 - ✅ TypeScript types and API client
 - ✅ Profile page tabs (Videos | Playlists)
 - ✅ Playlist cards with cover images and gradient fallbacks
-- ✅ Playlist detail page with full integration
+- ✅ Playlist detail page component fully implemented
 - ✅ Drag-and-drop video reordering (@dnd-kit with keyboard/touch support)
 - ✅ "Add Videos" dialog (search + category filter + multi-select checkboxes)
-- ✅ Quick "Add to Playlist" from video cards (dashboard implemented)
+- ✅ Quick "Add to Playlist" from video cards (all pages: dashboard, categories, profiles, video player)
 - ✅ Create/Edit playlist dialogs with validation
 - ✅ Remove videos with optimistic updates
-- ⏳ Extended Playwright testing (basic tests complete)
+- ✅ **Routing FIXED**: Layout pattern with conditional header rendering
 
-**Remaining Work:** 2-3 hours polish
+**Route Restructuring Completed:**
+- [x] Created `profile.$username.index.tsx` for tabs view (~200 lines)
+- [x] Converted `profile.$username.tsx` to layout component (~170 lines)
+- [x] Implemented conditional header rendering (hidden on playlist pages)
+- [x] Tested complete playlist workflow end-to-end (30+ verification points)
+- [x] Captured 4 screenshots documenting all major features
+
+**Testing (✅ COMPLETE):**
+- ✅ Create playlist workflow
+- ✅ Add to playlist from 4 different pages
+- ✅ Pre-selection of playlists containing video
+- ✅ Toast notifications
+- ✅ Button visibility and interactions
+- ✅ Playlist detail page navigation (ROUTING FIX VERIFIED!)
+- ✅ Full CRUD workflow on playlist detail page
+- ✅ Drag-drop reordering (mouse + keyboard)
+- ✅ Permission boundaries tested
+- ✅ Optimistic updates working
+- ✅ Navigation flows confirmed
+
+**Total Time**: ~12-14 hours across 3 sessions
 
 ### Phase 10: Docker Deployment & Production (📋 Planned - Next Priority)
 **Goal**: Make Clipset production-ready for self-hosting

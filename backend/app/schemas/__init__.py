@@ -28,6 +28,16 @@ from app.schemas.video import (
     ViewCountResponse,
     QuotaResetResponse,
 )
+from app.schemas.playlist import (
+    PlaylistCreate,
+    PlaylistUpdate,
+    PlaylistVideoAdd,
+    PlaylistReorderRequest,
+    PlaylistResponse,
+    PlaylistListResponse,
+    PlaylistVideoResponse,
+    PlaylistWithVideosResponse,
+)
 
 __all__ = [
     "UserBase",
@@ -54,4 +64,12 @@ __all__ = [
     "QuotaInfoResponse",
     "ViewCountResponse",
     "QuotaResetResponse",
+    "PlaylistCreate",
+    "PlaylistUpdate",
+    "PlaylistVideoAdd",
+    "PlaylistReorderRequest",
+    "PlaylistResponse",
+    "PlaylistListResponse",
+    "PlaylistVideoResponse",
+    "PlaylistWithVideosResponse",
 ]

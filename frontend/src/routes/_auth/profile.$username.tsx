@@ -11,9 +11,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { EmptyState } from "@/components/shared/EmptyState"
 import { VideoGridSkeleton } from "@/components/shared/VideoCardSkeleton"
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner"
+import { PlaylistsTab } from "@/components/playlists/PlaylistsTab"
 import { formatDate, formatFileSize, formatDuration, formatUploadDate, getStatusColor } from "@/lib/formatters"
 import type { Video } from "@/types/video"
 import type { UserWithQuota } from "@/types/user"
@@ -290,10 +292,17 @@ function ProfilePage() {
 				)}
 			</div>
 
-			<Separator />
+		<Separator />
 
-			{/* Videos Grid */}
-			<div className="space-y-6">
+		{/* Tabs: Videos | Playlists */}
+		<Tabs defaultValue="videos" className="space-y-6">
+			<TabsList className="grid w-full grid-cols-2 max-w-md mx-auto">
+				<TabsTrigger value="videos">Videos</TabsTrigger>
+				<TabsTrigger value="playlists">Playlists</TabsTrigger>
+			</TabsList>
+
+			{/* Videos Tab */}
+			<TabsContent value="videos" className="space-y-6">
 				<h2 className="text-2xl font-semibold">Videos</h2>
 
 				{isLoadingVideos ? (
@@ -334,7 +343,13 @@ function ProfilePage() {
 						)}
 					</>
 				)}
-			</div>
+			</TabsContent>
+
+			{/* Playlists Tab */}
+			<TabsContent value="playlists">
+				<PlaylistsTab username={profileUser.username} isOwnProfile={isOwnProfile} />
+			</TabsContent>
+		</Tabs>
 
 			{/* My Profile Dialog */}
 			{isOwnProfile && "email" in profileUser && (

@@ -7,7 +7,7 @@ from app.config import settings
 from app.database import init_db, async_session_maker
 from app.models.user import User
 from app.utils.security import hash_password
-from app.api import auth, users, invitations, categories, videos
+from app.api import auth, users, invitations, categories, videos, playlists
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -86,6 +86,7 @@ app.include_router(users.router, prefix="/api/users", tags=["users"])
 app.include_router(invitations.router, prefix="/api/invitations", tags=["invitations"])
 app.include_router(categories.router, prefix="/api/categories", tags=["categories"])
 app.include_router(videos.router, prefix="/api/videos", tags=["videos"])
+app.include_router(playlists.router, prefix="/api/playlists", tags=["playlists"])
 
 
 # Health check endpoint

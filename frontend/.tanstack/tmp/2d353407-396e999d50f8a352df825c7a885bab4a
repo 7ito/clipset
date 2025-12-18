@@ -24,7 +24,6 @@ import { Route as AuthProfileUsernameRouteImport } from './routes/_auth/profile.
 import { Route as AuthCategoriesSlugRouteImport } from './routes/_auth/categories.$slug'
 import { Route as AuthAdminInvitationsRouteImport } from './routes/_auth/admin.invitations'
 import { Route as AuthAdminCategoriesRouteImport } from './routes/_auth/admin.categories'
-import { Route as AuthProfileUsernamePlaylistIdRouteImport } from './routes/_auth/profile.$username.playlist.$id'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -100,12 +99,6 @@ const AuthAdminCategoriesRoute = AuthAdminCategoriesRouteImport.update({
   path: '/categories',
   getParentRoute: () => AuthAdminRoute,
 } as any)
-const AuthProfileUsernamePlaylistIdRoute =
-  AuthProfileUsernamePlaylistIdRouteImport.update({
-    id: '/playlist/$id',
-    path: '/playlist/$id',
-    getParentRoute: () => AuthProfileUsernameRoute,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -118,11 +111,10 @@ export interface FileRoutesByFullPath {
   '/admin/categories': typeof AuthAdminCategoriesRoute
   '/admin/invitations': typeof AuthAdminInvitationsRoute
   '/categories/$slug': typeof AuthCategoriesSlugRoute
-  '/profile/$username': typeof AuthProfileUsernameRouteWithChildren
+  '/profile/$username': typeof AuthProfileUsernameRoute
   '/videos/$id': typeof AuthVideosIdRoute
   '/admin/': typeof AuthAdminIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
-  '/profile/$username/playlist/$id': typeof AuthProfileUsernamePlaylistIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -134,11 +126,10 @@ export interface FileRoutesByTo {
   '/admin/categories': typeof AuthAdminCategoriesRoute
   '/admin/invitations': typeof AuthAdminInvitationsRoute
   '/categories/$slug': typeof AuthCategoriesSlugRoute
-  '/profile/$username': typeof AuthProfileUsernameRouteWithChildren
+  '/profile/$username': typeof AuthProfileUsernameRoute
   '/videos/$id': typeof AuthVideosIdRoute
   '/admin': typeof AuthAdminIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
-  '/profile/$username/playlist/$id': typeof AuthProfileUsernamePlaylistIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -153,11 +144,10 @@ export interface FileRoutesById {
   '/_auth/admin/categories': typeof AuthAdminCategoriesRoute
   '/_auth/admin/invitations': typeof AuthAdminInvitationsRoute
   '/_auth/categories/$slug': typeof AuthCategoriesSlugRoute
-  '/_auth/profile/$username': typeof AuthProfileUsernameRouteWithChildren
+  '/_auth/profile/$username': typeof AuthProfileUsernameRoute
   '/_auth/videos/$id': typeof AuthVideosIdRoute
   '/_auth/admin/': typeof AuthAdminIndexRoute
   '/_auth/categories/': typeof AuthCategoriesIndexRoute
-  '/_auth/profile/$username/playlist/$id': typeof AuthProfileUsernamePlaylistIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -176,7 +166,6 @@ export interface FileRouteTypes {
     | '/videos/$id'
     | '/admin/'
     | '/categories'
-    | '/profile/$username/playlist/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -192,7 +181,6 @@ export interface FileRouteTypes {
     | '/videos/$id'
     | '/admin'
     | '/categories'
-    | '/profile/$username/playlist/$id'
   id:
     | '__root__'
     | '/'
@@ -210,7 +198,6 @@ export interface FileRouteTypes {
     | '/_auth/videos/$id'
     | '/_auth/admin/'
     | '/_auth/categories/'
-    | '/_auth/profile/$username/playlist/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -327,13 +314,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminCategoriesRouteImport
       parentRoute: typeof AuthAdminRoute
     }
-    '/_auth/profile/$username/playlist/$id': {
-      id: '/_auth/profile/$username/playlist/$id'
-      path: '/playlist/$id'
-      fullPath: '/profile/$username/playlist/$id'
-      preLoaderRoute: typeof AuthProfileUsernamePlaylistIdRouteImport
-      parentRoute: typeof AuthProfileUsernameRoute
-    }
   }
 }
 
@@ -353,23 +333,12 @@ const AuthAdminRouteWithChildren = AuthAdminRoute._addFileChildren(
   AuthAdminRouteChildren,
 )
 
-interface AuthProfileUsernameRouteChildren {
-  AuthProfileUsernamePlaylistIdRoute: typeof AuthProfileUsernamePlaylistIdRoute
-}
-
-const AuthProfileUsernameRouteChildren: AuthProfileUsernameRouteChildren = {
-  AuthProfileUsernamePlaylistIdRoute: AuthProfileUsernamePlaylistIdRoute,
-}
-
-const AuthProfileUsernameRouteWithChildren =
-  AuthProfileUsernameRoute._addFileChildren(AuthProfileUsernameRouteChildren)
-
 interface AuthProfileRouteChildren {
-  AuthProfileUsernameRoute: typeof AuthProfileUsernameRouteWithChildren
+  AuthProfileUsernameRoute: typeof AuthProfileUsernameRoute
 }
 
 const AuthProfileRouteChildren: AuthProfileRouteChildren = {
-  AuthProfileUsernameRoute: AuthProfileUsernameRouteWithChildren,
+  AuthProfileUsernameRoute: AuthProfileUsernameRoute,
 }
 
 const AuthProfileRouteWithChildren = AuthProfileRoute._addFileChildren(

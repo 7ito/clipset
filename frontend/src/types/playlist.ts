@@ -2,27 +2,28 @@
  * TypeScript types for Playlist entities (Phase 9 feature)
  */
 
+import type { Video } from "./video"
+
 export interface Playlist {
   id: string
   name: string
   description: string | null
   created_by: string
-  is_public: boolean
+  creator_username: string
+  video_count: number
   created_at: string
   updated_at: string
-  video_count?: number
+  first_video_thumbnail: string | null
 }
 
 export interface PlaylistCreate {
   name: string
   description?: string
-  is_public?: boolean
 }
 
 export interface PlaylistUpdate {
   name?: string
   description?: string
-  is_public?: boolean
 }
 
 export interface PlaylistVideo {
@@ -31,7 +32,8 @@ export interface PlaylistVideo {
   video_id: string
   position: number
   added_at: string
-  added_by: string
+  added_by: string | null
+  video: Video
 }
 
 export interface PlaylistVideoAdd {

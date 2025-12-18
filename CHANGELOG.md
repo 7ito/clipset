@@ -2,7 +2,49 @@
 
 All notable changes to Clipset will be documented in this file.
 
-## [Unreleased] - 2025-12-18
+## [Unreleased] - 2024-12-18
+
+### In Progress - Phase 9: Playlist Feature (40% COMPLETE)
+
+#### Backend API (COMPLETE)
+- **Playlist Schemas** (`app/schemas/playlist.py`):
+  - `PlaylistCreate` - Create playlist request
+  - `PlaylistUpdate` - Update playlist request
+  - `PlaylistVideoAdd` - Add video to playlist
+  - `PlaylistReorderRequest` - Reorder videos in playlist
+  - `PlaylistResponse` - Playlist with metadata
+  - `PlaylistWithVideosResponse` - Playlist with full video details
+  - `PlaylistListResponse` - List of playlists
+
+- **Playlist API Endpoints** (`app/api/playlists.py`):
+  - `GET /api/playlists/by-user/{username}` - Get user's playlists
+  - `POST /api/playlists/` - Create new playlist
+  - `GET /api/playlists/{id}` - Get playlist with videos
+  - `PATCH /api/playlists/{id}` - Update playlist metadata
+  - `DELETE /api/playlists/{id}` - Delete playlist
+  - `POST /api/playlists/{id}/videos` - Add video to playlist
+  - `DELETE /api/playlists/{id}/videos/{video_id}` - Remove video
+  - `PATCH /api/playlists/{id}/reorder` - Reorder videos
+  - `GET /api/playlists/videos/{video_id}/playlists` - Get playlists containing video
+
+- **Permission Model**:
+  - All playlists are public (no private/public toggle)
+  - Only playlist creator can edit/add/remove/reorder
+  - Admins can delete any playlist
+  - All authenticated users can view all playlists
+
+#### Frontend (IN PROGRESS)
+- **UI Components**:
+  - Added shadcn/ui Tabs component
+  - Created playlist API client (`api/playlists.ts`)
+  - Updated TypeScript types for playlists
+
+- **Remaining Frontend Work**:
+  - Profile page tabs integration
+  - Playlist card components
+  - Playlist detail page with drag-and-drop reordering
+  - Add videos dialog (search + category filter)
+  - Quick add to playlist from video cards
 
 ### Added - Phase 8: Twitch-Style Categories (COMPLETE)
 

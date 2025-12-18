@@ -168,9 +168,9 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 - Recent activity feed with clickable links
 - Video processing status breakdown with visual indicators
 
-### Phase 8: Twitch-Style Categories (🚧 In Progress)
+### ✅ Phase 8: Twitch-Style Categories (Completed)
 
-**Backend (✅ Complete):**
+**Backend:**
 - Category model enhanced with `description`, `image_filename`, `updated_at`
 - Playlist models created (`playlists`, `playlist_videos` tables)
 - Image processor service (resize to 400x400, convert to WebP)
@@ -181,19 +181,29 @@ Social media platforms compress videos or impose file size limits. Clipset provi
   - `DELETE /api/categories/{id}/image` - Delete image
   - `GET /api/categories/slug/{slug}` - Get by slug
 - All existing endpoints updated with image_url and descriptions
-- Tested: All endpoints working correctly
 
-**Frontend (⏳ Next):**
-- Update category types with description and image fields
-- Add API client functions for image upload/delete
-- Update admin categories page with image upload UI
-- Create category browse page (`/categories`)
-- Create individual category pages (`/categories/{slug}`)
-- Add CategoryCard component with image support
-- Add "Categories" link to main navigation
-- Test with Playwright
+**Frontend:**
+- Updated TypeScript types with new category fields
+- API client functions (getCategoryBySlug, uploadCategoryImage, deleteCategoryImage)
+- Admin categories page with image upload UI and description field
+- Category browse page (`/categories`) with search and sort
+- Individual category pages (`/categories/{slug}`) with filtered videos
+- CategoryCard component with gradient fallbacks
+- Navigation updated (Home | Categories | Upload)
+- Full Playwright testing completed
 
-### Phase 9: Final Testing & Deployment (📋 Planned)
+### Phase 9: Playlist Feature (📋 Planned)
+- Playlist CRUD API endpoints (create, read, update, delete)
+- Playlist video management (add, remove, reorder)
+- Playlist browse page (`/playlists`)
+- Individual playlist pages with video list
+- "Add to Playlist" button on video cards
+- Drag-and-drop video reordering
+- Public/private playlist visibility
+- Playlist sharing via clean URLs
+- Full Playwright testing
+
+### Phase 10: Final Testing & Deployment (📋 Planned)
 - Comprehensive end-to-end testing with Playwright
 - Full navigation flow testing
 - Mobile responsiveness verification

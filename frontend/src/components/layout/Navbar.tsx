@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router"
-import { LogOut, User, Moon, Sun, Menu, X, Home, Upload as UploadIcon, Shield } from "lucide-react"
+import { LogOut, User, Moon, Sun, Menu, X, Home, Upload as UploadIcon, Shield, FolderOpen } from "lucide-react"
 import { useState } from "react"
 import { useAuth } from "@/hooks/useAuth"
 import { useTheme } from "@/contexts/theme-context"
@@ -49,6 +49,12 @@ export function Navbar() {
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
                 Home
+              </Link>
+              <Link
+                to="/categories"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Categories
               </Link>
               <Link
                 to="/upload"
@@ -138,6 +144,14 @@ export function Navbar() {
             >
               <Home className="w-4 h-4" />
               <span>Home</span>
+            </Link>
+            <Link
+              to="/categories"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-3 px-3 py-2 rounded-md text-sm hover:bg-accent transition-colors"
+            >
+              <FolderOpen className="w-4 h-4" />
+              <span>Categories</span>
             </Link>
             <Link
               to="/upload"

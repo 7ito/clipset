@@ -17,9 +17,11 @@ import { Route as AuthUploadRouteImport } from './routes/_auth/upload'
 import { Route as AuthProfileRouteImport } from './routes/_auth/profile'
 import { Route as AuthDashboardRouteImport } from './routes/_auth/dashboard'
 import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
+import { Route as AuthCategoriesIndexRouteImport } from './routes/_auth/categories.index'
 import { Route as AuthAdminIndexRouteImport } from './routes/_auth/admin.index'
 import { Route as AuthVideosIdRouteImport } from './routes/_auth/videos.$id'
 import { Route as AuthProfileUsernameRouteImport } from './routes/_auth/profile.$username'
+import { Route as AuthCategoriesSlugRouteImport } from './routes/_auth/categories.$slug'
 import { Route as AuthAdminInvitationsRouteImport } from './routes/_auth/admin.invitations'
 import { Route as AuthAdminCategoriesRouteImport } from './routes/_auth/admin.categories'
 
@@ -62,6 +64,11 @@ const AuthAdminRoute = AuthAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthCategoriesIndexRoute = AuthCategoriesIndexRouteImport.update({
+  id: '/categories/',
+  path: '/categories/',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthAdminIndexRoute = AuthAdminIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -76,6 +83,11 @@ const AuthProfileUsernameRoute = AuthProfileUsernameRouteImport.update({
   id: '/$username',
   path: '/$username',
   getParentRoute: () => AuthProfileRoute,
+} as any)
+const AuthCategoriesSlugRoute = AuthCategoriesSlugRouteImport.update({
+  id: '/categories/$slug',
+  path: '/categories/$slug',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthAdminInvitationsRoute = AuthAdminInvitationsRouteImport.update({
   id: '/invitations',
@@ -98,9 +110,11 @@ export interface FileRoutesByFullPath {
   '/register/$token': typeof RegisterTokenRoute
   '/admin/categories': typeof AuthAdminCategoriesRoute
   '/admin/invitations': typeof AuthAdminInvitationsRoute
+  '/categories/$slug': typeof AuthCategoriesSlugRoute
   '/profile/$username': typeof AuthProfileUsernameRoute
   '/videos/$id': typeof AuthVideosIdRoute
   '/admin/': typeof AuthAdminIndexRoute
+  '/categories': typeof AuthCategoriesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -111,9 +125,11 @@ export interface FileRoutesByTo {
   '/register/$token': typeof RegisterTokenRoute
   '/admin/categories': typeof AuthAdminCategoriesRoute
   '/admin/invitations': typeof AuthAdminInvitationsRoute
+  '/categories/$slug': typeof AuthCategoriesSlugRoute
   '/profile/$username': typeof AuthProfileUsernameRoute
   '/videos/$id': typeof AuthVideosIdRoute
   '/admin': typeof AuthAdminIndexRoute
+  '/categories': typeof AuthCategoriesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -127,9 +143,11 @@ export interface FileRoutesById {
   '/register/$token': typeof RegisterTokenRoute
   '/_auth/admin/categories': typeof AuthAdminCategoriesRoute
   '/_auth/admin/invitations': typeof AuthAdminInvitationsRoute
+  '/_auth/categories/$slug': typeof AuthCategoriesSlugRoute
   '/_auth/profile/$username': typeof AuthProfileUsernameRoute
   '/_auth/videos/$id': typeof AuthVideosIdRoute
   '/_auth/admin/': typeof AuthAdminIndexRoute
+  '/_auth/categories/': typeof AuthCategoriesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -143,9 +161,11 @@ export interface FileRouteTypes {
     | '/register/$token'
     | '/admin/categories'
     | '/admin/invitations'
+    | '/categories/$slug'
     | '/profile/$username'
     | '/videos/$id'
     | '/admin/'
+    | '/categories'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -156,9 +176,11 @@ export interface FileRouteTypes {
     | '/register/$token'
     | '/admin/categories'
     | '/admin/invitations'
+    | '/categories/$slug'
     | '/profile/$username'
     | '/videos/$id'
     | '/admin'
+    | '/categories'
   id:
     | '__root__'
     | '/'
@@ -171,9 +193,11 @@ export interface FileRouteTypes {
     | '/register/$token'
     | '/_auth/admin/categories'
     | '/_auth/admin/invitations'
+    | '/_auth/categories/$slug'
     | '/_auth/profile/$username'
     | '/_auth/videos/$id'
     | '/_auth/admin/'
+    | '/_auth/categories/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -241,6 +265,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/categories/': {
+      id: '/_auth/categories/'
+      path: '/categories'
+      fullPath: '/categories'
+      preLoaderRoute: typeof AuthCategoriesIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/admin/': {
       id: '/_auth/admin/'
       path: '/'
@@ -261,6 +292,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/profile/$username'
       preLoaderRoute: typeof AuthProfileUsernameRouteImport
       parentRoute: typeof AuthProfileRoute
+    }
+    '/_auth/categories/$slug': {
+      id: '/_auth/categories/$slug'
+      path: '/categories/$slug'
+      fullPath: '/categories/$slug'
+      preLoaderRoute: typeof AuthCategoriesSlugRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_auth/admin/invitations': {
       id: '/_auth/admin/invitations'
@@ -312,7 +350,9 @@ interface AuthRouteChildren {
   AuthDashboardRoute: typeof AuthDashboardRoute
   AuthProfileRoute: typeof AuthProfileRouteWithChildren
   AuthUploadRoute: typeof AuthUploadRoute
+  AuthCategoriesSlugRoute: typeof AuthCategoriesSlugRoute
   AuthVideosIdRoute: typeof AuthVideosIdRoute
+  AuthCategoriesIndexRoute: typeof AuthCategoriesIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
@@ -320,7 +360,9 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthDashboardRoute: AuthDashboardRoute,
   AuthProfileRoute: AuthProfileRouteWithChildren,
   AuthUploadRoute: AuthUploadRoute,
+  AuthCategoriesSlugRoute: AuthCategoriesSlugRoute,
   AuthVideosIdRoute: AuthVideosIdRoute,
+  AuthCategoriesIndexRoute: AuthCategoriesIndexRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)

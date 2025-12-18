@@ -4,7 +4,7 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2025-12-18
 
-### Added - Phase 8: Twitch-Style Categories (Backend Complete)
+### Added - Phase 8: Twitch-Style Categories (COMPLETE)
 
 #### Database Schema
 - **Category Enhancements**:
@@ -64,6 +64,95 @@ All notable changes to Clipset will be documented in this file.
 
 #### Dependencies
 - Added Pillow==12.0.0 for image processing
+
+#### Frontend Implementation
+
+- **TypeScript Types**:
+  - Updated `Category` interface with `description`, `image_filename`, `image_url`, `updated_at`
+  - Created `Playlist` types for future Phase 9 implementation
+  - Updated `CategoryCreate` and `CategoryUpdate` schemas
+
+- **API Client Functions** (`frontend/src/api/categories.ts`):
+  - `getCategoryBySlug(slug)` - Fetch category by slug for clean URLs
+  - `uploadCategoryImage(id, file)` - Multipart form upload with validation
+  - `deleteCategoryImage(id)` - Remove category images
+  - `getCategoryImageUrl(id)` - Helper function for image URL construction
+
+- **Admin UI Enhancements** (`frontend/src/routes/_auth/admin.categories.tsx`):
+  - Added description textarea (500 char max) in create/edit dialogs
+  - Image upload section with:
+    - Drag-and-drop style upload button
+    - Image preview (128x128px)
+    - Delete button for existing images
+    - File validation (5MB max, image types only)
+    - Loading states for upload/delete operations
+  - Updated categories table with thumbnail preview column
+  - Image placeholder icons for categories without images
+  - Enhanced form state management with React Query mutations
+
+- **CategoryCard Component** (`frontend/src/components/shared/CategoryCard.tsx`):
+  - Reusable square card component for Twitch-style layout
+  - Display category image or gradient fallback (8 vibrant options)
+  - Consistent gradient assignment based on category name
+  - Video count badge with play icon (bottom-right corner)
+  - Category name and description display
+  - Hover effects (scale, shadow, overlay)
+  - Links to `/categories/{slug}`
+
+- **Category Browse Page** (`frontend/src/routes/_auth/categories.index.tsx`):
+  - Responsive grid layout (1-4 columns based on screen size)
+  - Search functionality (filters by name or description)
+  - Sort options:
+    - Alphabetical (A-Z)
+    - Most Videos (highest to lowest count)
+  - Page header with category count
+  - Empty states:
+    - No categories in database
+    - No search results
+  - Loading skeletons (8 cards with pulse animation)
+
+- **Individual Category Page** (`frontend/src/routes/_auth/categories.$slug.tsx`):
+  - Category header banner:
+    - 128x128 category image or gradient
+    - Large category name (h1)
+    - Full description display
+    - Video count badge
+  - "Back to Categories" navigation button
+  - Videos grid filtered by category
+  - Search within category (by video title)
+  - Sort options:
+    - Newest (default, by upload date)
+    - Most Viewed (by view count)
+  - Empty states:
+    - No videos in category
+    - No search results
+    - Category not found (404 page)
+  - Loading states with skeletons
+  - Reused VideoCard component from dashboard
+
+- **Navigation Integration** (`frontend/src/components/layout/Navbar.tsx`):
+  - Added "Categories" link between "Home" and "Upload"
+  - Updated mobile menu with FolderOpen icon
+  - Consistent styling with other nav items
+
+#### Testing
+- ✅ End-to-end Playwright testing:
+  - Admin category creation with description
+  - Image upload to Gaming category (JPG → WebP)
+  - Category browse page (search, sort)
+  - Individual category pages (Gaming, Tutorials)
+  - Navigation flow (browse → category → back)
+  - Search functionality on both pages
+  - Gradient fallbacks for categories without images
+- ✅ All features working across desktop and mobile viewports
+
+#### User Experience Improvements
+- Clean URLs using slugs (`/categories/gaming` instead of UUIDs)
+- Visual polish with gradient fallbacks (no broken image placeholders)
+- Seamless navigation between browse and individual pages
+- Consistent card-based design language
+- Search and sort on both browse and category pages
+- Loading states prevent layout shift
 
 ---
 

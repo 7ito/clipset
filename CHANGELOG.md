@@ -4,18 +4,35 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2024-12-19
 
-### Added - Phase 11: Admin Configuration UI
+### Added - Phase 11: Admin Configuration UI (COMPLETE ✅)
 
-- **System Settings Page**: Admins can now configure system settings via web UI
-  - Max file size limit (1MB - 10GB)
-  - Weekly upload quota limit (1MB - 100GB)
-  - Video storage path configuration
-- **FileSizeInput Component**: Reusable input with MB/GB unit conversion
-- **PathInput Component**: Text input for file system paths
-- **Real-time Configuration**: Settings apply immediately without restart
-- **DB-backed Config**: Upload quota service reads from database config with env fallback
-- **Validation**: Client and server-side validation for all settings
-- **Change Tracking**: Unsaved changes warning and reset functionality
+**Completion Date**: December 19, 2024 | **Time**: ~4 hours
+
+- **System Settings Page** (`/admin/settings`):
+  - Configure max file size limit (1MB - 10GB) via web UI
+  - Configure weekly upload quota (1MB - 100GB) via web UI
+  - Configure video storage path via web UI
+  - Real-time application without server restart
+  
+- **Backend**:
+  - Config API endpoints (`GET /api/config/`, `PATCH /api/config/`)
+  - Pydantic schemas with comprehensive validation
+  - Upload quota service now reads from database config
+  - Graceful fallback to environment variables on error
+  
+- **Frontend Components**:
+  - FileSizeInput component with MB/GB unit conversion
+  - PathInput component for file system paths
+  - Settings link in admin sidebar
+  
+- **User Experience**:
+  - Unsaved changes tracking with warning message
+  - Save/Reset buttons with loading states
+  - Toast notifications for success/error
+  - Info banner explaining setting application
+  - Admin-only access with proper authentication
+
+**Files**: 7 new, 7 modified | **Code**: ~600 lines
 
 ### Fixed
 

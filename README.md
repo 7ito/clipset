@@ -146,6 +146,17 @@ Clipset provides a simple solution for sharing large video files without compres
 - ✅ nginx serves thumbnails/category images (1-year cache)
 - ✅ FastAPI serves videos (auth + tracking)
 
+### ✅ Phase 11: Admin Configuration UI (Complete)
+- ✅ System settings page in admin panel
+- ✅ Configure max file size (1MB - 10GB) via web UI
+- ✅ Configure weekly upload quota (1MB - 100GB) via web UI
+- ✅ Configure video storage path via web UI
+- ✅ FileSizeInput component with MB/GB unit conversion
+- ✅ Real-time configuration (no restart required)
+- ✅ Upload quota service reads from database config
+- ✅ Validation and change tracking
+- ✅ Admin-only access with proper authentication
+
 ## Development
 
 ### Backend Setup

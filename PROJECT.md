@@ -261,6 +261,22 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 
 **Key Achievement**: nginx static file serving provides significant performance boost while maintaining security for video streaming.
 
+### ✅ Phase 11: Admin Configuration UI (Complete)
+**Goal**: Allow admins to manage system settings via web UI
+
+**Completed** (December 19, 2024 - 4 hours):
+- ✅ Config API endpoints (GET, PATCH) with admin-only access
+- ✅ Pydantic schemas with validation (1MB-10GB for files, 1MB-100GB for quotas)
+- ✅ FileSizeInput component with MB/GB unit conversion
+- ✅ PathInput component for storage paths
+- ✅ Admin settings page with form state management
+- ✅ Upload quota service reads from database config
+- ✅ Unsaved changes tracking and reset functionality
+- ✅ Toast notifications for success/error states
+- ✅ Settings link in admin sidebar
+
+**Key Achievement**: Runtime configuration management without server restarts. Admins can adjust upload limits and storage paths through an intuitive web interface.
+
 ### Future Enhancements (Post-MVP)
 - Advanced search and filtering
 - Comments and social interactions

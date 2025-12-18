@@ -235,7 +235,7 @@ function VideoSelectCard({
   onToggle: () => void
 }) {
   const thumbnailUrl = video.thumbnail_filename
-    ? getThumbnailUrl(video.id)
+    ? getThumbnailUrl(video.thumbnail_filename)
     : null
 
   return (

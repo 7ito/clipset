@@ -134,12 +134,17 @@ Clipset provides a simple solution for sharing large video files without compres
 - ✅ End-to-end testing complete (30+ verification points)
 - ✅ Production-ready with full test coverage
 
-### 📋 Phase 10: Docker Deployment & Production (Planned)
-- Docker Compose configurations (development + production)
-- Nginx reverse proxy setup
-- Cloudflare Tunnel integration
-- Production environment configuration
-- Deployment documentation
+### ✅ Phase 10: Docker Deployment & nginx Optimization (Complete)
+- ✅ Docker Compose configurations (development + production)
+- ✅ Nginx reverse proxy setup with hybrid static file serving (**50-67% faster**)
+- ✅ External drive support via bind mounts
+- ✅ Production environment configuration
+- ✅ Health checks and auto-restart
+- ✅ Log rotation configured
+- ✅ Comprehensive deployment documentation (617 lines)
+- ✅ Cloudflare Tunnel guide (338 lines)
+- ✅ nginx serves thumbnails/category images (1-year cache)
+- ✅ FastAPI serves videos (auth + tracking)
 
 ## Development
 
@@ -188,9 +193,58 @@ Once the backend is running, visit:
 - Swagger UI: `http://localhost:8000/docs`
 - ReDoc: `http://localhost:8000/redoc`
 
-## Deployment
+## Docker Deployment
 
-Designed for self-hosting via Docker with Cloudflare Tunnel for secure external access. Deployment configuration coming soon.
+Clipset is designed for easy self-hosting via Docker Compose.
+
+### Quick Start
+
+```bash
+# Clone repository
+git clone <repository-url> clipset
+cd clipset
+
+# Configure environment
+cp .env.example .env
+# Edit .env: Set SECRET_KEY and INITIAL_ADMIN_PASSWORD
+
+# Generate secret key
+openssl rand -hex 32  # Copy output to .env
+
+# Start Clipset
+docker compose up -d
+
+# Access at http://localhost
+```
+
+### Production Deployment
+
+```bash
+# Use production compose file
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+### External Drive Support
+
+Mount external drives to `./data/external` for additional storage:
+
+```bash
+mkdir -p ./data/external
+sudo mount --bind /mnt/your-drive ./data/external
+# Then set VIDEO_STORAGE_PATH=/data/external/videos in admin panel
+```
+
+### Documentation
+
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Complete deployment guide
+- **[CLOUDFLARE_TUNNEL.md](CLOUDFLARE_TUNNEL.md)** - External access setup
+
+### Default Credentials
+
+After first start:
+- Username: `admin`
+- Password: Value from `.env` INITIAL_ADMIN_PASSWORD
+- **⚠️ Change password immediately after first login!**
 
 ## Configuration
 

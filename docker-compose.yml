@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clipset-backend-dev
+    volumes:
+      # Hot reload - mount source code
+      - ./backend:/app
+      # Persistent data storage
+      - ./data:/data
+    environment:
+      # Override paths for Docker environment
+      - DATABASE_URL=sqlite+aiosqlite:////data/clipset.db
+      - VIDEO_STORAGE_PATH=/data/uploads/videos
+      - THUMBNAIL_STORAGE_PATH=/data/uploads/thumbnails
+      - TEMP_STORAGE_PATH=/data/uploads/temp
+      - CATEGORY_IMAGE_STORAGE_PATH=/data/uploads/category-images
+    env_file:
+      - .env
+    ports:
+      # Expose for debugging (optional)
+      - "8000:8000"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - clipset-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: clipset-frontend-dev
+    volumes:
+      # Hot reload - mount source code
+      - ./frontend:/app
+      # Prevent node_modules from being overwritten
+      - /app/node_modules
+    environment:
+      - VITE_API_BASE_URL=http://localhost:8080
+    ports:
+      # Expose for debugging (optional)
+      - "5173:5173"
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - clipset-network
+
+  nginx:
+    image: nginx:alpine
+    container_name: clipset-nginx-dev
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # Mount data for static file serving (thumbnails, category images)
+      - ./data/uploads:/data/uploads:ro
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+      - frontend
+    restart: unless-stopped
+    networks:
+      - clipset-network
+
+networks:
+  clipset-network:
+    name: clipset-network
+    driver: bridge

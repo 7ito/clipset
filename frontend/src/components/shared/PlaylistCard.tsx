@@ -31,7 +31,7 @@ export function PlaylistCard({ playlist, username }: PlaylistCardProps) {
   
   // Get cover image from first video thumbnail if available
   const coverImage = playlist.first_video_thumbnail 
-    ? getThumbnailUrl(playlist.id) // Note: This will need the first video's ID, not playlist ID
+    ? getThumbnailUrl(playlist.first_video_thumbnail)
     : null
   
   return (

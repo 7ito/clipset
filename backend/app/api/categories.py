@@ -243,8 +243,8 @@ def build_category_response(
     """Build CategoryResponse with computed image_url."""
     image_url = None
     if category.image_filename:
-        # Build full URL for image endpoint
-        image_url = str(request.url_for("get_category_image", category_id=category.id))
+        # Build URL for nginx-served static file (hybrid approach)
+        image_url = f"/media/category-images/{category.image_filename}"
 
     return CategoryResponse(
         id=category.id,

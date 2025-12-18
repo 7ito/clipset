@@ -53,3 +53,11 @@ data/
 *.temp
 
 *.mp4
+
+# Docker
+docker-compose.override.yml
+
+# Backups
+backups/
+*.db.backup
+*.tar.gz

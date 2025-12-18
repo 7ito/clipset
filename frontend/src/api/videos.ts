@@ -110,10 +110,10 @@ export function getVideoStreamUrl(id: string): string {
 
 /**
  * Get video thumbnail URL
+ * Now served directly by nginx for better performance
  */
-export function getThumbnailUrl(id: string): string {
-  const token = localStorage.getItem("clipset_token")
-  return `http://localhost:8000/api/videos/${id}/thumbnail?token=${token}`
+export function getThumbnailUrl(filename: string): string {
+  return `/media/thumbnails/${filename}`
 }
 
 /**

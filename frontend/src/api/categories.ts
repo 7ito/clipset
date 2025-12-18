@@ -82,9 +82,8 @@ export async function deleteCategoryImage(id: string): Promise<void> {
 
 /**
  * Get category image URL
- * Helper function to construct image URL
+ * Now served directly by nginx for better performance
  */
-export function getCategoryImageUrl(id: string): string {
-  const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:8000"
-  return `${baseUrl}/api/categories/${id}/image`
+export function getCategoryImageUrl(filename: string): string {
+  return `/media/category-images/${filename}`
 }

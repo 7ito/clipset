@@ -23,7 +23,7 @@ export const Route = createFileRoute("/_auth/dashboard")({
 function VideoCard({ video }: { video: Video }) {
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false)
   const thumbnailUrl = video.thumbnail_filename
-    ? getThumbnailUrl(video.id)
+    ? getThumbnailUrl(video.thumbnail_filename)
     : "/placeholder-video.jpg"
 
   const statusColor = getStatusColor(video.processing_status)

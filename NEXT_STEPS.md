@@ -1,7 +1,7 @@
 # Next Steps - Clipset Development
 
-**Last Updated**: December 18, 2024  
-**Current Phase**: Phase 10 (Admin Config + Docker Deployment)
+**Last Updated**: December 19, 2024  
+**Current Phase**: Phase 11 (Admin Config UI)
 
 ---
 
@@ -49,12 +49,23 @@
 
 ---
 
+## Just Fixed (Session - December 19, 2024)
+
+### Categories Detail Page Bug - FIXED ✅
+**Time Spent**: ~15 minutes  
+**Issue**: Category detail pages crashed with `ReferenceError: isAddToPlaylistOpen is not defined`  
+**Root Cause**: VideoCard component in `categories.$slug.tsx` referenced state variables that weren't defined  
+**Solution**: Added `useState` hook to manage AddToPlaylistDialog state within VideoCard component  
+**Testing**: Verified with Playwright - all category pages now load correctly and "Add to Playlist" functionality works  
+
+---
+
 ## Immediate Next Steps (1-2 weeks)
 
-### Phase 10: Admin Config UI + Docker Deployment (12-15 hours)
+### Phase 11: Admin Config UI (4-5 hours)
 **Priority**: High - Production deployment readiness
 
-**Part A: Admin Configuration UI** (4-5 hours)
+**Admin Configuration UI** (4-5 hours)
 - System settings page in admin panel
 - Upload quota limits configuration (weekly limit, max file size)
 - Video processing settings (quality, formats)
@@ -63,24 +74,11 @@
 - Real-time config updates (no restart required)
 - Form validation and error handling
 
-**Part B: Docker Deployment** (8-10 hours) - See DEPLOYMENT_PLAN.md for details
-1. Create Docker Compose files (dev + production)
-2. Set up Nginx reverse proxy configuration
-3. Configure environment variables and secrets
-4. Set up Cloudflare Tunnel for external access
-5. Create deployment documentation
-6. Add health checks and logging
-7. Test full deployment workflow
-8. Backup and restore procedures
-
 **Success Criteria**:
 - [ ] Admin can configure system settings via UI
-- [ ] Docker containers start successfully
-- [ ] Frontend accessible via browser
-- [ ] Videos upload and stream correctly
-- [ ] External access via Cloudflare Tunnel
-- [ ] Data persists across container restarts
 - [ ] Configuration changes apply without restart
+- [ ] Form validation and error handling
+- [ ] Settings persist to database
 
 ### Minor UI/UX Improvements
 **Priority**: Medium  
@@ -123,7 +121,7 @@
 ## Known Issues
 
 ### Minor
-1. **Nested `<a>` tags warning** - Dashboard VideoCard has Link inside Link (causes hydration warnings, not blocking)
+1. **Nested `<a>` tags warning** - Category detail page VideoCard has Link inside Link (causes hydration warnings, not blocking)
 2. **TypeScript build errors** - Some pre-existing files have type warnings (non-blocking)
 
 ### Technical Debt

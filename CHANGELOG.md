@@ -2,7 +2,13 @@
 
 All notable changes to Clipset will be documented in this file.
 
-## [Unreleased] - 2024-12-18
+## [Unreleased] - 2024-12-19
+
+### Fixed
+
+- **Categories Detail Page Error**: Fixed `ReferenceError: isAddToPlaylistOpen is not defined` in `categories.$slug.tsx` by adding missing state management to the VideoCard component. The "Add to Playlist" functionality now works correctly on category detail pages.
+
+## [v1.0.0] - 2024-12-18
 
 ### Added - Phase 10: Docker Deployment & nginx Optimization (COMPLETE ✅)
 

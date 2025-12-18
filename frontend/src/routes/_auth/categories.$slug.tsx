@@ -21,6 +21,8 @@ export const Route = createFileRoute("/_auth/categories/$slug")({
 })
 
   function VideoCard({ video }: { video: Video }) {
+    const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false)
+    
     const thumbnailUrl = video.thumbnail_filename
       ? getThumbnailUrl(video.thumbnail_filename)
       : "/placeholder-video.jpg"

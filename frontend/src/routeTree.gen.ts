@@ -22,6 +22,7 @@ import { Route as AuthAdminIndexRouteImport } from './routes/_auth/admin.index'
 import { Route as AuthVideosIdRouteImport } from './routes/_auth/videos.$id'
 import { Route as AuthProfileUsernameRouteImport } from './routes/_auth/profile.$username'
 import { Route as AuthCategoriesSlugRouteImport } from './routes/_auth/categories.$slug'
+import { Route as AuthAdminSettingsRouteImport } from './routes/_auth/admin.settings'
 import { Route as AuthAdminInvitationsRouteImport } from './routes/_auth/admin.invitations'
 import { Route as AuthAdminCategoriesRouteImport } from './routes/_auth/admin.categories'
 import { Route as AuthProfileUsernameIndexRouteImport } from './routes/_auth/profile.$username.index'
@@ -91,6 +92,11 @@ const AuthCategoriesSlugRoute = AuthCategoriesSlugRouteImport.update({
   path: '/categories/$slug',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthAdminSettingsRoute = AuthAdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AuthAdminRoute,
+} as any)
 const AuthAdminInvitationsRoute = AuthAdminInvitationsRouteImport.update({
   id: '/invitations',
   path: '/invitations',
@@ -124,6 +130,7 @@ export interface FileRoutesByFullPath {
   '/register/$token': typeof RegisterTokenRoute
   '/admin/categories': typeof AuthAdminCategoriesRoute
   '/admin/invitations': typeof AuthAdminInvitationsRoute
+  '/admin/settings': typeof AuthAdminSettingsRoute
   '/categories/$slug': typeof AuthCategoriesSlugRoute
   '/profile/$username': typeof AuthProfileUsernameRouteWithChildren
   '/videos/$id': typeof AuthVideosIdRoute
@@ -141,6 +148,7 @@ export interface FileRoutesByTo {
   '/register/$token': typeof RegisterTokenRoute
   '/admin/categories': typeof AuthAdminCategoriesRoute
   '/admin/invitations': typeof AuthAdminInvitationsRoute
+  '/admin/settings': typeof AuthAdminSettingsRoute
   '/categories/$slug': typeof AuthCategoriesSlugRoute
   '/videos/$id': typeof AuthVideosIdRoute
   '/admin': typeof AuthAdminIndexRoute
@@ -160,6 +168,7 @@ export interface FileRoutesById {
   '/register/$token': typeof RegisterTokenRoute
   '/_auth/admin/categories': typeof AuthAdminCategoriesRoute
   '/_auth/admin/invitations': typeof AuthAdminInvitationsRoute
+  '/_auth/admin/settings': typeof AuthAdminSettingsRoute
   '/_auth/categories/$slug': typeof AuthCategoriesSlugRoute
   '/_auth/profile/$username': typeof AuthProfileUsernameRouteWithChildren
   '/_auth/videos/$id': typeof AuthVideosIdRoute
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/register/$token'
     | '/admin/categories'
     | '/admin/invitations'
+    | '/admin/settings'
     | '/categories/$slug'
     | '/profile/$username'
     | '/videos/$id'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/register/$token'
     | '/admin/categories'
     | '/admin/invitations'
+    | '/admin/settings'
     | '/categories/$slug'
     | '/videos/$id'
     | '/admin'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/register/$token'
     | '/_auth/admin/categories'
     | '/_auth/admin/invitations'
+    | '/_auth/admin/settings'
     | '/_auth/categories/$slug'
     | '/_auth/profile/$username'
     | '/_auth/videos/$id'
@@ -324,6 +336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCategoriesSlugRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/admin/settings': {
+      id: '/_auth/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AuthAdminSettingsRouteImport
+      parentRoute: typeof AuthAdminRoute
+    }
     '/_auth/admin/invitations': {
       id: '/_auth/admin/invitations'
       path: '/invitations'
@@ -358,12 +377,14 @@ declare module '@tanstack/react-router' {
 interface AuthAdminRouteChildren {
   AuthAdminCategoriesRoute: typeof AuthAdminCategoriesRoute
   AuthAdminInvitationsRoute: typeof AuthAdminInvitationsRoute
+  AuthAdminSettingsRoute: typeof AuthAdminSettingsRoute
   AuthAdminIndexRoute: typeof AuthAdminIndexRoute
 }
 
 const AuthAdminRouteChildren: AuthAdminRouteChildren = {
   AuthAdminCategoriesRoute: AuthAdminCategoriesRoute,
   AuthAdminInvitationsRoute: AuthAdminInvitationsRoute,
+  AuthAdminSettingsRoute: AuthAdminSettingsRoute,
   AuthAdminIndexRoute: AuthAdminIndexRoute,
 }
 

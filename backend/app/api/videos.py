@@ -152,7 +152,9 @@ async def upload_video(
         )
 
     # Check user quota
-    can_upload, reason = upload_quota.check_user_quota(current_user, file_size)
+    can_upload, reason = await upload_quota.check_user_quota(
+        db, current_user, file_size
+    )
     if not can_upload:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=reason)
 
@@ -525,10 +527,11 @@ async def increment_view_count(
 
 @router.get("/quota/me", response_model=QuotaInfoResponse)
 async def get_my_quota(
+    db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Get current user's quota information."""
-    quota_info = upload_quota.get_quota_info(current_user)
+    quota_info = await upload_quota.get_quota_info(db, current_user)
     return QuotaInfoResponse(**quota_info)
 
 

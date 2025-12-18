@@ -10,24 +10,35 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.models.user import User
+from app.services.config import get_or_create_config
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 
-def check_user_quota(user: User, file_size: int) -> Tuple[bool, str]:
+async def check_user_quota(
+    db: AsyncSession, user: User, file_size: int
+) -> Tuple[bool, str]:
     """
     Check if user can upload a file of given size.
 
     Args:
+        db: Database session
         user: User model instance
         file_size: Size of file to upload in bytes
 
     Returns:
         Tuple of (can_upload, reason)
     """
+    # Get limit from DB config
+    try:
+        config = await get_or_create_config(db)
+        limit = config.weekly_upload_limit_bytes
+    except Exception as e:
+        logger.warning(f"Failed to fetch DB config, using env default: {e}")
+        limit = settings.WEEKLY_UPLOAD_LIMIT_BYTES
+
     used = user.weekly_upload_bytes
-    limit = settings.WEEKLY_UPLOAD_LIMIT_BYTES
 
     # Calculate if upload would exceed quota
     would_use = used + file_size
@@ -75,18 +86,26 @@ async def increment_user_quota(db: AsyncSession, user_id: str, file_size: int) -
         raise
 
 
-def get_quota_info(user: User) -> Dict:
+async def get_quota_info(db: AsyncSession, user: User) -> Dict:
     """
     Get quota information for a user.
 
     Args:
+        db: Database session
         user: User model instance
 
     Returns:
         Dict with keys: used_bytes, limit_bytes, remaining_bytes, percentage_used, can_upload
     """
+    # Get limit from DB config
+    try:
+        config = await get_or_create_config(db)
+        limit = config.weekly_upload_limit_bytes
+    except Exception as e:
+        logger.warning(f"Failed to fetch DB config, using env default: {e}")
+        limit = settings.WEEKLY_UPLOAD_LIMIT_BYTES
+
     used = user.weekly_upload_bytes
-    limit = settings.WEEKLY_UPLOAD_LIMIT_BYTES
     remaining = max(0, limit - used)
     percentage = (used / limit * 100) if limit > 0 else 0
     can_upload = used < limit

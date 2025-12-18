@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router"
-import { Users, FolderKanban, Menu, X } from "lucide-react"
+import { Users, FolderKanban, Menu, X, Settings } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -23,12 +23,11 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       href: "/admin/categories",
       icon: FolderKanban,
     },
-    // Add more admin sections here as needed
-    // {
-    //   title: "Settings",
-    //   href: "/admin/settings",
-    //   icon: Settings,
-    // },
+    {
+      title: "Settings",
+      href: "/admin/settings",
+      icon: Settings,
+    },
   ]
 
   return (

@@ -38,6 +38,10 @@ from app.schemas.playlist import (
     PlaylistVideoResponse,
     PlaylistWithVideosResponse,
 )
+from app.schemas.config import (
+    ConfigResponse,
+    ConfigUpdate,
+)
 
 __all__ = [
     "UserBase",
@@ -72,4 +76,6 @@ __all__ = [
     "PlaylistListResponse",
     "PlaylistVideoResponse",
     "PlaylistWithVideosResponse",
+    "ConfigResponse",
+    "ConfigUpdate",
 ]

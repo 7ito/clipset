@@ -1,3 +1,11 @@
-from app.api import auth, users, invitations, categories, videos, playlists
+from app.api import auth, users, invitations, categories, videos, playlists, config
 
-__all__ = ["auth", "users", "invitations", "categories", "videos", "playlists"]
+__all__ = [
+    "auth",
+    "users",
+    "invitations",
+    "categories",
+    "videos",
+    "playlists",
+    "config",
+]

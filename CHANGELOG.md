@@ -4,9 +4,23 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2024-12-19
 
+### Added - Phase 11: Admin Configuration UI
+
+- **System Settings Page**: Admins can now configure system settings via web UI
+  - Max file size limit (1MB - 10GB)
+  - Weekly upload quota limit (1MB - 100GB)
+  - Video storage path configuration
+- **FileSizeInput Component**: Reusable input with MB/GB unit conversion
+- **PathInput Component**: Text input for file system paths
+- **Real-time Configuration**: Settings apply immediately without restart
+- **DB-backed Config**: Upload quota service reads from database config with env fallback
+- **Validation**: Client and server-side validation for all settings
+- **Change Tracking**: Unsaved changes warning and reset functionality
+
 ### Fixed
 
 - **Categories Detail Page Error**: Fixed `ReferenceError: isAddToPlaylistOpen is not defined` in `categories.$slug.tsx` by adding missing state management to the VideoCard component. The "Add to Playlist" functionality now works correctly on category detail pages.
+- **Profile Page Error**: Fixed same state management issue in `profile.$username.index.tsx`
 
 ## [v1.0.0] - 2024-12-18
 

@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router"
 import { useState } from "react"
 import { VideoIcon, ListPlus } from "lucide-react"
 import { getThumbnailUrl } from "@/api/videos"
-import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatDuration, formatUploadDate, formatFileSize, getStatusColor } from "@/lib/formatters"
 import { AddToPlaylistDialog } from "@/components/playlists/AddToPlaylistDialog"
@@ -31,8 +30,8 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
 
   return (
     <>
-      <div className="block group relative">
-        <Card className="border-none shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 h-full flex flex-col bg-card overflow-hidden">
+      <div className="block group relative h-full">
+        <div className="bg-card text-card-foreground shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 h-full flex flex-col overflow-hidden rounded-xl border border-border/50 isolation-auto">
           {/* Main Link Overlay for the whole card */}
           <Link 
             to={`/videos/${video.id}`} 
@@ -40,7 +39,7 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
             aria-label={`View video: ${video.title}`}
           />
           
-          <div className="relative aspect-video bg-muted overflow-hidden z-10">
+          <div className="relative aspect-video bg-muted overflow-hidden z-10 rounded-t-xl">
             {video.thumbnail_filename && !imageError ? (
               <img
                 src={thumbnailUrl!}
@@ -78,51 +77,54 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
               </button>
             )}
           </div>
-          <CardContent className="px-3 pt-2 pb-2.5 z-10 flex-1 flex flex-col gap-0.5">
-            <h3 className="font-semibold text-[13px] line-clamp-2 leading-tight group-hover:text-primary transition-colors mb-0.5">
+          
+          <div className="px-2.5 py-2 z-10 flex-1 flex flex-col gap-0.5">
+            <h3 className="font-semibold text-[13px] line-clamp-2 leading-tight group-hover:text-primary transition-colors">
               {video.title}
             </h3>
             
-            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground relative z-30">
-              {showUploader && (
-                <>
-                  <Link 
-                    to="/profile/$username" 
-                    params={{ username: video.uploader_username }}
-                    className="font-medium hover:text-primary transition-colors truncate max-w-[120px]"
-                  >
-                    {video.uploader_username}
-                  </Link>
-                  <span className="opacity-50">•</span>
-                </>
-              )}
-              <span className="shrink-0">{formatUploadDate(video.created_at)}</span>
-            </div>
-            
-            <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/80 flex-wrap mt-0.5">
-              {video.view_count > 0 && (
-                <>
-                  <span>{video.view_count.toLocaleString()} {video.view_count === 1 ? "view" : "views"}</span>
-                  <span className="opacity-50">•</span>
-                </>
-              )}
-              <span>{formatFileSize(video.file_size_bytes)}</span>
-              {video.category_name && (
-                <>
-                  <span className="opacity-50">•</span>
-                  <span className="px-1.5 py-0 rounded-sm bg-muted/50 text-muted-foreground border border-border/50">
-                    {video.category_name}
-                  </span>
-                </>
-              )}
+            <div className="flex flex-col gap-0.5 mt-auto">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground relative z-30">
+                {showUploader && (
+                  <>
+                    <Link 
+                      to="/profile/$username" 
+                      params={{ username: video.uploader_username }}
+                      className="font-medium hover:text-primary transition-colors truncate max-w-[120px]"
+                    >
+                      {video.uploader_username}
+                    </Link>
+                    <span className="opacity-50">•</span>
+                  </>
+                )}
+                <span className="shrink-0">{formatUploadDate(video.created_at)}</span>
+              </div>
+              
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/80 flex-wrap">
+                {video.view_count > 0 && (
+                  <>
+                    <span>{video.view_count.toLocaleString()} {video.view_count === 1 ? "view" : "views"}</span>
+                    <span className="opacity-50">•</span>
+                  </>
+                )}
+                <span>{formatFileSize(video.file_size_bytes)}</span>
+                {video.category_name && (
+                  <>
+                    <span className="opacity-50">•</span>
+                    <span className="px-1.5 py-0 rounded-sm bg-muted/40 text-[9px] uppercase tracking-wider font-semibold border border-border/40">
+                      {video.category_name}
+                    </span>
+                  </>
+                )}
+              </div>
             </div>
             {video.processing_status === "failed" && video.error_message && (
-              <p className="text-[10px] text-destructive line-clamp-1 pt-1 italic">
+              <p className="text-[10px] text-destructive line-clamp-1 pt-1 italic border-t border-destructive/10 mt-1">
                 {video.error_message}
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       <AddToPlaylistDialog

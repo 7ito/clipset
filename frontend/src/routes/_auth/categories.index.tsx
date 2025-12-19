@@ -67,27 +67,30 @@ function CategoriesBrowsePage() {
         description={`Browse ${data?.total || 0} video categories`}
       />
 
-      {/* Search and Sort Controls */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50" />
+      {/* Unified Filter Bar */}
+      <div className="flex flex-col md:flex-row gap-0 border border-border bg-card/50 backdrop-blur-sm shadow-sm group/filterbar focus-within:border-primary/50 transition-all duration-300">
+        <div className="flex-1 flex items-center relative border-b md:border-b-0 md:border-r border-border focus-within:bg-card transition-colors">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 group-focus-within/filterbar:text-primary transition-colors pointer-events-none" />
           <Input
-            type="text"
             placeholder="Search categories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 placeholder:text-foreground/50"
+            className="pl-10 h-11 border-none bg-transparent focus-visible:ring-0 placeholder:text-foreground/40 text-[13px] font-medium"
           />
         </div>
-        <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="alphabetical">Alphabetical</SelectItem>
-            <SelectItem value="most-videos">Most Videos</SelectItem>
-          </SelectContent>
-        </Select>
+        
+        <div className="flex items-center px-4 h-11 bg-muted/20">
+          <span className="text-[10px] uppercase tracking-wider font-bold text-foreground/30 mr-3 shrink-0">Sort By</span>
+          <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
+            <SelectTrigger className="h-9 border-none bg-transparent focus:ring-0 hover:bg-transparent text-[12px] font-semibold min-w-[140px] px-0 justify-start gap-2">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="alphabetical">A - Z</SelectItem>
+              <SelectItem value="most-videos">Most Content</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Loading State */}

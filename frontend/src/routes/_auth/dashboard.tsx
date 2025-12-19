@@ -88,42 +88,50 @@ function DashboardPage() {
         description={`${videosData?.total || 0} video${videosData?.total === 1 ? "" : "s"} from the community`}
       />
 
-      {/* Filters */}
-      <Card className="p-4">
-        <div className="flex gap-4 flex-col sm:flex-row">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
-            <Input
-              placeholder="Search videos by title..."
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-10 placeholder:text-foreground/50"
-            />
-          </div>
-          <Select value={categoryFilter || "__all__"} onValueChange={handleCategoryChange}>
-            <SelectTrigger className="w-full sm:w-[180px]">
-              <SelectValue placeholder="All Categories" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">All Categories</SelectItem>
-              {categoriesData?.categories.map((category) => (
-                <SelectItem key={category.id} value={category.id}>
-                  {category.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Select value={sortBy} onValueChange={handleSortChange}>
-            <SelectTrigger className="w-full sm:w-[150px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="newest">Newest</SelectItem>
-              <SelectItem value="views">Most Viewed</SelectItem>
-            </SelectContent>
-          </Select>
+      {/* Unified Filter Bar */}
+      <div className="flex flex-col md:flex-row gap-0 border border-border bg-card/50 backdrop-blur-sm shadow-sm group/filterbar focus-within:border-primary/50 transition-all duration-300">
+        <div className="flex-1 flex items-center relative border-b md:border-b-0 md:border-r border-border focus-within:bg-card transition-colors">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 group-focus-within/filterbar:text-primary transition-colors pointer-events-none" />
+          <Input
+            placeholder="Search videos by title..."
+            value={search}
+            onChange={(e) => handleSearchChange(e.target.value)}
+            className="pl-10 h-11 border-none bg-transparent focus-visible:ring-0 placeholder:text-foreground/40 text-[13px] font-medium"
+          />
         </div>
-      </Card>
+        
+        <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-border">
+          <div className="flex items-center px-3 h-11 bg-muted/20">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-foreground/30 mr-2 shrink-0">Category</span>
+            <Select value={categoryFilter || "__all__"} onValueChange={handleCategoryChange}>
+              <SelectTrigger className="h-9 border-none bg-transparent focus:ring-0 hover:bg-transparent text-[12px] font-semibold min-w-[140px] px-0 justify-start gap-2">
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Categories</SelectItem>
+                {categoriesData?.categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center px-3 h-11 bg-muted/20">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-foreground/30 mr-2 shrink-0">Sort</span>
+            <Select value={sortBy} onValueChange={handleSortChange}>
+              <SelectTrigger className="h-9 border-none bg-transparent focus:ring-0 hover:bg-transparent text-[12px] font-semibold min-w-[120px] px-0 justify-start gap-2">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Newest</SelectItem>
+                <SelectItem value="views">Most Viewed</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      </div>
 
       {/* Videos Grid */}
       {isLoading ? (

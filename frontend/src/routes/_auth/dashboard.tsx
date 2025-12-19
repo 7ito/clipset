@@ -101,10 +101,10 @@ function DashboardPage() {
         </div>
         
         <div className="flex flex-col sm:flex-row divide-y sm:divide-y-0 sm:divide-x divide-border">
-          <div className="flex items-center px-3 h-11 bg-muted/20">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-foreground/30 mr-2 shrink-0">Category</span>
+          <div className="flex items-center px-4 h-11 bg-muted/20">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-foreground/30 mr-3 shrink-0">Category</span>
             <Select value={categoryFilter || "__all__"} onValueChange={handleCategoryChange}>
-              <SelectTrigger className="h-9 border-none bg-transparent focus:ring-0 hover:bg-transparent text-[12px] font-semibold min-w-[140px] px-0 justify-start gap-2">
+              <SelectTrigger className="h-9 border-none bg-transparent focus:ring-0 hover:bg-transparent text-[12px] font-semibold min-w-[140px] px-1 justify-start gap-2">
                 <SelectValue placeholder="All Categories" />
               </SelectTrigger>
               <SelectContent>
@@ -118,10 +118,10 @@ function DashboardPage() {
             </Select>
           </div>
           
-          <div className="flex items-center px-3 h-11 bg-muted/20">
-            <span className="text-[10px] uppercase tracking-wider font-bold text-foreground/30 mr-2 shrink-0">Sort</span>
+          <div className="flex items-center px-4 h-11 bg-muted/20">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-foreground/30 mr-3 shrink-0">Sort</span>
             <Select value={sortBy} onValueChange={handleSortChange}>
-              <SelectTrigger className="h-9 border-none bg-transparent focus:ring-0 hover:bg-transparent text-[12px] font-semibold min-w-[120px] px-0 justify-start gap-2">
+              <SelectTrigger className="h-9 border-none bg-transparent focus:ring-0 hover:bg-transparent text-[12px] font-semibold min-w-[120px] px-1 justify-start gap-2">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>

@@ -120,6 +120,7 @@ export function DraggablePlaylistVideos({
             <SortableVideoItem
               key={pv.id}
               playlistVideo={pv}
+              playlistId={playlistId}
               index={index}
               onRemove={onRemove}
               isRemoving={isRemoving}
@@ -134,11 +135,13 @@ export function DraggablePlaylistVideos({
 // Individual sortable video item
 function SortableVideoItem({
   playlistVideo,
+  playlistId,
   index,
   onRemove,
   isRemoving
 }: {
   playlistVideo: PlaylistVideo
+  playlistId: string
   index: number
   onRemove: (videoId: string) => void
   isRemoving: boolean
@@ -195,6 +198,7 @@ function SortableVideoItem({
           <Link 
             to="/videos/$id" 
             params={{ id: playlistVideo.video_id }}
+            search={{ playlistId }}
             className="font-semibold hover:text-primary transition-colors line-clamp-1"
           >
             {playlistVideo.video.title}

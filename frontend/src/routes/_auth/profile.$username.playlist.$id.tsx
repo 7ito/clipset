@@ -257,6 +257,7 @@ function PlaylistDetailPage() {
                     <Link 
                       to="/videos/$id" 
                       params={{ id: pv.video_id }}
+                      search={{ playlistId: id }}
                       className="font-semibold hover:text-primary transition-colors line-clamp-1"
                     >
                       {pv.video.title}

@@ -1,8 +1,9 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Edit, Trash2, Eye, Calendar, User, Folder, FileVideo, Loader2, ArrowLeft, ListPlus } from "lucide-react"
+import { Edit, Trash2, Eye, Calendar, User, Folder, FileVideo, Loader2, ArrowLeft, ListPlus, ChevronRight, ChevronLeft } from "lucide-react"
 import { getVideo, deleteVideo, updateVideo, incrementViewCount, getVideoStreamUrl, getThumbnailUrl } from "@/api/videos"
+import { getPlaylist } from "@/api/playlists"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -16,9 +17,15 @@ import { formatDuration, formatUploadDate, formatFileSize, getStatusColor } from
 import { useAuth } from "@/hooks/useAuth"
 import { LoadingPage } from "@/components/shared/LoadingSpinner"
 import { AddToPlaylistDialog } from "@/components/playlists/AddToPlaylistDialog"
+import { PlaylistQueue } from "@/components/playlists/PlaylistQueue"
 
 export const Route = createFileRoute("/_auth/videos/$id")({
-  component: VideoPlayerPage
+  component: VideoPlayerPage,
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      playlistId: (search.playlistId as string) || undefined,
+    }
+  },
 })
 
 function Description({ text }: { text: string }) {
@@ -49,6 +56,7 @@ function Description({ text }: { text: string }) {
 
 function VideoPlayerPage() {
   const { id } = Route.useParams()
+  const { playlistId } = Route.useSearch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user } = useAuth()
@@ -57,11 +65,20 @@ function VideoPlayerPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [hasIncrementedView, setHasIncrementedView] = useState(false)
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false)
+  const [autoPlayEnabled, setAutoPlayEnabled] = useState(true)
+  const [nextCountdown, setNextCountdown] = useState<number | null>(null)
 
   // Fetch video
   const { data: video, isLoading, refetch } = useQuery({
     queryKey: ["videos", id],
     queryFn: () => getVideo(id)
+  })
+
+  // Fetch playlist if context exists
+  const { data: playlist } = useQuery({
+    queryKey: ["playlist", playlistId],
+    queryFn: () => getPlaylist(playlistId!),
+    enabled: !!playlistId
   })
 
   // Poll for status updates if video is processing
@@ -73,6 +90,42 @@ function VideoPlayerPage() {
       return () => clearInterval(interval)
     }
   }, [video, refetch])
+
+  // Autoplay countdown logic
+  useEffect(() => {
+    let timer: NodeJS.Timeout
+    if (nextCountdown !== null && nextCountdown > 0) {
+      timer = setTimeout(() => setNextCountdown(nextCountdown - 1), 1000)
+    } else if (nextCountdown === 0) {
+      if (playlist) {
+        const currentIndex = playlist.videos.findIndex(v => v.video_id === id)
+        if (currentIndex !== -1) {
+          let nextIndex = currentIndex + 1
+          if (nextIndex >= playlist.videos.length) {
+            nextIndex = 0 // Loop back to start
+          }
+          const nextVideo = playlist.videos[nextIndex]
+          setNextCountdown(null)
+          navigate({ 
+            to: "/videos/$id", 
+            params: { id: nextVideo.video_id },
+            search: { playlistId }
+          })
+        }
+      }
+    }
+    return () => clearTimeout(timer)
+  }, [nextCountdown, playlist, id, navigate, playlistId])
+
+  // Reset countdown if video changes manually
+  useEffect(() => {
+    setNextCountdown(null)
+  }, [id])
+
+  const handleVideoEnded = () => {
+    if (!autoPlayEnabled || !playlist || playlist.videos.length <= 1) return
+    setNextCountdown(3)
+  }
 
   // Update mutation
   const updateMutation = useMutation({
@@ -93,6 +146,7 @@ function VideoPlayerPage() {
     mutationFn: () => deleteVideo(id),
     onSuccess: () => {
       toast.success("Video deleted successfully")
+      queryClient.invalidateQueries({ queryKey: ["videos"] })
       navigate({ to: "/dashboard" })
     },
     onError: (error: any) => {
@@ -167,6 +221,7 @@ function VideoPlayerPage() {
                 className="w-full aspect-video"
                 poster={video.thumbnail_filename ? getThumbnailUrl(id) : undefined}
                 onPlay={handleVideoPlay}
+                onEnded={handleVideoEnded}
               >
                 <source src={getVideoStreamUrl(id)} type="video/mp4" />
                 Your browser does not support the video tag.
@@ -213,6 +268,45 @@ function VideoPlayerPage() {
                 <h1 className="text-2xl font-bold leading-tight line-clamp-2">{video.title}</h1>
               </div>
               <div className="flex gap-2 shrink-0">
+                {playlist && (
+                  <div className="flex items-center gap-1 mr-2">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 rounded-none"
+                      disabled={playlist.videos.findIndex(v => v.video_id === id) === 0 && playlist.videos.length > 1}
+                      onClick={() => {
+                        const currentIndex = playlist.videos.findIndex(v => v.video_id === id)
+                        const prevIndex = currentIndex === 0 ? playlist.videos.length - 1 : currentIndex - 1
+                        navigate({
+                          to: "/videos/$id",
+                          params: { id: playlist.videos[prevIndex].video_id },
+                          search: { playlistId }
+                        })
+                      }}
+                      title="Previous Video"
+                    >
+                      <ChevronLeft className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8 rounded-none"
+                      onClick={() => {
+                        const currentIndex = playlist.videos.findIndex(v => v.video_id === id)
+                        const nextIndex = (currentIndex + 1) % playlist.videos.length
+                        navigate({
+                          to: "/videos/$id",
+                          params: { id: playlist.videos[nextIndex].video_id },
+                          search: { playlistId }
+                        })
+                      }}
+                      title="Next Video"
+                    >
+                      <ChevronRight className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
                 <Badge 
                   variant={statusColor === "green" ? "default" : "secondary"} 
                   className="capitalize"
@@ -319,6 +413,17 @@ function VideoPlayerPage() {
           {/* Description */}
           {video.description && (
             <Description text={video.description} />
+          )}
+
+          {/* Playlist Queue */}
+          {playlist && (
+            <PlaylistQueue
+              playlist={playlist}
+              currentVideoId={id}
+              autoPlayEnabled={autoPlayEnabled}
+              onAutoPlayToggle={setAutoPlayEnabled}
+              nextCountdown={nextCountdown}
+            />
           )}
         </div>
       </div>

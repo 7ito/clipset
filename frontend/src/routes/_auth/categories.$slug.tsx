@@ -36,7 +36,17 @@ function CategoryPage() {
       skip: 0,
       limit: 100 // Get all videos for this category
     }),
-    enabled: !!category?.id
+    enabled: !!category?.id,
+    // Refetch every 5 seconds if there are videos being processed
+    refetchInterval: (query) => {
+      const videos = query.state.data?.videos
+      if (!videos) return false
+      
+      const hasProcessing = videos.some(
+        v => v.processing_status === "pending" || v.processing_status === "processing"
+      )
+      return hasProcessing ? 5000 : false
+    }
   })
 
   // Client-side sorting

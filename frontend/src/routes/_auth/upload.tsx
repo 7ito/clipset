@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { useMutation, useQuery } from "@tanstack/react-query"
-import { Upload, X, FileVideo } from "lucide-react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Upload, X, FileVideo, Loader2 } from "lucide-react"
 import { uploadVideo, getQuotaInfo } from "@/api/videos"
 import { getCategories } from "@/api/categories"
 import { useAuth } from "@/hooks/useAuth"
@@ -23,8 +23,11 @@ const ACCEPTED_FORMATS = ["mp4", "mov", "avi", "mkv", "webm"]
 
 function UploadPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { user } = useAuth()
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isGeneratingPreview, setIsGeneratingPreview] = useState(false)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [categoryId, setCategoryId] = useState<string>("")
@@ -47,9 +50,12 @@ function UploadPage() {
   const uploadMutation = useMutation({
     mutationFn: (data: { file: File, metadata: { title: string, description?: string, category_id?: string } }) =>
       uploadVideo(data.file, data.metadata, setUploadProgress),
-    onSuccess: (video) => {
+    onSuccess: () => {
       toast.success("Video uploaded successfully! Processing started.")
       refetchQuota()
+      // Invalidate all video queries to ensure fresh data on Home and Profile pages
+      queryClient.invalidateQueries({ queryKey: ["videos"] })
+      
       // Redirect to user's profile page
       if (user) {
         navigate({ to: "/profile/$username", params: { username: user.username } })
@@ -86,7 +92,50 @@ function UploadPage() {
     }
   }
 
-  const handleFileSelect = (file: File) => {
+  const generateVideoThumbnail = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement("video")
+      const canvas = document.createElement("canvas")
+      const url = URL.createObjectURL(file)
+
+      video.preload = "metadata"
+      video.src = url
+      video.muted = true
+      video.playsInline = true
+
+      const cleanup = () => {
+        URL.revokeObjectURL(url)
+      }
+
+      video.onloadedmetadata = () => {
+        // Seek to 1 second or 10% of duration, whichever is smaller
+        video.currentTime = Math.min(1, video.duration * 0.1)
+      }
+
+      video.onseeked = () => {
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        const ctx = canvas.getContext("2d")
+        ctx?.drawImage(video, 0, 0, canvas.width, canvas.height)
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.7)
+        cleanup()
+        resolve(dataUrl)
+      }
+
+      video.onerror = () => {
+        cleanup()
+        reject("Failed to load video")
+      }
+
+      // Safety timeout
+      setTimeout(() => {
+        cleanup()
+        reject("Thumbnail generation timed out")
+      }, 5000)
+    })
+  }
+
+  const handleFileSelect = async (file: File) => {
     // Check file type
     const ext = file.name.split(".").pop()?.toLowerCase()
     if (!ext || !ACCEPTED_FORMATS.includes(ext)) {
@@ -113,6 +162,18 @@ function UploadPage() {
       const filename = file.name.replace(/\.[^/.]+$/, "")
       setTitle(filename)
     }
+
+    // Generate preview
+    setIsGeneratingPreview(true)
+    try {
+      const url = await generateVideoThumbnail(file)
+      setPreviewUrl(url)
+    } catch (err) {
+      console.error("Preview generation failed:", err)
+      // Don't toast error here, just fall back to icon
+    } finally {
+      setIsGeneratingPreview(false)
+    }
   }
 
   const handleUpload = () => {
@@ -138,6 +199,8 @@ function UploadPage() {
 
   const handleCancel = () => {
     setSelectedFile(null)
+    setPreviewUrl(null)
+    setIsGeneratingPreview(false)
     setTitle("")
     setDescription("")
     setCategoryId("")
@@ -202,8 +265,37 @@ function UploadPage() {
           >
             {selectedFile ? (
               <div className="space-y-4">
-                <div className="inline-flex p-4 rounded-full bg-primary/10">
-                  <FileVideo className="w-12 h-12 text-primary" />
+                <div className="relative aspect-video w-full max-w-md mx-auto overflow-hidden rounded-lg bg-muted border border-border shadow-sm group/preview">
+                  {isGeneratingPreview ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                      <p className="text-xs text-muted-foreground animate-pulse">Generating preview...</p>
+                    </div>
+                  ) : previewUrl ? (
+                    <img 
+                      src={previewUrl} 
+                      alt="Video preview" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <FileVideo className="w-12 h-12 text-muted-foreground/30" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="rounded-full h-8 px-3 text-xs"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleCancel()
+                      }}
+                    >
+                      <X className="w-3.5 h-3.5 mr-1.5" />
+                      Change File
+                    </Button>
+                  </div>
                 </div>
                 <div>
                   <p className="font-semibold text-lg">{selectedFile.name}</p>
@@ -211,17 +303,6 @@ function UploadPage() {
                     {formatFileSize(selectedFile.size)}
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleCancel()
-                  }}
-                >
-                  <X className="w-4 h-4 mr-2" />
-                  Remove File
-                </Button>
               </div>
             ) : (
               <div className="space-y-4">

@@ -4,6 +4,26 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2024-12-19
 
+### Added - UI/UX Refinements & Bug Fixes (COMPLETE ✅)
+
+- **Playlist Player Experience**:
+  - Added "Playlist Queue" horizontal ribbon below the video player.
+  - Implemented automatic video progression with a toggleable 3-second countdown.
+  - Added seamless looping support for playlists.
+  - Integrated "Previous" and "Next" navigation buttons into the video metadata section.
+  - Added "Currently Playing" indicators and automatic scrolling to the active video in the queue.
+
+- **Upload Page Enhancements**:
+  - Implemented automatic video thumbnail extraction using a hidden canvas/video element.
+  - Added visual preview of the selected video before upload.
+  - Added loading state during preview generation.
+  - Added "Change File" overlay for easier file swapping.
+
+- **Stability & Performance**:
+  - Fixed stale cache issue where newly uploaded videos didn't appear on the Home or Profile pages without a refresh.
+  - Added conditional polling (`refetchInterval`) to Dashboard and Profile pages to automatically update video processing status.
+  - Implemented global `videos` query invalidation upon successful upload.
+
 ### Added - Post-Phase 11 Refinement & UI/UX Polish (COMPLETE ✅)
 
 **Completion Date**: December 19, 2024 | **Time**: ~2 hours

@@ -7,6 +7,9 @@ All notable changes to Clipset will be documented in this file.
 ### Added - UI/UX Refinements & Bug Fixes (COMPLETE ✅)
 
 - **Unified Filter Bar Refinements**:
+  - Fixed an issue where filter dropdown boxes were not filling the parent div vertically in mobile view.
+  - Standardized the filter bar layout across Dashboard, Categories Index, and Category Detail pages.
+  - Improved mobile responsiveness by ensuring consistent height for search and filter elements when stacked.
   - Increased Category and Sort dropdown widths to ensure all labels and values fit on a single line.
   - Standardized "Sort By" to "Sort" across all pages for consistent UI.
   - Improved right-alignment for sort selections in the filter bar.

@@ -123,6 +123,12 @@
 - ✅ **Playlist Navigation Controls**: Added Previous/Next buttons to the video player metadata section for easy playlist navigation.
 - ✅ **Visual Identity Overhaul**: Transitioned the app from a plain grayscale/purple theme to a vibrant Teal-accented UI with dynamic backgrounds and improved hover states.
 
+## Just Completed (December 19, 2024 - Part 5)
+
+### UI/UX Bug Fixes - COMPLETE ✅
+- ✅ **Filter Bar Mobile Alignment**: Fixed the issue where filter dropdown boxes (Category/Sort) were not filling the parent container vertically when stacked in mobile view.
+- ✅ **Standardized Search/Filter UI**: Applied consistent layout logic across all pages using the unified filter bar.
+
 ## Immediate Next Steps (Optional Enhancements)
 
 

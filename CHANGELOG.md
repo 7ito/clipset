@@ -59,9 +59,11 @@ All notable changes to Clipset will be documented in this file.
 **Files**: 7 new, 7 modified | **Code**: ~600 lines
 
 ### Fixed
-
-- **Categories Detail Page Error**: Fixed `ReferenceError: isAddToPlaylistOpen is not defined` in `categories.$slug.tsx` by adding missing state management to the VideoCard component. The "Add to Playlist" functionality now works correctly on category detail pages.
-- **Profile Page Error**: Fixed same state management issue in `profile.$username.index.tsx`
+- **Profile Page**: Fixed user's video list not loading by implementing a React Context provider in the profile layout and correctly consuming it in the index route via `useProfileContext`.
+- **Admin Dashboard**: Fixed statistics failing to load due to missing trailing slashes in API calls causing CORS errors during redirects.
+- **Thumbnails**: Fixed missing thumbnails in the development environment by generating actual image files during database seeding and ensuring the frontend uses absolute URLs for media when an API base URL is configured.
+- **API Reliability**: Standardized trailing slashes across all frontend API clients to match backend routing and prevent unnecessary redirects.
+- **Nginx Proxying**: Improved header handling in Nginx configuration to preserve host information and port details for proxied requests.
 
 ## [v1.0.0] - 2024-12-18
 

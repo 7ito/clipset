@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/shared/EmptyState"
 import { VideoGridSkeleton } from "@/components/shared/VideoCardSkeleton"
 import { PlaylistsTab } from "@/components/playlists/PlaylistsTab"
 import { VideoCard } from "@/components/shared/VideoCard"
+import { useProfileContext } from "./profile.$username"
 
 export const Route = createFileRoute("/_auth/profile/$username/")({
   component: ProfileIndexPage
@@ -22,22 +23,20 @@ function ProfileIndexPage() {
   const limit = 20
 
   // Get profileUser and isOwnProfile from parent layout context
-  const routeContext = Route.useRouteContext()
+  const { profileUser, isOwnProfile } = useProfileContext()
   
   // Fetch user's videos
   const { data: videosData, isLoading: isLoadingVideos } = useQuery({
-    queryKey: ["videos", "user", routeContext.profileUser?.id, skip],
+    queryKey: ["videos", "user", profileUser?.id, skip],
     queryFn: () => getVideos({
-      uploaded_by: routeContext.profileUser?.id,
+      uploaded_by: profileUser?.id,
       skip,
       limit
     }),
-    enabled: !!routeContext.profileUser
+    enabled: !!profileUser
   })
 
   const hasMoreVideos = videosData && videosData.total > skip + videosData.videos.length
-  const profileUser = routeContext.profileUser
-  const isOwnProfile = routeContext.isOwnProfile
 
   return (
     <Tabs defaultValue="videos" className="space-y-6">

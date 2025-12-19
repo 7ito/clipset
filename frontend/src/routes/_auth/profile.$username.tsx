@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
+import { useState, createContext, useContext } from "react"
 import { User as UserIcon, Calendar, Mail, Shield, HardDrive } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { getUserByUsername } from "@/api/users"
@@ -13,11 +13,26 @@ import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner"
 import { formatDate, formatFileSize } from "@/lib/formatters"
-import type { UserWithQuota } from "@/types/user"
+import type { UserProfile, UserWithQuota } from "@/types/user"
 
 export const Route = createFileRoute("/_auth/profile/$username")({
   component: ProfileLayout
 })
+
+interface ProfileContextType {
+  profileUser: UserProfile | UserWithQuota
+  isOwnProfile: boolean
+}
+
+const ProfileContext = createContext<ProfileContextType | null>(null)
+
+export function useProfileContext() {
+  const context = useContext(ProfileContext)
+  if (!context) {
+    throw new Error("useProfileContext must be used within a ProfileLayout")
+  }
+  return context
+}
 
 function UserAvatar({ username }: { username: string }) {
   // Generate initials from username
@@ -204,7 +219,11 @@ function ProfileLayout() {
 
   // If on playlist route, render child without header
   if (isPlaylistRoute) {
-    return <Outlet context={{ profileUser, isOwnProfile }} />
+    return (
+      <ProfileContext.Provider value={{ profileUser, isOwnProfile }}>
+        <Outlet context={{ profileUser, isOwnProfile }} />
+      </ProfileContext.Provider>
+    )
   }
 
   // Otherwise render with profile header (for index page)
@@ -231,7 +250,9 @@ function ProfileLayout() {
       <Separator />
 
       {/* Child route (index page with tabs) renders here */}
-      <Outlet context={{ profileUser, isOwnProfile }} />
+      <ProfileContext.Provider value={{ profileUser, isOwnProfile }}>
+        <Outlet context={{ profileUser, isOwnProfile }} />
+      </ProfileContext.Provider>
 
       {/* My Profile Dialog */}
       {isOwnProfile && "email" in profileUser && (

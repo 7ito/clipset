@@ -7,7 +7,7 @@ export function useUsers(params: PaginationParams = {}) {
   return useQuery({
     queryKey: ["users", params],
     queryFn: async () => {
-      const response = await apiClient.get<UserResponse[]>("/api/users", { params })
+      const response = await apiClient.get<UserResponse[]>("/api/users/", { params })
       return response.data
     }
   })
@@ -58,7 +58,7 @@ export interface AdminStats {
 
 export async function getAdminStats(): Promise<AdminStats> {
   // Fetch users (limit to reasonable number for small communities)
-  const usersResponse = await apiClient.get<UserResponse[]>("/api/users", {
+  const usersResponse = await apiClient.get<UserResponse[]>("/api/users/", {
     params: { skip: 0, limit: 500 }
   })
   
@@ -66,7 +66,7 @@ export async function getAdminStats(): Promise<AdminStats> {
   const videosResponse = await apiClient.get<{
     videos: Array<{ processing_status: string; file_size_bytes: number }>
     total: number
-  }>("/api/videos", {
+  }>("/api/videos/", {
     params: { skip: 0, limit: 1000 }
   })
   

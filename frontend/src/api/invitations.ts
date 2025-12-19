@@ -13,7 +13,7 @@ export function useCreateInvitation() {
   
   return useMutation({
     mutationFn: async (data: InvitationCreate) => {
-      const response = await apiClient.post<InvitationWithLink>("/api/invitations", data)
+      const response = await apiClient.post<InvitationWithLink>("/api/invitations/", data)
       return response.data
     },
     onSuccess: () => {
@@ -26,7 +26,7 @@ export function useInvitations(params: PaginationParams = {}) {
   return useQuery({
     queryKey: ["invitations", params],
     queryFn: async () => {
-      const response = await apiClient.get<InvitationResponse[]>("/api/invitations", { params })
+      const response = await apiClient.get<InvitationResponse[]>("/api/invitations/", { params })
       return response.data
     }
   })
@@ -36,7 +36,7 @@ export function useValidateInvitation(token: string) {
   return useQuery({
     queryKey: ["invitationValidation", token],
     queryFn: async () => {
-      const response = await apiClient.get<InvitationValidation>(`/api/invitations/validate/${token}`)
+      const response = await apiClient.get<InvitationValidation>(`/api/invitations/validate/${token}/`)
       return response.data
     },
     enabled: !!token,
@@ -49,7 +49,7 @@ export function useRevokeInvitation() {
   
   return useMutation({
     mutationFn: async (invitationId: string) => {
-      const response = await apiClient.delete<{ message: string }>(`/api/invitations/${invitationId}`)
+      const response = await apiClient.delete<{ message: string }>(`/api/invitations/${invitationId}/`)
       return response.data
     },
     onSuccess: () => {

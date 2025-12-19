@@ -271,6 +271,38 @@ async def create_videos(db: AsyncSession, users: list, categories: list) -> list
             video_dest = video_dir / video_filename
             shutil.copy(test_video_path, video_dest)
 
+            # Generate thumbnail using ffmpeg if available
+            import subprocess
+
+            try:
+                subprocess.run(
+                    [
+                        "ffmpeg",
+                        "-i",
+                        str(video_dest),
+                        "-ss",
+                        "00:00:01",
+                        "-vframes",
+                        "1",
+                        "-q:v",
+                        "2",
+                        str(thumb_dir / thumb_filename),
+                    ],
+                    capture_output=True,
+                    check=True,
+                )
+            except Exception as e:
+                print(f"   ⚠️  Failed to generate thumbnail for {video_filename}: {e}")
+                # Fallback: copy an existing thumbnail if any
+                existing_thumbs = list(thumb_dir.glob("*.jpg"))
+                if existing_thumbs:
+                    shutil.copy(existing_thumbs[0], thumb_dir / thumb_filename)
+        else:
+            # For videos without a file, just copy an existing thumbnail as placeholder
+            existing_thumbs = list(thumb_dir.glob("*.jpg"))
+            if existing_thumbs:
+                shutil.copy(existing_thumbs[0], thumb_dir / thumb_filename)
+
         # Select random user and category
         user = random.choice(users)
         category = random.choice(categories) if categories else None

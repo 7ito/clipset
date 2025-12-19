@@ -105,14 +105,22 @@ export async function getQuotaInfo(): Promise<QuotaInfo> {
  */
 export function getVideoStreamUrl(id: string): string {
   const token = localStorage.getItem("clipset_token")
-  return `http://localhost:8000/api/videos/${id}/stream?token=${token}`
+  const baseUrl = env.apiBaseUrl.endsWith("/") ? env.apiBaseUrl.slice(0, -1) : env.apiBaseUrl
+  return `${baseUrl}/api/videos/${id}/stream?token=${token}`
 }
+
+import { env } from "@/config/env"
 
 /**
  * Get video thumbnail URL
  * Now served directly by nginx for better performance
  */
 export function getThumbnailUrl(filename: string): string {
+  // Use absolute URL in development if apiBaseUrl is present
+  if (env.apiBaseUrl && env.apiBaseUrl.startsWith("http")) {
+    const origin = new URL(env.apiBaseUrl).origin
+    return `${origin}/media/thumbnails/${filename}`
+  }
   return `/media/thumbnails/${filename}`
 }
 

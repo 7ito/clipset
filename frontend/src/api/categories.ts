@@ -80,10 +80,17 @@ export async function deleteCategoryImage(id: string): Promise<void> {
   await apiClient.delete(`/api/categories/${id}/image`)
 }
 
+import { env } from "@/config/env"
+
 /**
  * Get category image URL
  * Now served directly by nginx for better performance
  */
 export function getCategoryImageUrl(filename: string): string {
+  // Use absolute URL in development if apiBaseUrl is present
+  if (env.apiBaseUrl && env.apiBaseUrl.startsWith("http")) {
+    const origin = new URL(env.apiBaseUrl).origin
+    return `${origin}/media/category-images/${filename}`
+  }
   return `/media/category-images/${filename}`
 }

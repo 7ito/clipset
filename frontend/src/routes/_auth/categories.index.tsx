@@ -69,23 +69,27 @@ function CategoriesBrowsePage() {
 
       {/* Unified Filter Bar */}
       <div className="flex flex-col md:flex-row gap-0 border border-border bg-card/50 backdrop-blur-sm shadow-sm group/filterbar focus-within:border-primary/50 transition-all duration-300">
-        <div className="flex-1 flex items-center relative border-b md:border-b-0 md:border-r border-border focus-within:bg-card transition-colors">
+        <div className="flex-1 flex items-center relative border-b md:border-b-0 md:border-r border-border focus-within:bg-card transition-colors min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 group-focus-within/filterbar:text-primary transition-colors pointer-events-none" />
           <Input
             placeholder="Search categories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-11 border-none bg-transparent focus-visible:ring-0 placeholder:text-foreground/40 text-[13px] font-medium"
+            className="pl-10 h-11 border-none bg-transparent focus-visible:ring-0 placeholder:text-foreground/40 text-[13px] font-medium w-full"
           />
         </div>
         
-        <div className="flex items-center px-4 h-11 bg-muted/20">
-          <span className="text-[10px] uppercase tracking-wider font-bold text-foreground/30 mr-3 shrink-0">Sort By</span>
+        <div className="w-full md:w-[220px]">
           <Select value={sortBy} onValueChange={(value) => setSortBy(value as SortOption)}>
-            <SelectTrigger className="h-9 border-none bg-transparent focus:ring-0 hover:bg-transparent text-[12px] font-semibold min-w-[140px] px-1 justify-start gap-2">
-              <SelectValue />
+            <SelectTrigger className="h-11 border-none bg-muted/20 md:bg-transparent focus:ring-0 hover:bg-muted/30 md:hover:bg-transparent text-[12px] font-semibold px-4 w-full rounded-none flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <span className="text-[10px] uppercase tracking-wider font-bold text-foreground/30 shrink-0">Sort</span>
+                <div className="truncate text-foreground/80">
+                  <SelectValue />
+                </div>
+              </div>
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent align="end">
               <SelectItem value="alphabetical">A - Z</SelectItem>
               <SelectItem value="most-videos">Most Content</SelectItem>
             </SelectContent>

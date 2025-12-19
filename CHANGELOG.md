@@ -6,6 +6,12 @@ All notable changes to Clipset will be documented in this file.
 
 ### Added - UI/UX Refinements & Bug Fixes (COMPLETE ✅)
 
+- **Unified Filter Bar Refinements**:
+  - Increased Category and Sort dropdown widths to ensure all labels and values fit on a single line.
+  - Standardized "Sort By" to "Sort" across all pages for consistent UI.
+  - Improved right-alignment for sort selections in the filter bar.
+  - Verified mobile responsiveness for filter bar elements on small viewports.
+
 - **Visual Identity & UI Polish**:
   - Rebranded the platform with a vibrant Teal/Cyan primary accent color (`oklch`).
   - Added a dynamic radial gradient background system for improved visual depth.

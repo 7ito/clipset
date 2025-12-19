@@ -32,14 +32,12 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
     <>
       <div className="block group relative h-full">
         <div className="bg-card text-card-foreground border border-border h-full flex flex-col overflow-hidden transition-all duration-300 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10 rounded-none group-hover:translate-y-[-2px]">
-          {/* Main Link Overlay for the whole card */}
-          <Link 
-            to={`/videos/${video.id}`} 
-            className="absolute inset-0 z-20"
-            aria-label={`View video: ${video.title}`}
-          />
-          
           <div className="relative aspect-video bg-muted overflow-hidden z-10">
+            <Link 
+              to={`/videos/${video.id}`} 
+              className="absolute inset-0 z-20"
+              aria-label={`View video: ${video.title}`}
+            />
             {video.thumbnail_filename && !imageError ? (
               <img
                 src={thumbnailUrl!}
@@ -78,25 +76,30 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
             )}
           </div>
           
-          <div className="px-2.5 pt-2 pb-2.5 z-10 flex-1 flex flex-col gap-0.5">
-            <h3 className="font-semibold text-[13px] line-clamp-2 leading-tight group-hover:text-primary transition-colors">
-              {video.title}
-            </h3>
+          <div className="px-2.5 pt-2 pb-2.5 z-10 flex-1 flex flex-col gap-0.5 relative">
+            <Link to={`/videos/${video.id}`} className="group/title inline-block">
+              <h3 className="font-semibold text-[13px] line-clamp-2 leading-tight group-hover/title:text-primary transition-colors">
+                {video.title}
+              </h3>
+            </Link>
             
             <div className="flex flex-col gap-0.5 mt-auto">
-              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground relative z-30">
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground relative z-30">
                 {showUploader && (
-                  <>
-                    <Link 
-                      to="/profile/$username" 
-                      params={{ username: video.uploader_username }}
-                      className="font-medium hover:text-primary transition-colors truncate max-w-[120px]"
-                    >
+                  <Link 
+                    to="/profile/$username" 
+                    params={{ username: video.uploader_username }}
+                    className="flex items-center gap-1.5 group/uploader hover:text-primary transition-colors min-w-0"
+                  >
+                    <div className="size-5 rounded-full bg-primary/20 flex items-center justify-center text-[10px] font-bold text-primary shrink-0 group-hover/uploader:bg-primary group-hover/uploader:text-primary-foreground transition-colors border border-primary/10">
+                      {video.uploader_username.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-medium truncate max-w-[100px] group-hover/uploader:underline decoration-primary/50 underline-offset-2">
                       {video.uploader_username}
-                    </Link>
-                    <span className="opacity-50">•</span>
-                  </>
+                    </span>
+                  </Link>
                 )}
+                {showUploader && <span className="opacity-50 shrink-0">•</span>}
                 <span className="shrink-0">{formatUploadDate(video.created_at)}</span>
               </div>
               

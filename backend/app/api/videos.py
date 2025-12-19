@@ -39,6 +39,7 @@ from app.schemas.video import (
     QuotaResetResponse,
 )
 from app.services import storage, upload_quota
+from app.services.config import get_or_create_config
 from app.services.background_tasks import process_video_task
 from app.config import settings
 
@@ -145,10 +146,18 @@ async def upload_video(
         file_size = file.file.tell()
         file.file.seek(0)  # Reset to beginning
 
-    if file_size > settings.MAX_FILE_SIZE_BYTES:
+    # Get config for max file size
+    try:
+        config = await get_or_create_config(db)
+        max_file_size_limit = config.max_file_size_bytes
+    except Exception as e:
+        logger.warning(f"Failed to fetch DB config, using env default: {e}")
+        max_file_size_limit = settings.MAX_FILE_SIZE_BYTES
+
+    if file_size > max_file_size_limit:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"File too large. Maximum size: {settings.MAX_FILE_SIZE_BYTES / (1024**3):.2f} GB",
+            detail=f"File too large. Maximum size: {max_file_size_limit / (1024**3):.2f} GB",
         )
 
     # Check user quota

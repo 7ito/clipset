@@ -35,6 +35,7 @@ export interface QuotaInfo {
   remaining_bytes: number
   percentage_used: number
   can_upload: boolean
+  max_file_size_bytes: number
 }
 
 export interface VideoUploadRequest {

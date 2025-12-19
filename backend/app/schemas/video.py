@@ -81,6 +81,7 @@ class QuotaInfoResponse(BaseModel):
     remaining_bytes: int
     percentage_used: float
     can_upload: bool
+    max_file_size_bytes: int
 
 
 class ViewCountResponse(BaseModel):

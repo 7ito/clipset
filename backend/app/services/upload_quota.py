@@ -95,15 +95,17 @@ async def get_quota_info(db: AsyncSession, user: User) -> Dict:
         user: User model instance
 
     Returns:
-        Dict with keys: used_bytes, limit_bytes, remaining_bytes, percentage_used, can_upload
+        Dict with keys: used_bytes, limit_bytes, remaining_bytes, percentage_used, can_upload, max_file_size_bytes
     """
-    # Get limit from DB config
+    # Get limit and max file size from DB config
     try:
         config = await get_or_create_config(db)
         limit = config.weekly_upload_limit_bytes
+        max_file_size = config.max_file_size_bytes
     except Exception as e:
         logger.warning(f"Failed to fetch DB config, using env default: {e}")
         limit = settings.WEEKLY_UPLOAD_LIMIT_BYTES
+        max_file_size = settings.MAX_FILE_SIZE_BYTES
 
     used = user.weekly_upload_bytes
     remaining = max(0, limit - used)
@@ -116,6 +118,7 @@ async def get_quota_info(db: AsyncSession, user: User) -> Dict:
         "remaining_bytes": remaining,
         "percentage_used": round(percentage, 2),
         "can_upload": can_upload,
+        "max_file_size_bytes": max_file_size,
     }
 
 

@@ -20,7 +20,6 @@ export const Route = createFileRoute("/_auth/upload")({
 })
 
 const ACCEPTED_FORMATS = ["mp4", "mov", "avi", "mkv", "webm"]
-const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024 // 2GB
 
 function UploadPage() {
   const navigate = useNavigate()
@@ -96,8 +95,9 @@ function UploadPage() {
     }
 
     // Check file size
-    if (file.size > MAX_FILE_SIZE) {
-      toast.error(`File too large. Maximum size: ${formatFileSize(MAX_FILE_SIZE)}`)
+    const limit = quota?.max_file_size_bytes || 2 * 1024 * 1024 * 1024 // 2GB fallback
+    if (file.size > limit) {
+      toast.error(`File too large. Maximum size: ${formatFileSize(limit)}`)
       return
     }
 
@@ -237,7 +237,7 @@ function UploadPage() {
                       Accepted formats: <span className="font-medium">{ACCEPTED_FORMATS.join(", ")}</span>
                     </p>
                     <p>
-                      Maximum size: <span className="font-medium">{formatFileSize(MAX_FILE_SIZE)}</span>
+                      Maximum size: <span className="font-medium">{formatFileSize(quota?.max_file_size_bytes || 2 * 1024 * 1024 * 1024)}</span>
                     </p>
                   </div>
                 </div>

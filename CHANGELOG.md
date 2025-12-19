@@ -4,6 +4,30 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2024-12-19
 
+### Added - Post-Phase 11 Refinement & UI/UX Polish (COMPLETE ✅)
+
+**Completion Date**: December 19, 2024 | **Time**: ~2 hours
+
+- **Refactoring & Performance**:
+  - Extracted `VideoCard` to a shared component in `@/components/shared/VideoCard.tsx`.
+  - Fixed nested `<a>` tag hydration warnings in `VideoCard` using an absolute overlay link pattern with proper z-index management.
+  - Improved `VideoCard` layout to be consistent across Dashboard, Categories, and Profile pages.
+  
+- **Video Player Page Enhancements**:
+  - Implemented an expanded, centered single-column layout (`max-w-6xl`) for better focus.
+  - Implemented an expandable "Description" component with "Show more/less" for long texts.
+  - Redesigned video metadata section with cleaner icons, uploader info card, and improved responsive layout.
+  - Added automatic playback and better loading states.
+  - Fixed missing imports (`getVideos`, `VideoIcon`) and backend auth token validation.
+
+- **Dynamic Configuration Integration**:
+  - Backend: Added `max_file_size_bytes` to `QuotaInfoResponse` schema.
+  - Backend: Updated `upload_quota` service and `upload_video` API to enforce dynamic limits from database configuration.
+  - Frontend: Integrated dynamic upload limits into `UploadPage` for real-time client-side validation.
+
+- **Mobile Navigation**:
+  - Polished mobile menu in `Navbar` with better spacing, icons, and a more comprehensive layout including profile and logout actions.
+
 ### Added - Phase 11: Admin Configuration UI (COMPLETE ✅)
 
 **Completion Date**: December 19, 2024 | **Time**: ~4 hours

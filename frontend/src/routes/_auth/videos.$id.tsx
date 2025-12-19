@@ -21,6 +21,32 @@ export const Route = createFileRoute("/_auth/videos/$id")({
   component: VideoPlayerPage
 })
 
+function Description({ text }: { text: string }) {
+  const [isExpanded, setIsExpanded] = useState(false)
+  const isLong = text.length > 300
+
+  return (
+    <Card>
+      <CardContent className="p-4">
+        <h3 className="font-semibold mb-2">Description</h3>
+        <p className={`text-sm text-muted-foreground whitespace-pre-wrap ${!isExpanded && isLong ? "line-clamp-3" : ""}`}>
+          {text}
+        </p>
+        {isLong && (
+          <Button 
+            variant="link" 
+            size="sm" 
+            className="p-0 h-auto mt-2 text-primary hover:text-primary/80"
+            onClick={() => setIsExpanded(!isExpanded)}
+          >
+            {isExpanded ? "Show less" : "Show more"}
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
 function VideoPlayerPage() {
   const { id } = Route.useParams()
   const navigate = useNavigate()
@@ -129,155 +155,113 @@ function VideoPlayerPage() {
   const statusColor = getStatusColor(video.processing_status)
 
   return (
-    <div className="space-y-6">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Main Video Player */}
-        <div className="space-y-6">
-          {/* Video Player */}
-          <Card className="overflow-hidden">
-            <CardContent className="p-0">
-              {video.processing_status === "completed" ? (
-                <video
-                  controls
-                  className="w-full aspect-video bg-black"
-                  poster={video.thumbnail_filename ? getThumbnailUrl(id) : undefined}
-                  onPlay={handleVideoPlay}
-                >
-                  <source src={getVideoStreamUrl(id)} type="video/mp4" />
-                  Your browser does not support the video tag.
-                </video>
-              ) : (
-                <div className="w-full aspect-video bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
-                  <div className="text-center space-y-6 p-8">
-                    {video.processing_status === "pending" || video.processing_status === "processing" ? (
-                      <>
-                        <div className="inline-flex p-6 rounded-full bg-primary/10">
-                          <Loader2 className="w-16 h-16 animate-spin text-primary" />
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-xl font-semibold capitalize">{video.processing_status}...</p>
-                          <p className="text-sm text-muted-foreground max-w-md">
-                            Your video is being processed. This may take a few minutes depending on the file size.
-                          </p>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="inline-flex p-6 rounded-full bg-destructive/10">
-                          <FileVideo className="w-16 h-16 text-destructive" />
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-xl font-semibold text-destructive">Processing Failed</p>
-                          <p className="text-sm text-muted-foreground max-w-md">
-                            {video.error_message || "An error occurred while processing this video"}
-                          </p>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Video Info */}
-          <div className="space-y-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start gap-3 mb-3">
-                  <h1 className="text-2xl sm:text-3xl font-bold leading-tight flex-1">{video.title}</h1>
-                  <Badge 
-                    variant={statusColor === "green" ? "default" : "secondary"} 
-                    className="capitalize shrink-0"
-                  >
-                    {video.processing_status}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Eye className="w-4 h-4" />
-                    <span className="font-medium">{video.view_count}</span>
-                    <span>{video.view_count === 1 ? "view" : "views"}</span>
-                  </div>
-                  <span>•</span>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>{formatUploadDate(video.created_at)}</span>
-                  </div>
-                  {video.duration_seconds !== null && (
+    <div className="max-w-6xl mx-auto px-4">
+      <div className="space-y-6">
+        {/* Video Player */}
+        <Card className="overflow-hidden border-none bg-black ring-1 ring-border">
+          <CardContent className="p-0">
+            {video.processing_status === "completed" ? (
+              <video
+                controls
+                autoPlay
+                className="w-full aspect-video"
+                poster={video.thumbnail_filename ? getThumbnailUrl(id) : undefined}
+                onPlay={handleVideoPlay}
+              >
+                <source src={getVideoStreamUrl(id)} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            ) : (
+              <div className="w-full aspect-video bg-gradient-to-br from-muted/20 to-muted/5 flex items-center justify-center">
+                <div className="text-center space-y-6 p-8">
+                  {video.processing_status === "pending" || video.processing_status === "processing" ? (
                     <>
-                      <span>•</span>
-                      <span>{formatDuration(video.duration_seconds)}</span>
+                      <div className="inline-flex p-6 rounded-full bg-primary/10">
+                        <Loader2 className="w-16 h-16 animate-spin text-primary" />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xl font-semibold capitalize">{video.processing_status}...</p>
+                        <p className="text-sm text-muted-foreground max-w-md">
+                          Your video is being processed. This may take a few minutes depending on the file size.
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="inline-flex p-6 rounded-full bg-destructive/10">
+                        <FileVideo className="w-16 h-16 text-destructive" />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xl font-semibold text-destructive">Processing Failed</p>
+                        <p className="text-sm text-muted-foreground max-w-md">
+                          {video.error_message || "An error occurred while processing this video"}
+                        </p>
+                      </div>
                     </>
                   )}
-                  <span>•</span>
-                  <span>{formatFileSize(video.file_size_bytes)}</span>
                 </div>
               </div>
+            )}
+          </CardContent>
+        </Card>
 
-              {/* Actions */}
-              <div className="flex gap-2">
-                {/* Add to Playlist button - available for completed videos */}
+        {/* Video Info */}
+        <div className="space-y-6">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <h1 className="text-2xl font-bold leading-tight line-clamp-2">{video.title}</h1>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <Badge 
+                  variant={statusColor === "green" ? "default" : "secondary"} 
+                  className="capitalize"
+                >
+                  {video.processing_status}
+                </Badge>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-4 py-2 border-y">
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Eye className="w-4 h-4" />
+                  <span>{video.view_count.toLocaleString()} {video.view_count === 1 ? "view" : "views"}</span>
+                </div>
+                <span>•</span>
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-4 h-4" />
+                  <span>{formatUploadDate(video.created_at)}</span>
+                </div>
+                {video.duration_seconds !== null && (
+                  <>
+                    <span>•</span>
+                    <span>{formatDuration(video.duration_seconds)}</span>
+                  </>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
                 {video.processing_status === "completed" && (
                   <Button 
-                    variant="outline" 
+                    variant="secondary" 
                     size="sm" 
                     onClick={() => setIsAddToPlaylistOpen(true)}
+                    className="rounded-full"
                   >
                     <ListPlus className="w-4 h-4 mr-2" />
-                    Add to Playlist
+                    Save
                   </Button>
                 )}
 
-                {/* Edit and Delete - only for owners/admins */}
                 {canEdit && (
-                  <>
-                    <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" size="sm" onClick={handleEditClick}>
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Edit Video</DialogTitle>
-                          <DialogDescription>Update video title and description</DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-title">Title</Label>
-                            <Input
-                              id="edit-title"
-                              value={editTitle}
-                              onChange={(e) => setEditTitle(e.target.value)}
-                              maxLength={200}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-description">Description</Label>
-                            <Textarea
-                              id="edit-description"
-                              value={editDescription}
-                              onChange={(e) => setEditDescription(e.target.value)}
-                              rows={4}
-                              maxLength={2000}
-                            />
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                            Cancel
-                          </Button>
-                          <Button onClick={handleEditSubmit} disabled={!editTitle.trim()}>
-                            Save Changes
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-
+                  <div className="flex items-center gap-1 border-l pl-2 ml-1">
+                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" onClick={handleEditClick}>
+                      <Edit className="w-4 h-4" />
+                    </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="destructive" size="sm">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full text-destructive hover:text-destructive hover:bg-destructive/10">
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </AlertDialogTrigger>
@@ -299,51 +283,83 @@ function VideoPlayerPage() {
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
-
-            {/* Description */}
-            {video.description && (
-              <Card>
-                <CardContent className="p-4">
-                  <h3 className="font-semibold mb-2">Description</h3>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">{video.description}</p>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Metadata */}
-            <Card>
-              <CardContent className="p-4 space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <User className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Uploaded by</span>
-                  <Link 
-                    to="/profile/$username" 
-                    params={{ username: video.uploader_username }}
-                    className="font-medium hover:text-primary transition-colors"
-                  >
-                    {video.uploader_username}
-                  </Link>
-                </div>
-                {video.category_name && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <Folder className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Category</span>
-                    <Link to="/dashboard" search={{ category_id: video.category_id || undefined }}>
-                      <Badge variant="outline" className="cursor-pointer hover:bg-accent">
-                        {video.category_name}
-                      </Badge>
-                    </Link>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           </div>
+
+          {/* Uploader Info */}
+          <div className="flex items-center justify-between p-4 bg-accent/30 rounded-xl">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                {video.uploader_username.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <Link 
+                  to="/profile/$username" 
+                  params={{ username: video.uploader_username }}
+                  className="font-bold hover:text-primary transition-colors"
+                >
+                  {video.uploader_username}
+                </Link>
+                <p className="text-xs text-muted-foreground">Uploader</p>
+              </div>
+            </div>
+            {video.category_name && (
+              <Link to="/dashboard" search={{ category_id: video.category_id || undefined }}>
+                <Badge variant="outline" className="hover:bg-accent transition-colors cursor-pointer px-3 py-1">
+                  <Folder className="w-3 h-3 mr-1.5 opacity-70" />
+                  {video.category_name}
+                </Badge>
+              </Link>
+            )}
+          </div>
+
+          {/* Description */}
+          {video.description && (
+            <Description text={video.description} />
+          )}
         </div>
       </div>
+
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Video</DialogTitle>
+            <DialogDescription>Update video title and description</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input
+                id="edit-title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                maxLength={200}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-description">Description</Label>
+              <Textarea
+                id="edit-description"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                rows={4}
+                maxLength={2000}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleEditSubmit} disabled={!editTitle.trim()}>
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Add to Playlist Dialog */}
       <AddToPlaylistDialog

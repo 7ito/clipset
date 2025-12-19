@@ -31,7 +31,7 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
   return (
     <>
       <div className="block group relative h-full">
-        <div className="bg-card text-card-foreground shadow-sm hover:shadow-md transition-all duration-200 hover:-translate-y-0.5 h-full flex flex-col overflow-hidden rounded-xl border border-border/50 isolation-auto">
+        <div className="bg-card text-card-foreground border-x border-b border-border h-full flex flex-col overflow-hidden transition-colors hover:border-border/80 rounded-none">
           {/* Main Link Overlay for the whole card */}
           <Link 
             to={`/videos/${video.id}`} 
@@ -39,7 +39,7 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
             aria-label={`View video: ${video.title}`}
           />
           
-          <div className="relative aspect-video bg-muted overflow-hidden z-10 rounded-t-xl">
+          <div className="relative aspect-video bg-muted overflow-hidden z-10 border-t border-border">
             {video.thumbnail_filename && !imageError ? (
               <img
                 src={thumbnailUrl!}
@@ -53,14 +53,14 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
               </div>
             )}
             {video.duration_seconds !== null && video.processing_status === "completed" && (
-              <div className="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-[10px] font-medium px-1.5 py-0.5 rounded backdrop-blur-sm z-30">
+              <div className="absolute bottom-1.5 right-1.5 bg-black/80 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-none z-30">
                 {formatDuration(video.duration_seconds)}
               </div>
             )}
             
             {video.processing_status !== "completed" && (
               <div className="absolute top-1.5 right-1.5 z-30">
-                <Badge variant={statusColor === "green" ? "default" : "secondary"} className="capitalize backdrop-blur-sm bg-background/80 text-[10px] px-1.5 py-0 h-5">
+                <Badge variant={statusColor === "green" ? "default" : "secondary"} className="capitalize backdrop-blur-sm bg-background/80 text-[10px] px-1.5 py-0 h-5 rounded-none border-none">
                   {video.processing_status}
                 </Badge>
               </div>
@@ -70,7 +70,7 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
             {video.processing_status === "completed" && (
               <button
                 onClick={handleAddToPlaylist}
-                className="absolute top-1.5 left-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 backdrop-blur-sm hover:bg-background text-foreground p-1.5 rounded-md shadow-lg z-30"
+                className="absolute top-1.5 left-1.5 opacity-0 group-hover:opacity-100 transition-opacity bg-background/90 backdrop-blur-sm hover:bg-background text-foreground p-1.5 shadow-lg z-30 rounded-none border border-border"
                 title="Add to playlist"
               >
                 <ListPlus className="w-3.5 h-3.5" />
@@ -78,7 +78,7 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
             )}
           </div>
           
-          <div className="px-2.5 py-2 z-10 flex-1 flex flex-col gap-0.5">
+          <div className="px-2.5 pt-2 pb-2.5 z-10 flex-1 flex flex-col gap-0.5">
             <h3 className="font-semibold text-[13px] line-clamp-2 leading-tight group-hover:text-primary transition-colors">
               {video.title}
             </h3>
@@ -111,7 +111,7 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
                 {video.category_name && (
                   <>
                     <span className="opacity-50">•</span>
-                    <span className="px-1.5 py-0 rounded-sm bg-muted/40 text-[9px] uppercase tracking-wider font-semibold border border-border/40">
+                    <span className="px-1.5 py-0 bg-muted/40 text-[9px] uppercase tracking-wider font-semibold border border-border/40 rounded-none">
                       {video.category_name}
                     </span>
                   </>

@@ -88,6 +88,7 @@ export function Navbar() {
               variant="ghost"
               size="sm"
               onClick={toggleTheme}
+              className="hover:bg-transparent transition-none"
               title={theme === "light" ? "Switch to dark mode" : "Switch to light mode"}
             >
               {theme === "light" ? (

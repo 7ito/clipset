@@ -31,7 +31,7 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
   return (
     <>
       <div className="block group relative h-full">
-        <div className="bg-card text-card-foreground border-x border-b border-border h-full flex flex-col overflow-hidden transition-colors hover:border-border/80 rounded-none">
+        <div className="bg-card text-card-foreground border border-border h-full flex flex-col overflow-hidden transition-colors hover:border-border/80 rounded-none">
           {/* Main Link Overlay for the whole card */}
           <Link 
             to={`/videos/${video.id}`} 
@@ -39,7 +39,7 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
             aria-label={`View video: ${video.title}`}
           />
           
-          <div className="relative aspect-video bg-muted overflow-hidden z-10 border-t border-border">
+          <div className="relative aspect-video bg-muted overflow-hidden z-10">
             {video.thumbnail_filename && !imageError ? (
               <img
                 src={thumbnailUrl!}

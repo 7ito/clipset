@@ -16,7 +16,7 @@ const sizeClasses = {
 export function LoadingSpinner({ size = "md", className, text }: LoadingSpinnerProps) {
   return (
     <div className="flex flex-col items-center justify-center gap-3">
-      <Loader2 className={cn(sizeClasses[size], "animate-spin text-muted-foreground", className)} />
+      <Loader2 className={cn(sizeClasses[size], "animate-spin text-primary", className)} />
       {text && (
         <p className="text-sm text-muted-foreground">{text}</p>
       )}

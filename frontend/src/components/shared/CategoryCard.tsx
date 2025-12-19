@@ -9,17 +9,16 @@ interface CategoryCardProps {
 // Generate a gradient based on category name (for consistent colors)
 function generateGradient(name: string): string {
   const gradients = [
-    "from-blue-500 to-purple-600",
-    "from-green-500 to-teal-600",
-    "from-orange-500 to-red-600",
-    "from-pink-500 to-rose-600",
-    "from-indigo-500 to-blue-600",
-    "from-yellow-500 to-orange-600",
+    "from-teal-500 to-cyan-600",
+    "from-emerald-500 to-teal-600",
     "from-cyan-500 to-blue-600",
-    "from-violet-500 to-purple-600",
+    "from-teal-400 to-emerald-500",
+    "from-emerald-400 to-cyan-500",
+    "from-cyan-400 to-teal-500",
+    "from-teal-600 to-emerald-700",
+    "from-emerald-600 to-cyan-700",
   ]
   
-  // Use first letter to pick gradient consistently
   const index = name.charCodeAt(0) % gradients.length
   return gradients[index]
 }

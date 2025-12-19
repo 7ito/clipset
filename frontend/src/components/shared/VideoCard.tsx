@@ -31,7 +31,7 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
   return (
     <>
       <div className="block group relative h-full">
-        <div className="bg-card text-card-foreground border border-border h-full flex flex-col overflow-hidden transition-colors hover:border-border/80 rounded-none">
+        <div className="bg-card text-card-foreground border border-border h-full flex flex-col overflow-hidden transition-all duration-300 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10 rounded-none group-hover:translate-y-[-2px]">
           {/* Main Link Overlay for the whole card */}
           <Link 
             to={`/videos/${video.id}`} 
@@ -108,14 +108,15 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
                   </>
                 )}
                 <span>{formatFileSize(video.file_size_bytes)}</span>
-                {video.category_name && (
-                  <>
-                    <span className="opacity-50">•</span>
-                    <span className="px-1.5 py-0 bg-muted/40 text-[9px] uppercase tracking-wider font-semibold border border-border/40 rounded-none">
-                      {video.category_name}
-                    </span>
-                  </>
-                )}
+                 {video.category_name && (
+                   <>
+                     <span className="opacity-50">•</span>
+                     <span className="px-1.5 py-0 bg-primary/10 text-primary text-[9px] uppercase tracking-wider font-bold border border-primary/20 rounded-none">
+                       {video.category_name}
+                     </span>
+                   </>
+                 )}
+
               </div>
             </div>
             {video.processing_status === "failed" && video.error_message && (

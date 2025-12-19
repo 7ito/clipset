@@ -92,12 +92,12 @@ function DashboardPage() {
       <Card className="p-4">
         <div className="flex gap-4 flex-col sm:flex-row">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/50 pointer-events-none" />
             <Input
               placeholder="Search videos by title..."
               value={search}
               onChange={(e) => handleSearchChange(e.target.value)}
-              className="pl-10"
+              className="pl-10 placeholder:text-foreground/50"
             />
           </div>
           <Select value={categoryFilter || "__all__"} onValueChange={handleCategoryChange}>

@@ -6,6 +6,15 @@ All notable changes to Clipset will be documented in this file.
 
 ### Added - UI/UX Refinements & Bug Fixes (COMPLETE ✅)
 
+- **Visual Identity & UI Polish**:
+  - Rebranded the platform with a vibrant Teal/Cyan primary accent color (`oklch`).
+  - Added a dynamic radial gradient background system for improved visual depth.
+  - Enhanced the Navbar with a glowing, animated logo and interactive link underlines.
+  - Improved `VideoCard` components with smooth lift-up hover animations and themed shadows.
+  - Standardized all card gradients to a new Teal-Emerald-Cyan palette.
+  - Refined `PageHeader` with themed left-borders and subtle text glows.
+  - Updated global UI components (Tabs, Progress bars, Spinners) to align with the new brand identity.
+
 - **Playlist Player Experience**:
   - Added "Playlist Queue" horizontal ribbon below the video player.
   - Implemented automatic video progression with a toggleable 3-second countdown.

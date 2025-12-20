@@ -1,5 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router"
-import { Users, FolderKanban, Menu, X, Settings } from "lucide-react"
+import { Users, FolderKanban, Menu, X, Settings, LayoutDashboard } from "lucide-react"
 import { useState } from "react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -14,8 +14,18 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   
   const navItems = [
     {
+      title: "Dashboard",
+      href: "/admin",
+      icon: LayoutDashboard,
+    },
+    {
       title: "Invitations",
       href: "/admin/invitations",
+      icon: Users,
+    },
+    {
+      title: "Users",
+      href: "/admin/users",
       icon: Users,
     },
     {

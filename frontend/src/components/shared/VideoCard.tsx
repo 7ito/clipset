@@ -111,14 +111,15 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
                   </>
                 )}
                 <span>{formatFileSize(video.file_size_bytes)}</span>
-                 {video.category_name && (
-                   <>
-                     <span className="opacity-50">•</span>
-                     <span className="px-1.5 py-0 bg-primary/10 text-primary text-[9px] uppercase tracking-wider font-bold border border-primary/20 rounded-none">
-                       {video.category_name}
-                     </span>
-                   </>
-                 )}
+                  {video.category_name && (
+                    <>
+                      <span className="opacity-50">•</span>
+                      <span className="px-1.5 py-0 bg-primary/10 text-primary text-[10px] font-medium border border-primary/20 rounded-sm">
+                        {video.category_name}
+                      </span>
+                    </>
+                  )}
+
 
               </div>
             </div>

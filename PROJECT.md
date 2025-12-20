@@ -277,6 +277,31 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 
 **Key Achievement**: Runtime configuration management without server restarts. Admins can adjust upload limits and storage paths through an intuitive web interface.
 
+### ✅ Phase 12: User Directory & Management (Complete)
+**Goal**: Community discovery and administrative user management
+
+**Backend**:
+- Enhanced User API with aggregated video and playlist counts
+- New `GET /api/users/directory` endpoint for public listing with search/sort
+- New `POST /api/users/{id}/activate` endpoint for admin re-activation
+- Optimized queries using SQL subqueries for performance
+
+**Frontend**:
+- ✅ **User Directory (`/users`)**:
+  - Responsive grid of community members
+  - Large initials-based avatars with dynamic gradients
+  - Search by username
+  - Sort by: Newest, Alphabetical, Most Videos, Most Playlists
+- ✅ **Admin User Management (`/admin/users`)**:
+  - Detailed table with Email, Role, Joined Date, and Stats
+  - Real-time activation/deactivation toggle
+  - Status badges and admin role indicators
+- ✅ **Shared Components**:
+  - `UserAvatar`: Reusable initials/gradient avatar system
+  - `UserCard`: Visually polished member cards with engagement stats
+- ✅ **Navigation**:
+  - Unified links in main Navbar and Admin sidebar
+
 ### Future Enhancements (Post-MVP)
 - Advanced search and filtering
 - Comments and social interactions

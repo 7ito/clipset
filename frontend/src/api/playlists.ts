@@ -3,6 +3,7 @@
  */
 
 import { apiClient } from "@/lib/api-client"
+import { getThumbnailUrl } from "./videos"
 import type {
   Playlist,
   PlaylistCreate,
@@ -103,7 +104,7 @@ export const getUserPlaylists = async (videoId: string): Promise<PlaylistListRes
  */
 export const getPlaylistCoverUrl = (playlist: Playlist): string | null => {
   if (playlist.first_video_thumbnail) {
-    return `/api/videos/${playlist.id}/thumbnail`
+    return getThumbnailUrl(playlist.first_video_thumbnail)
   }
   return null
 }

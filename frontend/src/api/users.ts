@@ -1,13 +1,28 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
-import type { UserResponse, UserProfile, UserWithQuota } from "@/types/user"
+import type { UserResponse, UserProfile, UserWithQuota, UserDirectoryResponse } from "@/types/user"
 import type { PaginationParams } from "@/types/api"
+
+export interface UserDirectoryParams {
+  search?: string
+  sort?: string
+}
 
 export function useUsers(params: PaginationParams = {}) {
   return useQuery({
     queryKey: ["users", params],
     queryFn: async () => {
       const response = await apiClient.get<UserResponse[]>("/api/users/", { params })
+      return response.data
+    }
+  })
+}
+
+export function useUserDirectory(params: UserDirectoryParams = {}) {
+  return useQuery({
+    queryKey: ["users-directory", params],
+    queryFn: async () => {
+      const response = await apiClient.get<UserDirectoryResponse[]>("/api/users/directory", { params })
       return response.data
     }
   })
@@ -33,6 +48,22 @@ export function useDeactivateUser() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] })
+      queryClient.invalidateQueries({ queryKey: ["users-directory"] })
+    }
+  })
+}
+
+export function useActivateUser() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiClient.post<{ message: string }>(`/api/users/${userId}/activate`)
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] })
+      queryClient.invalidateQueries({ queryKey: ["users-directory"] })
     }
   })
 }

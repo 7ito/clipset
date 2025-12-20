@@ -7,6 +7,7 @@ import { GripVertical, Trash2 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { reorderPlaylistVideos } from "@/api/playlists"
+import { getThumbnailUrl } from "@/api/videos"
 import { toast } from "@/lib/toast"
 import type { PlaylistVideo } from "@/types/playlist"
 
@@ -186,7 +187,7 @@ function SortableVideoItem({
         <div className="w-32 h-20 bg-muted rounded flex-shrink-0 overflow-hidden">
           {playlistVideo.video.thumbnail_filename && (
             <img 
-              src={`/api/videos/${playlistVideo.video_id}/thumbnail`}
+              src={getThumbnailUrl(playlistVideo.video.thumbnail_filename)}
               alt={playlistVideo.video.title}
               className="w-full h-full object-cover rounded"
             />

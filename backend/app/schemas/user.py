@@ -5,15 +5,15 @@ from typing import Optional
 
 class UserBase(BaseModel):
     email: EmailStr
-    username: str = Field(min_length=3, max_length=50, pattern=r'^[a-zA-Z0-9_]+$')
-    
-    @field_validator('email')
+    username: str = Field(min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$")
+
+    @field_validator("email")
     @classmethod
     def email_to_lowercase(cls, v: str) -> str:
         """Convert email to lowercase for case-insensitive uniqueness."""
         return v.lower()
-    
-    @field_validator('username')
+
+    @field_validator("username")
     @classmethod
     def username_to_lowercase(cls, v: str) -> str:
         """Convert username to lowercase for case-insensitive uniqueness."""
@@ -27,32 +27,54 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     """For future user updates (all optional)."""
+
     email: Optional[EmailStr] = None
-    username: Optional[str] = Field(None, min_length=3, max_length=50, pattern=r'^[a-zA-Z0-9_]+$')
+    username: Optional[str] = Field(
+        None, min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_]+$"
+    )
 
 
 class UserResponse(UserBase):
     """Public user response without sensitive data."""
+
     id: str
     role: str
     created_at: datetime
     is_active: bool
-    
+    video_count: int = 0
+    playlist_count: int = 0
+
     class Config:
         from_attributes = True
 
 
 class UserWithQuota(UserResponse):
     """User response including quota information (for own profile)."""
+
     weekly_upload_bytes: int
     last_upload_reset: datetime
 
 
 class UserProfile(BaseModel):
     """Public profile view (for other users)."""
+
     id: str
     username: str
     created_at: datetime
-    
+    video_count: int = 0
+    playlist_count: int = 0
+
+    class Config:
+        from_attributes = True
+
+
+class UserDirectoryResponse(BaseModel):
+    """User directory view (public grid)."""
+
+    id: str
+    username: str
+    video_count: int = 0
+    playlist_count: int = 0
+
     class Config:
         from_attributes = True

@@ -2,6 +2,33 @@
 
 All notable changes to Clipset will be documented in this file.
 
+## [Unreleased] - 2024-12-20
+
+### Added - User Directory & Management (COMPLETE ✅)
+
+- **User Directory**:
+  - Implemented a public-facing community directory at `/users`.
+  - Added responsive user cards with engagement stats (video and playlist counts).
+  - Integrated search functionality and multiple sorting options (Newest, A-Z, Most Content).
+  - Created a reusable `UserAvatar` component with dynamic initials and themed gradients.
+
+- **Admin User Management**:
+  - Implemented a comprehensive management interface at `/admin/users`.
+  - Added a detailed table view with user metadata, engagement stats, and join dates.
+  - Implemented user activation and deactivation (soft delete) capabilities.
+  - Added role-based visual indicators (Admin/User badges).
+
+- **Backend API Enhancements**:
+  - Added `GET /api/users/directory` for optimized public user listing.
+  - Updated user endpoints to include aggregated video and playlist counts using efficient SQL joins.
+  - Added `POST /api/users/{id}/activate` for administrative account restoration.
+  - Implemented server-side searching and sorting for user lists.
+
+- **Navigation & UI**:
+  - Added "Users" to the main navigation bar.
+  - Added "Users" to the admin sidebar for quick access to management.
+  - Polished the mobile navigation to include the new users route.
+
 ## [Unreleased] - 2024-12-19
 
 ### Added - UI/UX Refinements & Bug Fixes (COMPLETE ✅)

@@ -57,6 +57,13 @@ export function Navbar() {
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
               </Link>
               <Link
+                to="/users"
+                className="text-xs uppercase tracking-widest font-bold text-muted-foreground hover:text-primary transition-colors relative group"
+              >
+                Users
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
+              </Link>
+              <Link
                 to="/categories"
                 className="text-xs uppercase tracking-widest font-bold text-muted-foreground hover:text-primary transition-colors relative group"
               >
@@ -159,6 +166,16 @@ export function Navbar() {
                 <Home className="w-5 h-5" />
               </div>
               <span>Home</span>
+            </Link>
+            <Link
+              to="/users"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-4 px-4 py-3 rounded-xl text-base font-medium hover:bg-accent transition-all active:scale-95"
+            >
+              <div className="p-2 rounded-lg bg-primary/10 text-primary">
+                <User className="w-5 h-5" />
+              </div>
+              <span>Users</span>
             </Link>
             <Link
               to="/categories"

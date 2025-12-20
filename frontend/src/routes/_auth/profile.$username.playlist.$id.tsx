@@ -4,6 +4,7 @@ import { useState } from "react"
 import { ArrowLeft, Edit, Trash2, ListVideo } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { getPlaylist, deletePlaylist, removeVideoFromPlaylist } from "@/api/playlists"
+import { getThumbnailUrl } from "@/api/videos"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
@@ -129,7 +130,7 @@ function PlaylistDetailPage() {
 
   const gradient = generateGradient(playlist.name)
   const coverImage = playlist.first_video_thumbnail 
-    ? `/api/videos/${playlist.videos[0]?.video_id}/thumbnail` 
+    ? getThumbnailUrl(playlist.first_video_thumbnail) 
     : null
 
   return (
@@ -245,7 +246,7 @@ function PlaylistDetailPage() {
                   <div className="w-32 h-20 bg-muted rounded flex-shrink-0 overflow-hidden">
                     {pv.video.thumbnail_filename && (
                       <img 
-                        src={`/api/videos/${pv.video_id}/thumbnail`}
+                        src={getThumbnailUrl(pv.video.thumbnail_filename)}
                         alt={pv.video.title}
                         className="w-full h-full object-cover rounded"
                       />

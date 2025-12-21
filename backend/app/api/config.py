@@ -3,6 +3,7 @@ Config API endpoints for system configuration management.
 """
 
 import logging
+from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -70,6 +71,24 @@ async def update_system_config(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No fields provided for update",
             )
+
+        # Validate storage path if provided
+        if "video_storage_path" in update_data:
+            path = Path(update_data["video_storage_path"])
+            try:
+                # Try to create if doesn't exist
+                path.mkdir(parents=True, exist_ok=True)
+                # Test write permission
+                test_file = path / f".write_test_{current_user.id}"
+                test_file.touch()
+                test_file.unlink()
+                logger.info(f"Validated writable storage path: {path}")
+            except Exception as e:
+                logger.error(f"Invalid storage path '{path}': {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid or unwritable storage path: {str(e)}",
+                )
 
         # Update config with user tracking
         config = await update_config(db, update_data, current_user.id)

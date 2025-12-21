@@ -92,6 +92,7 @@ def build_video_response(
         "view_count": video.view_count,
         "processing_status": video.processing_status.value,
         "error_message": video.error_message,
+        "storage_path": video.storage_path,
         "created_at": video.created_at,
         # Joined data
         "uploader_username": uploader.username,
@@ -200,6 +201,7 @@ async def upload_video(
             uploaded_by=current_user.id,
             category_id=category_id,
             processing_status=ProcessingStatus.PENDING,
+            storage_path=config.video_storage_path,
         )
 
         db.add(video)
@@ -438,7 +440,8 @@ async def delete_video(
     await require_video_owner_or_admin(video, current_user)
 
     # Delete files
-    video_path = Path(settings.VIDEO_STORAGE_PATH) / video.filename
+    video_storage_base = Path(video.storage_path or settings.VIDEO_STORAGE_PATH)
+    video_path = video_storage_base / video.filename
     storage.delete_file(video_path)
 
     if video.thumbnail_filename:
@@ -475,7 +478,8 @@ async def stream_video(
             )
 
     # Get video file path
-    video_path = Path(settings.VIDEO_STORAGE_PATH) / video.filename
+    video_storage_base = Path(video.storage_path or settings.VIDEO_STORAGE_PATH)
+    video_path = video_storage_base / video.filename
 
     if not video_path.exists():
         raise HTTPException(

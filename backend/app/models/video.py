@@ -37,6 +37,7 @@ class Video(Base):
     )  # Processed video filename
     thumbnail_filename = Column(String(255), nullable=True)  # Generated thumbnail
     original_filename = Column(String(255), nullable=False)  # Original upload filename
+    storage_path = Column(String(500), nullable=True)  # Base path where video is stored
 
     # Metadata
     file_size_bytes = Column(BigInteger, nullable=False)

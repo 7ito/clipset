@@ -264,7 +264,7 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 ### ✅ Phase 11: Admin Configuration UI (Complete)
 **Goal**: Allow admins to manage system settings via web UI
 
-**Completed** (December 19, 2024 - 4 hours):
+**Completed** (December 19-22, 2024):
 - ✅ Config API endpoints (GET, PATCH) with admin-only access
 - ✅ Pydantic schemas with validation (1MB-10GB for files, 1MB-100GB for quotas)
 - ✅ FileSizeInput component with MB/GB unit conversion
@@ -274,8 +274,13 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 - ✅ Unsaved changes tracking and reset functionality
 - ✅ Toast notifications for success/error states
 - ✅ Settings link in admin sidebar
+- ✅ **Dynamic Video Storage Path Integration**:
+    - Backend resolution of per-video storage paths
+    - Database migration adding `storage_path` to `Video` model
+    - Writable path validation in Admin UI
+    - Background task support for dynamic output directories
 
-**Key Achievement**: Runtime configuration management without server restarts. Admins can adjust upload limits and storage paths through an intuitive web interface.
+**Key Achievement**: Full runtime configuration management. Admins can adjust upload limits and storage locations through an intuitive web interface, with per-video path tracking ensuring long-term data integrity.
 
 ### ✅ Phase 12: User Directory & Management (Complete)
 **Goal**: Community discovery and administrative user management

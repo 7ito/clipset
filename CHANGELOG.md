@@ -2,7 +2,14 @@
 
 All notable changes to Clipset will be documented in this file.
 
-## [Unreleased] - 2024-12-21
+## [Unreleased] - 2024-12-22
+
+### Added - Dynamic Video Storage Path (COMPLETE ✅)
+- **Configurable Storage**: Implemented full support for dynamic video storage paths. Admins can now change where videos are stored via the System Settings UI without restarting the server.
+- **Database Persistence**: Added `storage_path` column to the `Video` model to track the specific storage location used at the time of upload. This ensures that changing the global storage path does not break access to existing videos.
+- **Path Validation**: Added backend validation to the settings update API that verifies if a new storage path is writable by the application before saving the configuration.
+- **Background Processing**: Updated the video processing pipeline to use the video's specific storage path during transcoding and thumbnail extraction.
+- **Streaming & Deletion**: Refactored streaming and deletion logic to resolve file paths dynamically based on per-video storage metadata.
 
 ### Fixed
 - **Authentication**: Fixed a critical 500 Internal Server Error on `/api/auth/me` caused by an ambiguous SQL join in the user statistics query. This was preventing the frontend from initializing and resulting in a "black screen".

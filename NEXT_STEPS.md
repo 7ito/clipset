@@ -159,6 +159,19 @@
 
 ---
 
+## Just Completed (December 22, 2024)
+
+### Dynamic Video Storage Path - COMPLETE ✅
+**Status**: Production-ready, fully tested
+**Key Improvements**:
+- ✅ Backend: Added `storage_path` column to `Video` model via Alembic migration.
+- ✅ Backend: Upload API now fetches current storage path from DB and persists it.
+- ✅ Backend: Stream and Delete APIs resolve paths dynamically from per-video metadata.
+- ✅ Backend: Validation added to ensure storage paths are writable before saving settings.
+- ✅ Verification: Confirmed new videos are stored in custom directories while preserving access to old ones.
+
+---
+
 ## Just Completed (December 21, 2024)
 
 ### Bug Fix: Critical Auth/Me 500 Error - COMPLETE ✅

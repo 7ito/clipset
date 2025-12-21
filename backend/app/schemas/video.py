@@ -49,6 +49,7 @@ class VideoResponse(BaseModel):
     filename: str
     thumbnail_filename: Optional[str]
     original_filename: str
+    storage_path: Optional[str]
     file_size_bytes: int
     duration_seconds: Optional[int]
     uploaded_by: str

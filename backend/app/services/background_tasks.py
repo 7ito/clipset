@@ -52,7 +52,13 @@ async def process_video_task(video_id: str) -> None:
 
             # Define file paths
             temp_path = Path(settings.TEMP_STORAGE_PATH) / video.filename
-            video_output_path = Path(settings.VIDEO_STORAGE_PATH) / video.filename
+
+            # Use dynamic storage path from video record
+            video_storage_base = Path(video.storage_path or settings.VIDEO_STORAGE_PATH)
+            # Ensure it exists
+            video_storage_base.mkdir(parents=True, exist_ok=True)
+
+            video_output_path = video_storage_base / video.filename
             thumbnail_filename = video.filename.rsplit(".", 1)[0] + ".jpg"
             thumbnail_output_path = (
                 Path(settings.THUMBNAIL_STORAGE_PATH) / thumbnail_filename

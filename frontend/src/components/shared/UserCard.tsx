@@ -14,9 +14,9 @@ export function UserCard({ user }: UserCardProps) {
       params={{ username: user.username }}
       className="group"
     >
-      <div className="relative flex flex-col items-center p-6 bg-card border border-border rounded-2xl transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1 hover:border-primary/50 group-hover:bg-accent/5 overflow-hidden">
+      <div className="relative flex flex-col items-center p-6 bg-card border border-border rounded-none transition-all duration-300 hover:shadow-2xl hover:shadow-primary/20 hover:-translate-y-1 hover:border-primary/50 group-hover:bg-accent/5 overflow-hidden">
         {/* Decorative background glow */}
-        <div className="absolute -top-12 -right-12 w-24 h-24 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all duration-500" />
+        <div className="absolute -top-12 -right-12 w-24 h-24 dark:bg-primary/10 bg-primary/5 rounded-full blur-2xl group-hover:bg-primary/20 transition-all duration-500" />
         
         <UserAvatar 
           username={user.username} 

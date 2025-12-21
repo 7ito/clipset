@@ -40,10 +40,10 @@ export function Navbar() {
         <div className="flex h-14 items-center justify-between">
           <div className="flex items-center gap-8">
             <Link to="/dashboard" className="text-lg font-bold tracking-tighter group flex items-center gap-2">
-              <div className="size-6 bg-primary rotate-45 flex items-center justify-center transition-all duration-500 group-hover:rotate-180 shadow-[0_0_15px_-3px_var(--color-primary)]">
+              <div className="size-6 bg-primary rotate-45 flex items-center justify-center transition-all duration-500 group-hover:rotate-180 dark:shadow-[0_0_15px_-3px_var(--color-primary)]">
                 <div className="size-3 bg-primary-foreground -rotate-45" />
               </div>
-              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent drop-shadow-sm">
+              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent dark:drop-shadow-sm">
                 Clipset
               </span>
             </Link>
@@ -52,43 +52,48 @@ export function Navbar() {
               <Link
                 to="/dashboard"
                 className="text-xs uppercase tracking-widest font-bold text-muted-foreground hover:text-primary transition-colors relative group"
+                activeProps={{ className: "!text-primary" }}
               >
                 Home
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full group-[.active]:w-full" />
               </Link>
               <Link
                 to="/users"
                 className="text-xs uppercase tracking-widest font-bold text-muted-foreground hover:text-primary transition-colors relative group"
+                activeProps={{ className: "!text-primary" }}
               >
                 Users
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full group-[.active]:w-full" />
               </Link>
               <Link
                 to="/categories"
                 className="text-xs uppercase tracking-widest font-bold text-muted-foreground hover:text-primary transition-colors relative group"
+                activeProps={{ className: "!text-primary" }}
               >
                 Categories
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full group-[.active]:w-full" />
               </Link>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="hidden md:flex items-center gap-6 mr-4 border-r border-border/50 pr-6">
+            <div className="hidden md:flex items-center gap-6 mr-4">
               <Link
                 to="/upload"
                 className="text-xs uppercase tracking-widest font-bold text-muted-foreground hover:text-primary transition-colors relative group"
+                activeProps={{ className: "!text-primary" }}
               >
                 Upload
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full group-[.active]:w-full" />
               </Link>
               {isAdmin && (
                 <Link
                   to="/admin"
                   className="text-xs uppercase tracking-widest font-bold text-muted-foreground hover:text-primary transition-colors relative group"
+                  activeProps={{ className: "!text-primary" }}
                 >
                   Admin
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full" />
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all group-hover:w-full group-[.active]:w-full" />
                 </Link>
               )}
             </div>

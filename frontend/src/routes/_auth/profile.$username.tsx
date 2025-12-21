@@ -123,14 +123,6 @@ function MyProfileDialog({ isOpen, onClose, user }: { isOpen: boolean; onClose: 
                 />
 
                 <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadAvatar.isPending}
-                  >
-                    Change Image
-                  </Button>
                   {user.avatar_url && (
                     <Button 
                       variant="ghost" 

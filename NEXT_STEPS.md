@@ -167,6 +167,27 @@
 - ✅ Resolved "black screen" issue on frontend by restoring auth state.
 - ✅ Verified fix via Playwright and manual API testing.
 
+### UI/UX Refinement: Light Mode Polish & Consistency - COMPLETE ✅
+**Time Spent**: ~1 hour
+**Status**: Complete
+
+**What Was Improved**:
+- ✅ **Light Mode Aesthetic**:
+  - Removed "text-glow" from `PageHeader` in light mode for better legibility.
+  - Subtilized `body` background gradients in light mode (8% → 3% opacity).
+  - Made Navbar logo and branding shadows dark-mode only.
+  - Refined `PageHeader` background and border for a cleaner, less heavy look.
+  - Improved Unified Filter Bar with a lighter, more integrated background in light mode.
+- ✅ **Visual Consistency**:
+  - Maintained `rounded-none` for cards and major containers to match the project's sharp-edged aesthetic.
+  - Reverted `UserAvatar` to `rounded-full` as per user preference (avatars remain rounded).
+  - Restricted decorative "background glows" to be more subtle in light mode.
+- ✅ **Navigation**:
+  - Implemented `activeProps` in Navbar links for clear visual feedback of the current page.
+  - Fixed active indicators for Home, Users, Categories, Upload, and Admin routes.
+
+---
+
 ## Immediate Next Steps (Optional Enhancements)
 
 

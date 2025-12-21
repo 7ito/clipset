@@ -88,7 +88,7 @@ function DashboardPage() {
       />
 
       {/* Unified Filter Bar */}
-      <div className="flex flex-col md:flex-row md:h-11 items-stretch gap-0 border border-border bg-card/50 backdrop-blur-sm shadow-sm group/filterbar focus-within:border-primary/50 transition-all duration-300">
+      <div className="flex flex-col md:flex-row md:h-11 items-stretch gap-0 border border-border bg-card/50 backdrop-blur-sm shadow-sm group/filterbar focus-within:border-primary/50 transition-all duration-300 dark:bg-card/50 bg-white/80">
         <div className="flex-1 flex items-stretch relative border-b md:border-b-0 md:border-r border-border focus-within:bg-card transition-colors min-w-0 h-11 md:h-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40 group-focus-within/filterbar:text-primary transition-colors pointer-events-none z-10" />
           <Input

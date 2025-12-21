@@ -201,6 +201,13 @@
 
 ---
 
+## Just Completed (December 22, 2024 - Part 2)
+
+### Timestamp Bug Fix - COMPLETE ✅
+- ✅ **Backend Serialization**: Switched to `model_validator(mode="after")` in `BaseResponse` to ensure all `datetime` fields are serialized with UTC timezone information ('Z' suffix).
+- ✅ **Frontend Robustness**: Added `parseDate` helper to `formatters.ts` to explicitly treat naive ISO strings as UTC.
+- ✅ **Verification**: Confirmed new uploads show "just now" on the dashboard via Playwright.
+
 ## Immediate Next Steps (Optional Enhancements)
 
 

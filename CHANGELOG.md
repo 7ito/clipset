@@ -4,7 +4,11 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2024-12-22
 
-### Added
+### Fixed
+- **Timestamp Issues**: Resolved a critical bug where video upload timestamps were appearing as "8 hours ago" immediately after upload.
+  - Implemented a `model_validator` in `BaseResponse` to ensure all `datetime` fields in API responses are explicitly localized to UTC and serialized with the 'Z' suffix.
+  - Enhanced frontend date parsing in `formatters.ts` to robustly handle potentially naive date strings by assuming UTC if no timezone is present.
+  - Verified fix with manual end-to-end testing using Playwright.
 - **Copy Link Feature**: Added "Copy Link" buttons to the video player and playlist pages for easier sharing.
 
 ### Removed

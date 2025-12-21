@@ -1,19 +1,20 @@
 from datetime import datetime, timezone
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, model_validator
 from typing import Any
 
 
 class BaseResponse(BaseModel):
     """Base schema for responses ensuring UTC datetimes."""
 
-    @field_validator("*", mode="after")
-    @classmethod
-    def ensure_utc(cls, v: Any) -> Any:
+    @model_validator(mode="after")
+    def ensure_utc_v2(self) -> "BaseResponse":
         """Ensure all datetime fields are timezone-aware UTC."""
-        if isinstance(v, datetime):
-            if v.tzinfo is None:
-                return v.replace(tzinfo=timezone.utc)
-            return v.astimezone(timezone.utc)
-        return v
+        for field_name, field_value in self.__dict__.items():
+            if isinstance(field_value, datetime):
+                if field_value.tzinfo is None:
+                    setattr(self, field_name, field_value.replace(tzinfo=timezone.utc))
+                else:
+                    setattr(self, field_name, field_value.astimezone(timezone.utc))
+        return self
 
     model_config = {"from_attributes": True}

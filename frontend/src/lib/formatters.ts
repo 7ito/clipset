@@ -1,5 +1,21 @@
+/**
+ * Safely parse a date string, ensuring it's treated as UTC if no timezone is provided
+ */
+export function parseDate(dateString: string): Date {
+  if (!dateString) return new Date()
+  
+  // If string doesn't end with Z or a timezone offset like +HH:MM or -HH:MM
+  // and it's in ISO-like format, append Z to force UTC interpretation
+  let sanitized = dateString
+  if (!dateString.endsWith("Z") && !/[+-]\d{2}:\d{2}$/.test(dateString)) {
+    sanitized = dateString.includes("T") ? `${dateString}Z` : `${dateString}T00:00:00Z`
+  }
+  
+  return new Date(sanitized)
+}
+
 export function formatDate(dateString: string): string {
-  const date = new Date(dateString)
+  const date = parseDate(dateString)
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "long",
@@ -10,7 +26,7 @@ export function formatDate(dateString: string): string {
 }
 
 export function formatDateShort(dateString: string): string {
-  const date = new Date(dateString)
+  const date = parseDate(dateString)
   return new Intl.DateTimeFormat("en-US", {
     year: "numeric",
     month: "short",
@@ -29,17 +45,34 @@ export function formatBytes(bytes: number): string {
 }
 
 export function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString)
+  const date = parseDate(dateString)
   const now = new Date()
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000)
   
   if (seconds < 60) return "just now"
-  if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes ago`
-  if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`
-  if (seconds < 2592000) return `${Math.floor(seconds / 86400)} days ago`
-  if (seconds < 31536000) return `${Math.floor(seconds / 2592000)} months ago`
   
-  return `${Math.floor(seconds / 31536000)} years ago`
+  if (seconds < 3600) {
+    const minutes = Math.floor(seconds / 60)
+    return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`
+  }
+  
+  if (seconds < 86400) {
+    const hours = Math.floor(seconds / 3600)
+    return `${hours} ${hours === 1 ? "hour" : "hours"} ago`
+  }
+  
+  if (seconds < 2592000) {
+    const days = Math.floor(seconds / 86400)
+    return `${days} ${days === 1 ? "day" : "days"} ago`
+  }
+  
+  if (seconds < 31536000) {
+    const months = Math.floor(seconds / 2592000)
+    return `${months} ${months === 1 ? "month" : "months"} ago`
+  }
+  
+  const years = Math.floor(seconds / 31536000)
+  return `${years} ${years === 1 ? "year" : "years"} ago`
 }
 
 /**
@@ -70,7 +103,7 @@ export function formatFileSize(bytes: number): string {
  * Format upload date - relative for recent, absolute for older
  */
 export function formatUploadDate(dateString: string): string {
-  const date = new Date(dateString)
+  const date = parseDate(dateString)
   const now = new Date()
   const daysDiff = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24))
   

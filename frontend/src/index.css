@@ -130,20 +130,10 @@
     }
   body {
     @apply font-sans bg-background text-foreground;
-    background-image: radial-gradient(at 0% 0%, var(--bg-gradient-1) 0, transparent 40%),
-                      radial-gradient(at 100% 100%, var(--bg-gradient-2) 0, transparent 40%),
-                      radial-gradient(at 50% 50%, var(--bg-gradient-3) 0, transparent 60%);
-    background-attachment: fixed;
     }
 }
 
 @layer utilities {
-  .glow-primary {
-    box-shadow: 0 0 20px -5px oklch(0.70 0.14 190 / 50%);
-  }
-  .text-glow {
-    text-shadow: 0 0 10px oklch(0.70 0.14 190 / 30%);
-  }
 }
 
   html {

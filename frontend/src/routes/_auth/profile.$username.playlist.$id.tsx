@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useState } from "react"
-import { ArrowLeft, Edit, Trash2, ListVideo } from "lucide-react"
+import { ArrowLeft, Edit, Trash2, ListVideo, Link as LinkIcon } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
 import { getPlaylist, deletePlaylist, removeVideoFromPlaylist } from "@/api/playlists"
 import { getThumbnailUrl } from "@/api/videos"
@@ -14,6 +14,7 @@ import { EditPlaylistDialog } from "@/components/playlists/EditPlaylistDialog"
 import { AddVideosDialog } from "@/components/playlists/AddVideosDialog"
 import { DraggablePlaylistVideos } from "@/components/playlists/DraggablePlaylistVideos"
 import { toast } from "@/lib/toast"
+import { copyToClipboard } from "@/lib/clipboard"
 
 export const Route = createFileRoute("/_auth/profile/$username/playlist/$id")({
   component: PlaylistDetailPage
@@ -180,23 +181,30 @@ function PlaylistDetailPage() {
             <span>{playlist.video_count} {playlist.video_count === 1 ? "video" : "videos"}</span>
           </div>
 
-          {/* Action buttons (owner only) */}
-          {isOwner && (
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
-                <Edit className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setIsDeleteDialogOpen(true)}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          )}
+          <div className="flex flex-wrap gap-2 pt-2">
+            <Button variant="secondary" size="sm" onClick={() => copyToClipboard(window.location.href)}>
+              <LinkIcon className="w-4 h-4 mr-2" />
+              Copy Link
+            </Button>
+
+            {/* Action buttons (owner only) */}
+            {isOwner && (
+              <>
+                <Button variant="outline" size="sm" onClick={() => setIsEditDialogOpen(true)}>
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setIsDeleteDialogOpen(true)}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
 

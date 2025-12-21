@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Edit, Trash2, Eye, Calendar, User, Folder, FileVideo, Loader2, ArrowLeft, ListPlus, ChevronRight, ChevronLeft } from "lucide-react"
+import { Edit, Trash2, Eye, Calendar, User, Folder, FileVideo, Loader2, ArrowLeft, ListPlus, ChevronRight, ChevronLeft, Link as LinkIcon } from "lucide-react"
 import { getVideo, deleteVideo, updateVideo, incrementViewCount, getVideoStreamUrl, getThumbnailUrl } from "@/api/videos"
 import { getPlaylist } from "@/api/playlists"
 import { Button } from "@/components/ui/button"
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/lib/toast"
+import { copyToClipboard } from "@/lib/clipboard"
 import { formatDuration, formatUploadDate, formatFileSize, getStatusColor } from "@/lib/formatters"
 import { useAuth } from "@/hooks/useAuth"
 import { LoadingPage } from "@/components/shared/LoadingSpinner"
@@ -307,12 +308,14 @@ function VideoPlayerPage() {
                     </Button>
                   </div>
                 )}
-                <Badge 
-                  variant={statusColor === "green" ? "default" : "secondary"} 
-                  className="capitalize"
-                >
-                  {video.processing_status}
-                </Badge>
+                {video.processing_status !== "completed" && (
+                  <Badge 
+                    variant={statusColor === "green" ? "default" : "secondary"} 
+                    className="capitalize"
+                  >
+                    {video.processing_status}
+                  </Badge>
+                )}
               </div>
             </div>
 
@@ -336,6 +339,16 @@ function VideoPlayerPage() {
               </div>
 
               <div className="flex items-center gap-2">
+                <Button 
+                  variant="secondary" 
+                  size="sm" 
+                  onClick={() => copyToClipboard(window.location.href)}
+                  className="rounded-full"
+                >
+                  <LinkIcon className="w-4 h-4 mr-2" />
+                  Copy Link
+                </Button>
+
                 {video.processing_status === "completed" && (
                   <Button 
                     variant="secondary" 

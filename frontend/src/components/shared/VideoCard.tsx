@@ -31,7 +31,7 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
   return (
     <>
       <div className="block group relative h-full">
-        <div className="bg-card text-card-foreground border border-border h-full flex flex-col overflow-hidden transition-all duration-300 hover:border-primary/50 hover:shadow-2xl hover:shadow-primary/10 rounded-none group-hover:translate-y-[-2px]">
+        <div className="bg-card text-card-foreground border border-border h-full flex flex-col overflow-hidden transition-all duration-300 hover:border-primary/50 rounded-none group-hover:translate-y-[-2px]">
           <div className="relative aspect-video bg-muted overflow-hidden z-10">
             <Link 
               to={`/videos/${video.id}`} 

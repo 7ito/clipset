@@ -224,6 +224,8 @@
 **Priority**: Medium  
 **Time**: 2-3 hours
 
+- [x] Add "Copy Link" button to video player and playlist pages
+- [x] Remove decorative glow elements for cleaner UI
 - [ ] Mobile hamburger menu (improve mobile nav)
 - [ ] Fix nested `<a>` tag warnings in dashboard VideoCard
 - [ ] System configuration UI for admins

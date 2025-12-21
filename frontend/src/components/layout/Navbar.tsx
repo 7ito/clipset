@@ -40,10 +40,10 @@ export function Navbar() {
         <div className="flex h-14 items-center justify-between">
           <div className="flex items-center gap-8">
             <Link to="/dashboard" className="text-lg font-bold tracking-tighter group flex items-center gap-2">
-              <div className="size-6 bg-primary rotate-45 flex items-center justify-center transition-all duration-500 group-hover:rotate-180 dark:shadow-[0_0_15px_-3px_var(--color-primary)]">
+              <div className="size-6 bg-primary rotate-45 flex items-center justify-center transition-all duration-500 group-hover:rotate-180">
                 <div className="size-3 bg-primary-foreground -rotate-45" />
               </div>
-              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent dark:drop-shadow-sm">
+              <span className="bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                 Clipset
               </span>
             </Link>

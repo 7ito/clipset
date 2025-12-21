@@ -4,6 +4,12 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2024-12-22
 
+### Added
+- **Copy Link Feature**: Added "Copy Link" buttons to the video player and playlist pages for easier sharing.
+
+### Removed
+- **Visual Glow Elements**: Removed various "glow" and shadow effects across the UI (logo, headers, cards) and removed radial background gradients for a cleaner, more minimalist aesthetic.
+
 ### Added - Dynamic Video Storage Path (COMPLETE ✅)
 - **Configurable Storage**: Implemented full support for dynamic video storage paths. Admins can now change where videos are stored via the System Settings UI without restarting the server.
 - **Database Persistence**: Added `storage_path` column to the `Video` model to track the specific storage location used at the time of upload. This ensures that changing the global storage path does not break access to existing videos.

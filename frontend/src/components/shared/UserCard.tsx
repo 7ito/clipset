@@ -20,6 +20,7 @@ export function UserCard({ user }: UserCardProps) {
         
         <UserAvatar 
           username={user.username} 
+          avatarUrl={user.avatar_url}
           size="xl" 
           className="mb-4 group-hover:scale-110 group-hover:rotate-3" 
         />

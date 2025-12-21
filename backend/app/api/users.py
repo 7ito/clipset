@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, desc, asc
+from typing import Union
 from app.api.deps import (
     get_db,
     get_current_active_user,
@@ -16,8 +17,46 @@ from app.schemas.user import (
 from app.models.user import User
 from app.models.video import Video
 from app.models.playlist import Playlist
+from app.services import storage
 
 router = APIRouter()
+
+
+def build_user_response(
+    user: User,
+    video_count: int,
+    playlist_count: int,
+    response_type: Union[
+        type[UserResponse],
+        type[UserWithQuota],
+        type[UserProfile],
+        type[UserDirectoryResponse],
+    ] = UserResponse,
+) -> Union[UserResponse, UserWithQuota, UserProfile, UserDirectoryResponse]:
+    """Helper to build user response with computed avatar_url."""
+    avatar_url = None
+    if user.avatar_filename:
+        avatar_url = f"/media/avatars/{user.avatar_filename}"
+
+    if response_type == UserWithQuota:
+        resp = UserWithQuota.model_validate(user)
+    elif response_type == UserProfile:
+        resp = UserProfile.model_validate(user)
+    elif response_type == UserDirectoryResponse:
+        return UserDirectoryResponse(
+            id=user.id,
+            username=user.username,
+            video_count=video_count,
+            playlist_count=playlist_count,
+            avatar_url=avatar_url,
+        )
+    else:
+        resp = UserResponse.model_validate(user)
+
+    resp.video_count = video_count
+    resp.playlist_count = playlist_count
+    resp.avatar_url = avatar_url
+    return resp
 
 
 @router.get("", response_model=list[UserResponse])
@@ -56,10 +95,9 @@ async def list_users(
 
     users = []
     for user, video_count, playlist_count in rows:
-        user_resp = UserResponse.model_validate(user)
-        user_resp.video_count = video_count
-        user_resp.playlist_count = playlist_count
-        users.append(user_resp)
+        users.append(
+            build_user_response(user, video_count, playlist_count, UserResponse)
+        )
 
     return users
 
@@ -108,11 +146,8 @@ async def user_directory(
     users = []
     for user, video_count, playlist_count in rows:
         users.append(
-            UserDirectoryResponse(
-                id=user.id,
-                username=user.username,
-                video_count=video_count,
-                playlist_count=playlist_count,
+            build_user_response(
+                user, video_count, playlist_count, UserDirectoryResponse
             )
         )
 
@@ -160,16 +195,10 @@ async def get_user_by_username(
 
     # Return full info if viewing own profile
     if user.id == current_user.id:
-        resp = UserWithQuota.model_validate(user)
-        resp.video_count = video_count
-        resp.playlist_count = playlist_count
-        return resp
+        return build_user_response(user, video_count, playlist_count, UserWithQuota)
 
     # Return public profile otherwise
-    resp = UserProfile.model_validate(user)
-    resp.video_count = video_count
-    resp.playlist_count = playlist_count
-    return resp
+    return build_user_response(user, video_count, playlist_count, UserProfile)
 
 
 @router.get("/{user_id}", response_model=UserProfile | UserWithQuota)
@@ -209,16 +238,108 @@ async def get_user(
 
     # Return full info if viewing own profile
     if user.id == current_user.id:
-        resp = UserWithQuota.model_validate(user)
-        resp.video_count = video_count
-        resp.playlist_count = playlist_count
-        return resp
+        return build_user_response(user, video_count, playlist_count, UserWithQuota)
 
     # Return public profile otherwise
-    resp = UserProfile.model_validate(user)
-    resp.video_count = video_count
-    resp.playlist_count = playlist_count
-    return resp
+    return build_user_response(user, video_count, playlist_count, UserProfile)
+
+
+@router.post("/me/avatar", response_model=UserWithQuota)
+async def upload_avatar(
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Upload and process a new avatar for the current user.
+    """
+    # Validate file type
+    if not file.content_type or not file.content_type.startswith("image/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="File must be an image",
+        )
+
+    try:
+        # Delete old avatar if exists
+        if current_user.avatar_filename:
+            storage.delete_user_avatar(current_user.avatar_filename)
+
+        # Save and process new avatar
+        filename, _ = storage.save_user_avatar(file, current_user.id)
+
+        # Update user record
+        current_user.avatar_filename = filename
+        await db.commit()
+        await db.refresh(current_user)
+
+        # Get counts for response separately for reliability
+        video_count = (
+            await db.execute(
+                select(func.count(Video.id)).where(Video.uploaded_by == current_user.id)
+            )
+        ).scalar() or 0
+        playlist_count = (
+            await db.execute(
+                select(func.count(Playlist.id)).where(
+                    Playlist.created_by == current_user.id
+                )
+            )
+        ).scalar() or 0
+
+        return build_user_response(
+            current_user, video_count, playlist_count, UserWithQuota
+        )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload avatar: {str(e)}",
+        )
+
+
+@router.delete("/me/avatar", response_model=UserWithQuota)
+async def delete_avatar(
+    current_user: User = Depends(get_current_active_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Remove the current user's avatar.
+    """
+    if not current_user.avatar_filename:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User has no avatar",
+        )
+
+    # Delete avatar file
+    storage.delete_user_avatar(current_user.avatar_filename)
+
+    # Update user record
+    current_user.avatar_filename = None
+    await db.commit()
+    await db.refresh(current_user)
+
+    # Get counts for response separately for reliability
+    video_count = (
+        await db.execute(
+            select(func.count(Video.id)).where(Video.uploaded_by == current_user.id)
+        )
+    ).scalar() or 0
+    playlist_count = (
+        await db.execute(
+            select(func.count(Playlist.id)).where(
+                Playlist.created_by == current_user.id
+            )
+        )
+    ).scalar() or 0
+
+    return build_user_response(current_user, video_count, playlist_count, UserWithQuota)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_200_OK)

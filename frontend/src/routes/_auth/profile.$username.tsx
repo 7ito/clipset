@@ -1,9 +1,9 @@
 import { createFileRoute, Outlet, Link, useLocation } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
-import { useState, createContext, useContext } from "react"
-import { User as UserIcon, Calendar, Mail, Shield, HardDrive } from "lucide-react"
+import { useState, createContext, useContext, useRef } from "react"
+import { User as UserIcon, Calendar, Mail, Shield, HardDrive, Camera, Trash2, Loader2 } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
-import { getUserByUsername } from "@/api/users"
+import { getUserByUsername, useUploadAvatar, useDeleteAvatar } from "@/api/users"
 import { getVideos } from "@/api/videos"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,7 +12,9 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Progress } from "@/components/ui/progress"
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner"
+import { UserAvatar } from "@/components/shared/UserAvatar"
 import { formatDate, formatFileSize } from "@/lib/formatters"
+import { toast } from "@/lib/toast"
 import type { UserProfile, UserWithQuota } from "@/types/user"
 
 export const Route = createFileRoute("/_auth/profile/$username")({
@@ -34,27 +36,42 @@ export function useProfileContext() {
   return context
 }
 
-function UserAvatar({ username }: { username: string }) {
-  // Generate initials from username
-  // e.g., "john_doe" → "JD", "alice" → "A"
-  const parts = username.split(/[_-]/)
-  const initials = parts
-    .map(part => part[0]?.toUpperCase())
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-
-  return (
-    <div className="w-24 h-24 rounded-full bg-primary flex items-center justify-center">
-      <span className="text-3xl font-bold text-primary-foreground">
-        {initials || username[0]?.toUpperCase() || "?"}
-      </span>
-    </div>
-  )
-}
-
 function MyProfileDialog({ isOpen, onClose, user }: { isOpen: boolean; onClose: () => void; user: UserWithQuota }) {
   const quotaPercentage = user.weekly_upload_bytes / (4 * 1024 * 1024 * 1024) * 100
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const uploadAvatar = useUploadAvatar()
+  const deleteAvatar = useDeleteAvatar()
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("Image must be smaller than 2MB")
+        return
+      }
+      uploadAvatar.mutate(file, {
+        onSuccess: () => {
+          toast.success("Avatar updated successfully")
+        },
+        onError: (error: any) => {
+          toast.error(error.response?.data?.detail || "Failed to upload avatar")
+        }
+      })
+    }
+  }
+
+  const handleDeleteAvatar = () => {
+    if (confirm("Are you sure you want to remove your avatar?")) {
+      deleteAvatar.mutate(undefined, {
+        onSuccess: () => {
+          toast.success("Avatar removed")
+        },
+        onError: (error: any) => {
+          toast.error(error.response?.data?.detail || "Failed to remove avatar")
+        }
+      })
+    }
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -64,37 +81,6 @@ function MyProfileDialog({ isOpen, onClose, user }: { isOpen: boolean; onClose: 
         </DialogHeader>
 
         <div className="grid gap-8 lg:grid-cols-2 mt-6">
-          {/* Upload Quota Card */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <HardDrive className="w-5 h-5" />
-                Upload Quota
-              </CardTitle>
-              <CardDescription>Your weekly upload limits and usage</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">Weekly Upload Usage</p>
-                <p className="text-3xl font-bold">{formatFileSize(user.weekly_upload_bytes)}</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  of 4 GB weekly limit
-                </p>
-                <Progress value={quotaPercentage} className="mt-3" />
-              </div>
-
-              <Separator />
-
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">Last Reset</p>
-                <p className="text-lg font-semibold">{formatDate(user.last_upload_reset)}</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Resets every Sunday at midnight UTC
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Account Info Card */}
           <Card>
             <CardHeader>
@@ -105,6 +91,64 @@ function MyProfileDialog({ isOpen, onClose, user }: { isOpen: boolean; onClose: 
               <CardDescription>Your personal details and account status</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Avatar Upload Section */}
+              <div className="flex flex-col items-center gap-4 py-4 bg-muted/30 rounded-xl border border-dashed border-border">
+                <div className="relative group">
+                  <UserAvatar 
+                    username={user.username} 
+                    avatarUrl={user.avatar_url} 
+                    size="xl" 
+                    className="ring-4 ring-background shadow-xl"
+                  />
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadAvatar.isPending}
+                    className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer disabled:cursor-not-allowed"
+                    title="Change Avatar"
+                  >
+                    {uploadAvatar.isPending ? (
+                      <Loader2 className="w-8 h-8 text-white animate-spin" />
+                    ) : (
+                      <Camera className="w-8 h-8 text-white" />
+                    )}
+                  </button>
+                </div>
+                
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleFileChange} 
+                  accept="image/*" 
+                  className="hidden" 
+                />
+
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadAvatar.isPending}
+                  >
+                    Change Image
+                  </Button>
+                  {user.avatar_url && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={handleDeleteAvatar}
+                      disabled={deleteAvatar.isPending}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-4 h-4 mr-2" />
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">
+                  JPG, PNG, WebP • Max 2MB
+                </p>
+              </div>
+
               <div className="space-y-6">
                 <div className="flex items-start gap-3">
                   <UserIcon className="w-5 h-5 text-muted-foreground mt-0.5" />
@@ -139,16 +183,37 @@ function MyProfileDialog({ isOpen, onClose, user }: { isOpen: boolean; onClose: 
                     <p className="text-lg font-semibold">{formatDate(user.created_at)}</p>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
 
-                <div className="flex items-start gap-3">
-                  <div className="w-5 h-5" />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-muted-foreground mb-2">Account Status</p>
-                    <Badge variant={user.is_active ? "default" : "destructive"} className="text-sm px-3 py-1">
-                      {user.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                </div>
+          {/* Upload Quota Card */}
+          <Card className="h-fit">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <HardDrive className="w-5 h-5" />
+                Upload Quota
+              </CardTitle>
+              <CardDescription>Your weekly upload limits and usage</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Weekly Upload Usage</p>
+                <p className="text-3xl font-bold">{formatFileSize(user.weekly_upload_bytes)}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  of 4 GB weekly limit
+                </p>
+                <Progress value={quotaPercentage} className="mt-3" />
+              </div>
+
+              <Separator />
+
+              <div>
+                <p className="text-sm font-medium text-muted-foreground mb-2">Last Reset</p>
+                <p className="text-lg font-semibold">{formatDate(user.last_upload_reset)}</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Resets every Sunday at midnight UTC
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -231,7 +296,7 @@ function ProfileLayout() {
     <div className="space-y-8 max-w-6xl mx-auto">
       {/* Profile Header */}
       <div className="flex flex-col items-center text-center space-y-6">
-        <UserAvatar username={profileUser.username} />
+        <UserAvatar username={profileUser.username} avatarUrl={profileUser.avatar_url} size="xl" />
 
         <div className="space-y-2">
           <h1 className="text-3xl font-bold">{profileUser.username}</h1>

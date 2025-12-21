@@ -33,6 +33,7 @@ def ensure_directories() -> None:
         settings.THUMBNAIL_STORAGE_PATH,
         settings.TEMP_STORAGE_PATH,
         settings.CATEGORY_IMAGE_STORAGE_PATH,
+        settings.AVATAR_STORAGE_PATH,
     ]
 
     for directory in directories:
@@ -296,3 +297,92 @@ def get_category_image_path(image_filename: str) -> Path:
         Path object to the image file
     """
     return Path(settings.CATEGORY_IMAGE_STORAGE_PATH) / image_filename
+
+
+# User Avatar Functions
+
+
+def save_user_avatar(upload_file: UploadFile, user_id: str) -> tuple[str, int]:
+    """
+    Save and process a user avatar.
+
+    Uploads are saved to temp, processed with image_processor, then moved to final location.
+
+    Args:
+        upload_file: Uploaded image file
+        user_id: User ID (used for filename)
+
+    Returns:
+        Tuple of (filename, file_size_bytes)
+
+    Raises:
+        ValueError: If image is invalid or too large
+        IOError: If file operations fail
+    """
+    from app.services.image_processor import (
+        validate_image_file,
+        resize_and_convert_image,
+    )
+
+    # Generate filename: {user_id}_{uuid}.webp (using uuid to avoid caching issues)
+    unique_suffix = str(uuid.uuid4())[:8]
+    filename = f"{user_id}_{unique_suffix}.webp"
+
+    # Save to temp first
+    temp_dir = Path(settings.TEMP_STORAGE_PATH)
+    temp_dir.mkdir(parents=True, exist_ok=True)
+    temp_path = temp_dir / f"temp_{filename}_{uuid.uuid4()}.tmp"
+
+    try:
+        # Save uploaded file to temp
+        save_uploaded_file(upload_file, temp_path)
+
+        # Validate image
+        validate_image_file(temp_path, settings.MAX_AVATAR_SIZE_BYTES)
+
+        # Process and convert to WebP
+        final_path = Path(settings.AVATAR_STORAGE_PATH) / filename
+        final_path.parent.mkdir(parents=True, exist_ok=True)
+
+        file_size = resize_and_convert_image(
+            temp_path, final_path, size=settings.AVATAR_IMAGE_SIZE, quality=85
+        )
+
+        # Clean up temp file
+        temp_path.unlink()
+
+        logger.info(f"Saved user avatar: {filename} ({file_size} bytes)")
+        return filename, file_size
+
+    except Exception as e:
+        # Clean up temp file on error
+        if temp_path.exists():
+            temp_path.unlink()
+        raise
+
+
+def delete_user_avatar(avatar_filename: str) -> bool:
+    """
+    Delete a user avatar from storage.
+
+    Args:
+        avatar_filename: Name of the avatar file to delete
+
+    Returns:
+        True if deleted, False if file didn't exist
+    """
+    avatar_path = Path(settings.AVATAR_STORAGE_PATH) / avatar_filename
+    return delete_file(avatar_path)
+
+
+def get_user_avatar_path(avatar_filename: str) -> Path:
+    """
+    Get the full path to a user avatar file.
+
+    Args:
+        avatar_filename: Name of the avatar file
+
+    Returns:
+        Path object to the avatar file
+    """
+    return Path(settings.AVATAR_STORAGE_PATH) / avatar_filename

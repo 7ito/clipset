@@ -2,6 +2,13 @@
 
 All notable changes to Clipset will be documented in this file.
 
+## [Unreleased] - 2024-12-21
+
+### Fixed
+- **Authentication**: Fixed a critical 500 Internal Server Error on `/api/auth/me` caused by an ambiguous SQL join in the user statistics query. This was preventing the frontend from initializing and resulting in a "black screen".
+- **Database**: Standardized user statistics queries across `auth.py` and `users.py` to use separate count queries for better reliability and performance.
+- **Docker**: Identified that hot-reload was disabled in the development Dockerfile, requiring a manual restart of the backend container to apply code changes.
+
 ## [Unreleased] - 2024-12-20
 
 ### Added - User Directory & Management (COMPLETE ✅)

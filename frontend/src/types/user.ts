@@ -10,6 +10,7 @@ export interface UserResponse extends UserBase {
   is_active: boolean
   video_count: number
   playlist_count: number
+  avatar_url?: string
 }
 
 export interface UserWithQuota extends UserResponse {
@@ -23,6 +24,7 @@ export interface UserProfile {
   created_at: string
   video_count: number
   playlist_count: number
+  avatar_url?: string
 }
 
 export interface UserDirectoryResponse {
@@ -30,4 +32,5 @@ export interface UserDirectoryResponse {
   username: string
   video_count: number
   playlist_count: number
+  avatar_url?: string
 }

@@ -43,6 +43,7 @@ class UserResponse(UserBase):
     is_active: bool
     video_count: int = 0
     playlist_count: int = 0
+    avatar_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -63,6 +64,7 @@ class UserProfile(BaseModel):
     created_at: datetime
     video_count: int = 0
     playlist_count: int = 0
+    avatar_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -75,6 +77,7 @@ class UserDirectoryResponse(BaseModel):
     username: str
     video_count: int = 0
     playlist_count: int = 0
+    avatar_url: Optional[str] = None
 
     class Config:
         from_attributes = True

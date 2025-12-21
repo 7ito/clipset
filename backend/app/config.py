@@ -27,17 +27,20 @@ class Settings(BaseSettings):
     THUMBNAIL_STORAGE_PATH: str = "../data/uploads/thumbnails"
     TEMP_STORAGE_PATH: str = "../data/uploads/temp"
     CATEGORY_IMAGE_STORAGE_PATH: str = "../data/uploads/category-images"
+    AVATAR_STORAGE_PATH: str = "../data/uploads/avatars"
 
     # Upload Limits (bytes)
     MAX_FILE_SIZE_BYTES: int = 2_147_483_648  # 2GB
     WEEKLY_UPLOAD_LIMIT_BYTES: int = 4_294_967_296  # 4GB
     MAX_CATEGORY_IMAGE_SIZE_BYTES: int = 5_242_880  # 5MB
+    MAX_AVATAR_SIZE_BYTES: int = 2_097_152  # 2MB
 
     # Accepted Video Formats (comma-separated)
     ACCEPTED_VIDEO_FORMATS: str = "mp4,mov,avi,mkv,webm"
 
     # Category Images
     CATEGORY_IMAGE_SIZE: tuple[int, int] = (400, 400)  # Square images
+    AVATAR_IMAGE_SIZE: tuple[int, int] = (256, 256)  # Square avatars
 
     # FFmpeg
     FFMPEG_PATH: str = "ffmpeg"  # Uses system PATH

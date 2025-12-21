@@ -21,6 +21,7 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    avatar_filename = Column(String(255), nullable=True)
 
     # Upload quota tracking (for future video uploads)
     weekly_upload_bytes = Column(BigInteger, default=0, nullable=False)

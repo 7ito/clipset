@@ -70,7 +70,7 @@ export function UsersTable({ users, isLoading, onToggleStatus }: UsersTableProps
             <TableRow key={user.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <UserAvatar username={user.username} size="sm" />
+                  <UserAvatar username={user.username} avatarUrl={user.avatar_url} size="sm" />
                   <span className="font-medium">{user.username}</span>
                 </div>
               </TableCell>

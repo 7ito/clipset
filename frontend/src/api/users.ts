@@ -68,6 +68,46 @@ export function useActivateUser() {
   })
 }
 
+export function useUploadAvatar() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const formData = new FormData()
+      formData.append("file", file)
+      const response = await apiClient.post<UserWithQuota>("/api/users/me/avatar", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      })
+      return response.data
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["auth-user"], data)
+      queryClient.invalidateQueries({ queryKey: ["user", data.id] })
+      queryClient.invalidateQueries({ queryKey: ["users"] })
+      queryClient.invalidateQueries({ queryKey: ["users-directory"] })
+    }
+  })
+}
+
+export function useDeleteAvatar() {
+  const queryClient = useQueryClient()
+  
+  return useMutation({
+    mutationFn: async () => {
+      const response = await apiClient.delete<UserWithQuota>("/api/users/me/avatar")
+      return response.data
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["auth-user"], data)
+      queryClient.invalidateQueries({ queryKey: ["user", data.id] })
+      queryClient.invalidateQueries({ queryKey: ["users"] })
+      queryClient.invalidateQueries({ queryKey: ["users-directory"] })
+    }
+  })
+}
+
 export async function getUserByUsername(username: string): Promise<UserProfile | UserWithQuota> {
   const response = await apiClient.get<UserProfile | UserWithQuota>(
     `/api/users/by-username/${username.toLowerCase()}`

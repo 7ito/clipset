@@ -1,6 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from datetime import datetime
 from typing import Optional
+from app.schemas.base import BaseResponse
 
 
 class UserBase(BaseModel):
@@ -34,7 +35,7 @@ class UserUpdate(BaseModel):
     )
 
 
-class UserResponse(UserBase):
+class UserResponse(BaseResponse, UserBase):
     """Public user response without sensitive data."""
 
     id: str
@@ -45,9 +46,6 @@ class UserResponse(UserBase):
     playlist_count: int = 0
     avatar_url: Optional[str] = None
 
-    class Config:
-        from_attributes = True
-
 
 class UserWithQuota(UserResponse):
     """User response including quota information (for own profile)."""
@@ -56,7 +54,7 @@ class UserWithQuota(UserResponse):
     last_upload_reset: datetime
 
 
-class UserProfile(BaseModel):
+class UserProfile(BaseResponse):
     """Public profile view (for other users)."""
 
     id: str
@@ -66,11 +64,8 @@ class UserProfile(BaseModel):
     playlist_count: int = 0
     avatar_url: Optional[str] = None
 
-    class Config:
-        from_attributes = True
 
-
-class UserDirectoryResponse(BaseModel):
+class UserDirectoryResponse(BaseResponse):
     """User directory view (public grid)."""
 
     id: str
@@ -78,6 +73,3 @@ class UserDirectoryResponse(BaseModel):
     video_count: int = 0
     playlist_count: int = 0
     avatar_url: Optional[str] = None
-
-    class Config:
-        from_attributes = True

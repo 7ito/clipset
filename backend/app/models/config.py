@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, BigInteger, String, DateTime, ForeignKey
-from datetime import datetime
+from datetime import datetime, timezone
 from app.database import Base
 
 
@@ -28,7 +28,10 @@ class Config(Base):
 
     # Metadata
     updated_at = Column(
-        DateTime, default=datetime.utcnow, nullable=False, onupdate=datetime.utcnow
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        onupdate=lambda: datetime.now(timezone.utc),
     )
     updated_by = Column(
         String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True

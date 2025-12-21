@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator
 import uuid
+from app.schemas.base import BaseResponse
 
 
 class CategoryBase(BaseModel):
@@ -52,7 +53,7 @@ class CategoryUpdate(BaseModel):
         return v
 
 
-class CategoryResponse(CategoryBase):
+class CategoryResponse(BaseResponse, CategoryBase):
     """Schema for category responses."""
 
     id: uuid.UUID
@@ -64,9 +65,6 @@ class CategoryResponse(CategoryBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     video_count: int = Field(default=0, description="Number of videos in this category")
-
-    class Config:
-        from_attributes = True
 
 
 class CategoryListResponse(BaseModel):

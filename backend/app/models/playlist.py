@@ -16,7 +16,7 @@ from sqlalchemy import (
     Index,
 )
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 from app.database import Base
 
@@ -47,11 +47,13 @@ class Playlist(Base):
     is_public = Column(Boolean, default=True, nullable=False, index=True)
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
     updated_at = Column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
         nullable=False,
     )
 
@@ -97,7 +99,9 @@ class PlaylistVideo(Base):
 
     # Metadata
     position = Column(Integer, nullable=False)  # 0-indexed position in playlist
-    added_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    added_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False
+    )
     added_by = Column(
         String(36),
         ForeignKey("users.id", ondelete="SET NULL"),

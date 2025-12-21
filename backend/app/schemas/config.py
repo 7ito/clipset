@@ -5,9 +5,10 @@ Pydantic schemas for Config endpoints.
 from datetime import datetime
 from typing import Optional
 from pydantic import BaseModel, Field, field_validator
+from app.schemas.base import BaseResponse
 
 
-class ConfigResponse(BaseModel):
+class ConfigResponse(BaseResponse):
     """Schema for reading system configuration."""
 
     # Upload & Storage Settings
@@ -22,9 +23,6 @@ class ConfigResponse(BaseModel):
     # Metadata
     updated_at: datetime = Field(..., description="Last update timestamp")
     updated_by: Optional[str] = Field(None, description="User ID who last updated")
-
-    class Config:
-        from_attributes = True
 
 
 class ConfigUpdate(BaseModel):

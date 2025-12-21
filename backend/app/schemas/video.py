@@ -4,7 +4,8 @@ Pydantic schemas for Video API.
 
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone
+from app.schemas.base import BaseResponse
 
 
 class VideoUploadMetadata(BaseModel):
@@ -39,7 +40,7 @@ class VideoUpdate(BaseModel):
         return v
 
 
-class VideoResponse(BaseModel):
+class VideoResponse(BaseResponse):
     """Schema for video response with all details."""
 
     # Video model fields
@@ -63,8 +64,6 @@ class VideoResponse(BaseModel):
     uploader_username: str
     category_name: Optional[str] = None
     category_slug: Optional[str] = None
-
-    model_config = {"from_attributes": True}
 
 
 class VideoListResponse(BaseModel):

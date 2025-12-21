@@ -5,6 +5,7 @@ Pydantic schemas for Playlist API.
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List
 from datetime import datetime
+from app.schemas.base import BaseResponse
 
 
 class PlaylistCreate(BaseModel):
@@ -52,7 +53,7 @@ class PlaylistReorderRequest(BaseModel):
     )
 
 
-class PlaylistResponse(BaseModel):
+class PlaylistResponse(BaseResponse):
     """Schema for playlist response with metadata."""
 
     id: str
@@ -64,8 +65,6 @@ class PlaylistResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     first_video_thumbnail: Optional[str] = None  # For cover image
-
-    model_config = {"from_attributes": True}
 
 
 class PlaylistListResponse(BaseModel):
@@ -79,7 +78,7 @@ class PlaylistListResponse(BaseModel):
 from app.schemas.video import VideoResponse
 
 
-class PlaylistVideoResponse(BaseModel):
+class PlaylistVideoResponse(BaseResponse):
     """Schema for a video in a playlist with position."""
 
     id: str
@@ -89,8 +88,6 @@ class PlaylistVideoResponse(BaseModel):
     added_at: datetime
     added_by: Optional[str]
     video: VideoResponse  # Full video details
-
-    model_config = {"from_attributes": True}
 
 
 class PlaylistWithVideosResponse(PlaylistResponse):

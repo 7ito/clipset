@@ -8,7 +8,7 @@ import os
 import shutil
 import uuid
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import BinaryIO
 import logging
 
@@ -160,7 +160,7 @@ def generate_unique_filename(original_filename: str) -> str:
 
     # Generate unique components
     unique_id = str(uuid.uuid4())
-    timestamp = datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
 
     # Combine: uuid_timestamp.ext
     filename = f"{unique_id}_{timestamp}{ext}"
@@ -184,13 +184,17 @@ def cleanup_temp_files(older_than_hours: int = 24) -> int:
         logger.warning(f"Temp directory doesn't exist: {temp_path}")
         return 0
 
-    cutoff_time = datetime.utcnow() - timedelta(hours=older_than_hours)
+    cutoff_time = datetime.now(timezone.utc) - timedelta(hours=older_than_hours)
     deleted_count = 0
 
     try:
         for file in temp_path.iterdir():
             if file.is_file():
-                file_modified_time = datetime.fromtimestamp(file.stat().st_mtime)
+                # file.stat().st_mtime is a float (seconds since epoch)
+                # datetime.fromtimestamp returns a local datetime unless a timezone is provided
+                file_modified_time = datetime.fromtimestamp(
+                    file.stat().st_mtime, tz=timezone.utc
+                )
 
                 if file_modified_time < cutoff_time:
                     try:

@@ -9,7 +9,7 @@ from sqlalchemy import (
     Enum,
 )
 from sqlalchemy.orm import relationship
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
 import enum
 from app.database import Base
@@ -70,7 +70,9 @@ class Video(Base):
     error_message = Column(Text, nullable=True)  # Set if processing_status = FAILED
 
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True
+    )
 
     # Relationships
     uploader = relationship("User", back_populates="videos")

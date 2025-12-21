@@ -17,17 +17,20 @@ import argparse
 import shutil
 import random
 from pathlib import Path
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
+
 
 from app.database import async_session_maker, init_db, Base, engine
 from app.models.user import User, UserRole
 from app.models.invitation import Invitation
 from app.utils.security import hash_password
+
 
 # Import all models to ensure they're registered with Base
 # This is needed for Base.metadata.create_all() to work properly
@@ -199,7 +202,8 @@ async def create_users(db: AsyncSession) -> list:
             password_hash=hash_password(user_data["password"]),
             role=user_data["role"],
             weekly_upload_bytes=user_data["weekly_upload_bytes"],
-            last_upload_reset=datetime.utcnow() - timedelta(days=random.randint(0, 6)),
+            last_upload_reset=datetime.now(timezone.utc)
+            - timedelta(days=random.randint(0, 6)),
         )
         db.add(user)
         users.append(user)
@@ -326,7 +330,7 @@ async def create_videos(db: AsyncSession, users: list, categories: list) -> list
             view_count=random.randint(0, 500)
             if status == ProcessingStatus.COMPLETED
             else 0,
-            created_at=datetime.utcnow()
+            created_at=datetime.now(timezone.utc)
             - timedelta(days=random.randint(0, 30), hours=random.randint(0, 23)),
         )
 
@@ -376,7 +380,9 @@ async def create_playlists(db: AsyncSession, users: list, videos: list) -> list:
 
     for user in users[:2]:  # Create playlists for first 2 users (alice and bob)
         for i, template in enumerate(playlist_templates[:2]):  # 2 playlists per user
-            playlist_name = template["name"].format(year=datetime.utcnow().year)
+            playlist_name = template["name"].format(
+                year=datetime.now(timezone.utc).year
+            )
             playlist = Playlist(
                 name=playlist_name,
                 description=template["description"],

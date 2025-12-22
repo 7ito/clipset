@@ -253,6 +253,7 @@ function AdminDashboard() {
                     <Link
                       to="/videos/$id"
                       params={{ id: video.id }}
+                      search={{}}
                       className="font-medium hover:text-primary transition-colors line-clamp-1"
                     >
                       {video.title}

@@ -1,8 +1,7 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { useState } from "react"
 import { VideoIcon } from "lucide-react"
-import { useAuth } from "@/hooks/useAuth"
 import { getVideos } from "@/api/videos"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -19,7 +18,6 @@ export const Route = createFileRoute("/_auth/profile/$username/")({
 function ProfileIndexPage() {
   const { username } = Route.useParams()
   const navigate = useNavigate()
-  const { user: currentUser } = useAuth()
   const [skip, setSkip] = useState(0)
   const limit = 20
 

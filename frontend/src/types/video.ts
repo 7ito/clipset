@@ -2,12 +2,14 @@
  * Video-related TypeScript types
  */
 
-export enum ProcessingStatus {
-  PENDING = "pending",
-  PROCESSING = "processing",
-  COMPLETED = "completed",
-  FAILED = "failed"
-}
+export const ProcessingStatus = {
+  PENDING: "pending",
+  PROCESSING: "processing",
+  COMPLETED: "completed",
+  FAILED: "failed"
+} as const
+
+export type ProcessingStatus = typeof ProcessingStatus[keyof typeof ProcessingStatus]
 
 export interface Video {
   id: string

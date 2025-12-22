@@ -77,7 +77,7 @@ function LoginPage() {
                 <p className="text-sm text-destructive">{errors.password.message}</p>
               )}
               <div className="flex justify-end mt-1">
-                <Link to="/forgot-password" size="sm" className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-primary transition-colors">
                   Forgot password?
                 </Link>
               </div>

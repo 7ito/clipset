@@ -308,7 +308,7 @@ function ProfileLayout() {
 	if (isPlaylistRoute) {
 		return (
 			<ProfileContext.Provider value={{ profileUser, isOwnProfile }}>
-				<Outlet context={{ profileUser, isOwnProfile }} />
+				<Outlet />
 			</ProfileContext.Provider>
 		)
 	}
@@ -338,7 +338,7 @@ function ProfileLayout() {
 
 			{/* Child route (index page with tabs) renders here */}
 			<ProfileContext.Provider value={{ profileUser, isOwnProfile }}>
-				<Outlet context={{ profileUser, isOwnProfile }} />
+				<Outlet />
 			</ProfileContext.Provider>
 
 			{/* My Profile Dialog */}

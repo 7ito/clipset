@@ -62,13 +62,15 @@ const fieldVariants = cva("data-[invalid=true]:text-destructive gap-2 group/fiel
 function Field({
   className,
   orientation = "vertical",
+  invalid = false,
   ...props
-}: React.ComponentProps<"div"> & VariantProps<typeof fieldVariants>) {
+}: React.ComponentProps<"div"> & VariantProps<typeof fieldVariants> & { invalid?: boolean }) {
   return (
     <div
       role="group"
       data-slot="field"
       data-orientation={orientation}
+      data-invalid={invalid}
       className={cn(fieldVariants({ orientation }), className)}
       {...props}
     />

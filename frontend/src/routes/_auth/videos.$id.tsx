@@ -1,20 +1,20 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Edit, Trash2, Eye, Calendar, User, Folder, FileVideo, Loader2, ArrowLeft, ListPlus, ChevronRight, ChevronLeft, Link as LinkIcon } from "lucide-react"
+import { Edit, Trash2, Eye, Calendar, Folder, FileVideo, Loader2, ArrowLeft, ListPlus, ChevronRight, ChevronLeft, Link as LinkIcon } from "lucide-react"
 import { getVideo, deleteVideo, updateVideo, incrementViewCount, getVideoStreamUrl, getThumbnailUrl } from "@/api/videos"
 import { getPlaylist } from "@/api/playlists"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/lib/toast"
 import { copyToClipboard } from "@/lib/clipboard"
-import { formatDuration, formatUploadDate, formatFileSize, getStatusColor } from "@/lib/formatters"
+import { formatDuration, formatUploadDate, getStatusColor } from "@/lib/formatters"
 import { useAuth } from "@/hooks/useAuth"
 import { LoadingPage } from "@/components/shared/LoadingSpinner"
 import { AddToPlaylistDialog } from "@/components/playlists/AddToPlaylistDialog"
@@ -22,7 +22,7 @@ import { PlaylistQueue } from "@/components/playlists/PlaylistQueue"
 
 export const Route = createFileRoute("/_auth/videos/$id")({
   component: VideoPlayerPage,
-  validateSearch: (search: Record<string, unknown>) => {
+  validateSearch: (search: Record<string, unknown>): { playlistId?: string } => {
     return {
       playlistId: (search.playlistId as string) || undefined,
     }
@@ -94,7 +94,7 @@ function VideoPlayerPage() {
 
   // Autoplay countdown logic
   useEffect(() => {
-    let timer: NodeJS.Timeout
+    let timer: any
     if (nextCountdown !== null && nextCountdown > 0) {
       timer = setTimeout(() => setNextCountdown(nextCountdown - 1), 1000)
     } else if (nextCountdown === 0) {

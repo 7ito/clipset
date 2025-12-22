@@ -5,7 +5,7 @@ import { getCategories, createCategory, updateCategory, deleteCategory, uploadCa
 import type { Category } from "@/types/category"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Field } from "@/components/ui/field"
+import { Field, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -81,19 +81,6 @@ function CategoriesPage() {
     },
   })
   
-  // Image upload mutation
-  const imageUploadMutation = useMutation({
-    mutationFn: ({ id, file }: { id: string; file: File }) =>
-      uploadCategoryImage(id, file),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] })
-      toast.success("Image uploaded successfully")
-    },
-    onError: (error: any) => {
-      toast.error(error.response?.data?.detail || "Failed to upload image")
-    },
-  })
-
   // Image delete mutation
   const imageDeleteMutation = useMutation({
     mutationFn: deleteCategoryImage,
@@ -321,7 +308,8 @@ function CategoriesPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <Field label="Category Name" required>
+            <Field>
+              <FieldLabel>Category Name <span className="text-destructive">*</span></FieldLabel>
               <Input
                 value={categoryName}
                 onChange={(e) => setCategoryName(e.target.value)}
@@ -330,7 +318,8 @@ function CategoriesPage() {
               />
             </Field>
             
-            <Field label="Description">
+            <Field>
+              <FieldLabel>Description</FieldLabel>
               <Textarea
                 value={categoryDescription}
                 onChange={(e) => setCategoryDescription(e.target.value)}
@@ -340,7 +329,8 @@ function CategoriesPage() {
               />
             </Field>
 
-            <Field label="Category Image">
+            <Field>
+              <FieldLabel>Category Image</FieldLabel>
               <div className="space-y-3">
                 {imagePreview ? (
                   <div className="relative inline-block">
@@ -407,7 +397,8 @@ function CategoriesPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <Field label="Category Name" required>
+            <Field>
+              <FieldLabel>Category Name <span className="text-destructive">*</span></FieldLabel>
               <Input
                 value={categoryName}
                 onChange={(e) => setCategoryName(e.target.value)}
@@ -416,7 +407,8 @@ function CategoriesPage() {
               />
             </Field>
             
-            <Field label="Description">
+            <Field>
+              <FieldLabel>Description</FieldLabel>
               <Textarea
                 value={categoryDescription}
                 onChange={(e) => setCategoryDescription(e.target.value)}
@@ -426,7 +418,8 @@ function CategoriesPage() {
               />
             </Field>
 
-            <Field label="Category Image">
+            <Field>
+              <FieldLabel>Category Image</FieldLabel>
               <div className="space-y-3">
                 {(imagePreview || imageFile) ? (
                   <div className="relative inline-block">

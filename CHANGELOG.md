@@ -4,15 +4,20 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2024-12-22
 
-### Fixed
-- **Timestamp Issues**: Resolved a critical bug where video upload timestamps were appearing as "8 hours ago" immediately after upload.
-  - Implemented a `model_validator` in `BaseResponse` to ensure all `datetime` fields in API responses are explicitly localized to UTC and serialized with the 'Z' suffix.
-  - Enhanced frontend date parsing in `formatters.ts` to robustly handle potentially naive date strings by assuming UTC if no timezone is present.
-  - Verified fix with manual end-to-end testing using Playwright.
-- **Copy Link Feature**: Added "Copy Link" buttons to the video player and playlist pages for easier sharing.
-
-### Removed
-- **Visual Glow Elements**: Removed various "glow" and shadow effects across the UI (logo, headers, cards) and removed radial background gradients for a cleaner, more minimalist aesthetic.
+### Added - Phase 13: User Profile Customization & Password Recovery (COMPLETE ✅)
+- **Custom User Avatars**:
+  - Implemented full support for uploading, processing, and serving user avatars.
+  - Automatic resizing to 256x256 and WebP conversion for optimal performance.
+  - Added `avatar_filename` to `User` model with Alembic migration.
+  - New API endpoints: `POST /api/users/me/avatar` and `DELETE /api/users/me/avatar`.
+  - Configured high-performance static avatar serving via Nginx.
+  - Shared `UserAvatar` component with robust initials/gradient fallbacks.
+- **Password Reset Flow**:
+  - Secure token-based password recovery system using `PasswordResetToken` model.
+  - **Console-Log Fallback**: Reset links are printed to backend logs for private self-hosting without mandatory SMTP.
+  - Dedicated `/forgot-password` and `/reset-password` frontend routes.
+  - Integrated "Forgot password?" link on the login page.
+  - **Profile Integration**: Added "Send Password Reset Link" button directly in the "My Profile" dialog for logged-in users.
 
 ### Added - Dynamic Video Storage Path (COMPLETE ✅)
 - **Configurable Storage**: Implemented full support for dynamic video storage paths. Admins can now change where videos are stored via the System Settings UI without restarting the server.

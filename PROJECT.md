@@ -307,6 +307,32 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 - ✅ **Navigation**:
   - Unified links in main Navbar and Admin sidebar
 
+### ✅ Phase 13: User Profile Customization & Password Recovery (Complete)
+**Goal**: Allow users to customize their profiles with avatars and recover access via password reset.
+
+**Backend**:
+- **Custom Avatars**:
+  - Added `avatar_filename` to `User` model with Alembic migration.
+  - Storage service for avatar processing (resize, WebP conversion).
+  - API endpoints for avatar upload (`POST /api/users/me/avatar`) and deletion.
+  - Nginx configuration for high-performance static avatar serving.
+- **Password Reset**:
+  - `PasswordResetToken` model for secure, time-limited recovery tokens.
+  - Console-log fallback for reset links (perfect for self-hosted "manual" delivery).
+  - API endpoints for request (`POST /api/auth/forgot-password`) and reset.
+
+**Frontend**:
+- **Avatar Management**:
+  - Redesigned "My Profile" dialog with avatar upload/preview/remove.
+  - Updated `UserAvatar` component to support custom images with robust fallbacks.
+  - Integrated avatars into Directory, Admin, and Profile headers.
+- **Password Reset Flow**:
+  - New `/forgot-password` and `/reset-password` routes.
+  - Validation schemas and API client integration.
+  - "Forgot password?" link added to Login page.
+
+**Key Achievement**: Enhanced user identity with custom avatars and provided a secure, self-host-friendly way to recover forgotten passwords without mandatory SMTP configuration.
+
 ### Future Enhancements (Post-MVP)
 - Advanced search and filtering
 - Comments and social interactions

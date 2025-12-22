@@ -208,6 +208,31 @@
 - ✅ **Frontend Robustness**: Added `parseDate` helper to `formatters.ts` to explicitly treat naive ISO strings as UTC.
 - ✅ **Verification**: Confirmed new uploads show "just now" on the dashboard via Playwright.
 
+## Just Completed (December 22, 2024 - Part 3)
+
+### Phase 13: User Customization & Password Recovery - COMPLETE ✅
+**Status**: Production-ready, fully tested
+**What Was Built**:
+- ✅ **Custom Avatars**:
+  - Full support for uploading, processing, and serving user avatars.
+  - Automatic resizing and WebP conversion for performance.
+  - Shared `UserAvatar` component with fallback to initials/gradients.
+  - Integrated into all user-facing components (Cards, Tables, Profiles).
+- ✅ **Password Reset Flow**:
+  - Secure token-based password recovery system.
+  - **Console-Log Fallback**: Reset links are printed to backend logs—ideal for private self-hosting without SMTP.
+  - Dedicated `/forgot-password` and `/reset-password` frontend pages.
+  - Updated Login UI with recovery links.
+
+**Testing Results**:
+- ✅ Verified avatar upload and removal on "My Profile" dialog.
+- ✅ Verified initials fallback works when avatar is deleted.
+- ✅ Verified "Forgot Password" triggers console-logged reset link.
+- ✅ Verified "Reset Password" securely updates password and invalidates token.
+- ✅ Verified full recovery cycle (Request -> Log -> Link -> Reset -> Login).
+
+---
+
 ## Immediate Next Steps (Optional Enhancements)
 
 

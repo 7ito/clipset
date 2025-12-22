@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { apiClient } from "@/lib/api-client"
 import { setToken, removeToken, getToken } from "@/lib/auth"
-import type { LoginRequest, RegisterRequest, TokenResponse } from "@/types/auth"
+import type { LoginRequest, RegisterRequest, TokenResponse, ForgotPasswordRequest, ResetPasswordRequest } from "@/types/auth"
 import type { UserWithQuota } from "@/types/user"
 
 export function useLogin() {
@@ -53,6 +53,24 @@ export function useLogout() {
     onSuccess: () => {
       // Clear all queries
       queryClient.clear()
+    }
+  })
+}
+
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: async (data: ForgotPasswordRequest) => {
+      const response = await apiClient.post<{ message: string }>("/api/auth/forgot-password", data)
+      return response.data
+    }
+  })
+}
+
+export function useResetPassword() {
+  return useMutation({
+    mutationFn: async (data: ResetPasswordRequest) => {
+      const response = await apiClient.post<{ message: string }>("/api/auth/reset-password", data)
+      return response.data
     }
   })
 }

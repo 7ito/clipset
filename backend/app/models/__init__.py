@@ -10,6 +10,7 @@ from app.models.category import Category
 from app.models.video import Video, ProcessingStatus
 from app.models.config import Config
 from app.models.playlist import Playlist, PlaylistVideo
+from app.models.password_reset import PasswordResetToken
 
 __all__ = [
     "User",
@@ -21,4 +22,5 @@ __all__ = [
     "Config",
     "Playlist",
     "PlaylistVideo",
+    "PasswordResetToken",
 ]

@@ -1,13 +1,50 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, get_current_active_user
-from app.schemas.auth import LoginRequest, TokenResponse, RegisterRequest
+from app.schemas.auth import (
+    LoginRequest,
+    TokenResponse,
+    RegisterRequest,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+)
 from app.schemas.user import UserWithQuota
 from app.services import auth as auth_service
 from app.utils.security import create_access_token
 from app.models.user import User
 
 router = APIRouter()
+
+
+@router.post("/forgot-password", status_code=status.HTTP_200_OK)
+async def forgot_password(
+    request: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)
+):
+    """
+    Request a password reset link.
+    The link will be logged to the console (development mode).
+    """
+    await auth_service.create_password_reset_token(db, request.email)
+    return {
+        "message": "If an account exists with this email, a reset link has been sent."
+    }
+
+
+@router.post("/reset-password", status_code=status.HTTP_200_OK)
+async def reset_password(
+    request: ResetPasswordRequest, db: AsyncSession = Depends(get_db)
+):
+    """
+    Reset password using a valid token.
+    """
+    success = await auth_service.reset_password_with_token(
+        db, request.token, request.password
+    )
+    if not success:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token"
+        )
+    return {"message": "Password reset successfully"}
 
 
 @router.post(
@@ -109,10 +146,10 @@ async def get_current_user_info(
 
     # Query counts separately for reliability
     video_count_query = select(func.count(Video.id)).where(
-        Video.uploaded_by == current_user.id
+        Video.uploaded_by == str(current_user.id)
     )
     playlist_count_query = select(func.count(Playlist.id)).where(
-        Playlist.created_by == current_user.id
+        Playlist.created_by == str(current_user.id)
     )
 
     video_count_result = await db.execute(video_count_query)
@@ -124,7 +161,7 @@ async def get_current_user_info(
     resp = UserWithQuota.model_validate(current_user)
     resp.video_count = video_count
     resp.playlist_count = playlist_count
-    if current_user.avatar_filename:
-        resp.avatar_url = f"/media/avatars/{current_user.avatar_filename}"
+    if current_user.avatar_filename is not None:
+        resp.avatar_url = f"/media/avatars/{str(current_user.avatar_filename)}"
 
     return resp

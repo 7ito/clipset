@@ -254,6 +254,7 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 - ✅ External drive support via bind mounts
 - ✅ Cloudflare Tunnel integration for `clips.7ito.com`
 - ✅ Production environment configuration on Razer Blade 14
+- ✅ Chunked upload support to bypass Cloudflare 100MB limit
 - ✅ Health checks and auto-restart
 - ✅ Log rotation (10MB max, 3 files)
 - ✅ Comprehensive deployment documentation
@@ -332,6 +333,19 @@ Social media platforms compress videos or impose file size limits. Clipset provi
   - "Forgot password?" link added to Login page.
 
 **Key Achievement**: Enhanced user identity with custom avatars and provided a secure, self-host-friendly way to recover forgotten passwords without mandatory SMTP configuration.
+
+### ✅ Phase 14: iOS HEVC Support (Complete)
+**Goal**: Support high-quality video uploads from iOS devices using HEVC/H.265 format.
+
+**Backend**:
+- Added `hevc` and `h265` to accepted video formats.
+- Enhanced video processor to detect 10-bit color depth (common in iOS HDR/HEVC).
+- Updated transcoding pipeline to force `yuv420p` (8-bit) pixel format for maximum web compatibility.
+- Ensures HDR/10-bit sources are correctly converted to 8-bit H.264 without playback issues in browsers.
+
+**Frontend**:
+- Updated upload validation to accept `.hevc` and `.h265` files.
+- Improved error messaging for unsupported formats.
 
 ### Future Enhancements (Post-MVP)
 - Advanced search and filtering

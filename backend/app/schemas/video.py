@@ -95,3 +95,19 @@ class QuotaResetResponse(BaseModel):
 
     reset_count: int
     message: str
+
+
+class ChunkUploadInitResponse(BaseModel):
+    """Response for initializing a chunked upload."""
+
+    upload_id: str
+
+
+class ChunkUploadCompleteRequest(BaseModel):
+    """Request for completing a chunked upload."""
+
+    upload_id: str
+    title: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=2000)
+    category_id: Optional[str] = None
+    filename: str  # Original filename

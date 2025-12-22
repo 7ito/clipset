@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_auth/upload")({
   component: UploadPage
 })
 
-const ACCEPTED_FORMATS = ["mp4", "mov", "avi", "mkv", "webm"]
+const ACCEPTED_FORMATS = ["mp4", "mov", "avi", "mkv", "webm", "hevc", "h265"]
 
 function UploadPage() {
   const navigate = useNavigate()
@@ -388,12 +388,16 @@ function UploadPage() {
             {uploadMutation.isPending && (
               <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base">Upload Progress</Label>
+                  <Label className="text-base">
+                    {uploadProgress < 100 ? "Upload Progress" : "Finalizing Upload"}
+                  </Label>
                   <span className="text-sm font-semibold">{uploadProgress}%</span>
                 </div>
                 <Progress value={uploadProgress} className="h-2" />
                 <p className="text-xs text-muted-foreground">
-                  Please don't close this page while uploading...
+                  {uploadProgress < 100 
+                    ? "Please don't close this page while uploading..."
+                    : "Merging chunks and starting processing. Almost there!"}
                 </p>
               </div>
             )}

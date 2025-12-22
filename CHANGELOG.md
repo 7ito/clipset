@@ -4,6 +4,30 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2025-12-23
 
+### Added - iOS HEVC Support (COMPLETE ✅)
+- **Backend Enhancements**:
+  - Expanded `ACCEPTED_VIDEO_FORMATS` to include `hevc` and `h265`.
+  - Updated `video_processor` to detect 10-bit and 12-bit pixel formats.
+  - Improved `transcode_video` with `-pix_fmt yuv420p` to ensure maximum web compatibility (converts 10-bit HEVC to 8-bit H.264).
+  - Ensures correct color representation and playback across all modern browsers.
+- **Frontend Enhancements**:
+  - Updated `UploadPage` validation to accept `.hevc` and `.h265` file extensions.
+  - Synchronized accepted formats between client and server.
+
+### Added - Chunked Upload Support (Bypass Cloudflare Limits)
+- **Backend Chunk Management**:
+  - Created `ChunkManager` service for handling large file uploads in parts.
+  - Implemented automatic chunk merging and background processing.
+  - Added secure upload session tracking with unique IDs.
+  - New API endpoints: `POST /api/videos/upload/init`, `POST /api/videos/upload/chunk`, `POST /api/videos/upload/complete`.
+- **Frontend Automatic Chunking**:
+  - Updated API client to automatically detect files > 90MB and switch to chunked mode.
+  - Implemented seamless 50MB chunking to bypass Cloudflare's 100MB proxy limit.
+  - Enhanced upload progress bar to show multi-step status (Uploading -> Finalizing).
+- **Infrastructure**:
+  - Configured persistent chunk storage at `/data/uploads/chunks`.
+  - Updated production Docker environment with new storage path.
+
 ### Fixed - Production Deployment & External Access (7ito.com)
 - **Frontend API Configuration**: 
   - Fixed an issue where the frontend was hardcoded to `http://localhost:8080` for API calls in production.

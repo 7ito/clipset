@@ -37,8 +37,10 @@ from app.schemas.video import (
     QuotaInfoResponse,
     ViewCountResponse,
     QuotaResetResponse,
+    ChunkUploadInitResponse,
+    ChunkUploadCompleteRequest,
 )
-from app.services import storage, upload_quota
+from app.services import storage, upload_quota, chunk_manager
 from app.services.config import get_or_create_config
 from app.services.background_tasks import process_video_task
 from app.config import settings
@@ -236,6 +238,139 @@ async def upload_video(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to upload video: {str(e)}",
+        )
+
+
+@router.post("/upload/init", response_model=ChunkUploadInitResponse)
+async def init_chunk_upload(
+    current_user: User = Depends(get_current_user),
+):
+    """Initialize a chunked upload session."""
+    upload_id = chunk_manager.init_upload_session()
+    return ChunkUploadInitResponse(upload_id=upload_id)
+
+
+@router.post("/upload/chunk", status_code=status.HTTP_204_NO_CONTENT)
+async def upload_video_chunk(
+    upload_id: str = Form(...),
+    chunk_index: int = Form(...),
+    file: UploadFile = File(...),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload a single video chunk."""
+    try:
+        chunk_data = await file.read()
+        chunk_manager.save_chunk(upload_id, chunk_index, chunk_data)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error saving chunk {chunk_index} for upload {upload_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to save chunk: {str(e)}",
+        )
+
+
+@router.post("/upload/complete", response_model=VideoResponse)
+async def complete_chunk_upload(
+    request: ChunkUploadCompleteRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Complete a chunked upload, merge chunks and start processing."""
+    # Get config for path and size limits
+    config = await get_or_create_config(db)
+
+    # 1. Merge chunks to temp path
+    unique_filename = storage.generate_unique_filename(request.filename)
+    temp_path = Path(settings.TEMP_STORAGE_PATH) / unique_filename
+
+    try:
+        # Ensure directories exist
+        storage.ensure_directories()
+
+        total_size = chunk_manager.merge_chunks(request.upload_id, temp_path)
+
+        # 2. Validate total size against quota and limits
+        if total_size > config.max_file_size_bytes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File too large. Maximum size: {config.max_file_size_bytes / (1024**3):.2f} GB",
+            )
+
+        can_upload, reason = await upload_quota.check_user_quota(
+            db, current_user, total_size
+        )
+        if not can_upload:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=reason)
+
+        # 3. Validate category if provided
+        if request.category_id:
+            result = await db.execute(
+                select(Category).where(Category.id == request.category_id)
+            )
+            category = result.scalar_one_or_none()
+            if not category:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Category not found: {request.category_id}",
+                )
+
+        # 4. Create Video record
+        video = Video(
+            title=request.title.strip(),
+            description=request.description.strip() if request.description else None,
+            filename=unique_filename,
+            original_filename=request.filename,
+            file_size_bytes=total_size,
+            uploaded_by=current_user.id,
+            category_id=request.category_id,
+            processing_status=ProcessingStatus.PENDING,
+            storage_path=config.video_storage_path,
+        )
+
+        db.add(video)
+        await db.commit()
+        await db.refresh(video)
+
+        # 5. Increment user quota
+        await upload_quota.increment_user_quota(db, current_user.id, total_size)
+
+        # 6. Trigger background processing
+        background_tasks.add_task(process_video_task, video.id)
+
+        # 7. Cleanup session chunks
+        chunk_manager.cleanup_session(request.upload_id)
+
+        # 8. Build response
+        uploader_result = await db.execute(
+            select(User).where(User.id == video.uploaded_by)
+        )
+        uploader = uploader_result.scalar_one()
+
+        category = None
+        if video.category_id:
+            category_result = await db.execute(
+                select(Category).where(Category.id == video.category_id)
+            )
+            category = category_result.scalar_one_or_none()
+
+        response_dict = build_video_response(video, uploader, category)
+        return VideoResponse(**response_dict)
+
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
+    except Exception as e:
+        logger.error(f"Error completing chunked upload: {e}", exc_info=True)
+        # Cleanup
+        if temp_path.exists():
+            storage.delete_file(temp_path)
+        chunk_manager.cleanup_session(request.upload_id)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to complete upload: {str(e)}",
         )
 
 

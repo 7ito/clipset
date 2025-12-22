@@ -170,16 +170,37 @@ def needs_transcoding(filepath: Path) -> bool:
 
         codec = result.stdout.strip().lower()
 
+        # Check for pixel format (8-bit vs 10-bit)
+        pix_fmt_result = subprocess.run(
+            [
+                settings.FFMPEG_PATH.replace("ffmpeg", "ffprobe"),
+                "-v",
+                "error",
+                "-select_streams",
+                "v:0",
+                "-show_entries",
+                "stream=pix_fmt",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                str(filepath),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        pix_fmt = pix_fmt_result.stdout.strip().lower()
+        is_8bit = pix_fmt and "10" not in pix_fmt and "12" not in pix_fmt
+
         # Check if it's H.264 (h264, libx264, avc, etc.)
         is_h264 = codec in ["h264", "libx264", "avc"]
 
         # Check file extension
         is_mp4 = filepath.suffix.lower() == ".mp4"
 
-        needs_transcode = not (is_h264 and is_mp4)
+        needs_transcode = not (is_h264 and is_mp4 and is_8bit)
 
         logger.info(
-            f"Video {filepath} - codec: {codec}, is_mp4: {is_mp4}, needs_transcoding: {needs_transcode}"
+            f"Video {filepath} - codec: {codec}, pix_fmt: {pix_fmt}, is_mp4: {is_mp4}, needs_transcoding: {needs_transcode}"
         )
         return needs_transcode
 
@@ -209,6 +230,8 @@ def transcode_video(input_path: Path, output_path: Path) -> Tuple[bool, str]:
             "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease",
             "-c:v",
             "libx264",
+            "-pix_fmt",
+            "yuv420p",  # Ensure 8-bit compatibility for 10-bit sources
             "-preset",
             "medium",
             "-crf",

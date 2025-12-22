@@ -32,6 +32,7 @@ def ensure_directories() -> None:
         settings.VIDEO_STORAGE_PATH,
         settings.THUMBNAIL_STORAGE_PATH,
         settings.TEMP_STORAGE_PATH,
+        settings.CHUNKS_STORAGE_PATH,
         settings.CATEGORY_IMAGE_STORAGE_PATH,
         settings.AVATAR_STORAGE_PATH,
     ]

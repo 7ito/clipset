@@ -161,6 +161,20 @@
 
 ## Just Completed (December 23, 2025)
 
+### Phase 14: iOS HEVC Support - COMPLETE ✅
+**Status**: Production-ready, verified
+- ✅ **Expanded Format Support**: Added `hevc` and `h265` to accepted video formats in both backend and frontend.
+- ✅ **10-bit Color Compatibility**: Video processor now detects 10-bit/12-bit sources and transcodes them to 8-bit `yuv420p` H.264.
+- ✅ **Web Playback Guaranteed**: Ensures that high-efficiency videos from iOS devices play correctly in all web browsers without "black screen" or color issues.
+- ✅ **Verified with FFmpeg**: Manual transcoding tests confirmed correct conversion of 10-bit HEVC sources to compatible 8-bit H.264.
+
+### Chunked Upload Support - COMPLETE ✅
+**Status**: Production-ready, verified
+- ✅ **Bypassed Cloudflare 100MB Limit**: Implemented a chunked upload system that splits large files into 50MB parts.
+- ✅ **Backend Merging Logic**: New service to securely manage and merge file chunks before processing.
+- ✅ **Seamless Frontend Integration**: Automatic detection and switching to chunked mode for files > 90MB.
+- ✅ **Production Verified**: Successfully tested multi-chunk upload via public URL.
+
 ### Production Deployment & External Access - FIXED ✅
 **Status**: Production-ready, verified
 - ✅ Fixed frontend `apiBaseUrl` hardcoded to localhost:8080.

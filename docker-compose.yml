@@ -17,6 +17,7 @@ services:
       - VIDEO_STORAGE_PATH=/data/uploads/videos
       - THUMBNAIL_STORAGE_PATH=/data/uploads/thumbnails
       - TEMP_STORAGE_PATH=/data/uploads/temp
+      - CHUNKS_STORAGE_PATH=/data/uploads/chunks
       - CATEGORY_IMAGE_STORAGE_PATH=/data/uploads/category-images
     env_file:
       - .env

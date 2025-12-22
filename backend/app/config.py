@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     VIDEO_STORAGE_PATH: str = "../data/uploads/videos"
     THUMBNAIL_STORAGE_PATH: str = "../data/uploads/thumbnails"
     TEMP_STORAGE_PATH: str = "../data/uploads/temp"
+    CHUNKS_STORAGE_PATH: str = "../data/uploads/chunks"
     CATEGORY_IMAGE_STORAGE_PATH: str = "../data/uploads/category-images"
     AVATAR_STORAGE_PATH: str = "../data/uploads/avatars"
 
@@ -36,7 +37,7 @@ class Settings(BaseSettings):
     MAX_AVATAR_SIZE_BYTES: int = 2_097_152  # 2MB
 
     # Accepted Video Formats (comma-separated)
-    ACCEPTED_VIDEO_FORMATS: str = "mp4,mov,avi,mkv,webm"
+    ACCEPTED_VIDEO_FORMATS: str = "mp4,mov,avi,mkv,webm,hevc,h265"
 
     # Category Images
     CATEGORY_IMAGE_SIZE: tuple[int, int] = (400, 400)  # Square images

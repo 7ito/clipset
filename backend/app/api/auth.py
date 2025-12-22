@@ -59,8 +59,8 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
     - **password**: Password (minimum 8 characters)
     - **invitation_token**: Valid invitation token
     """
-    # ... (existing validation code)
     # Validate invitation token
+
     invitation = await auth_service.validate_invitation(db, request.invitation_token)
     if not invitation:
         raise HTTPException(
@@ -101,7 +101,6 @@ async def register(request: RegisterRequest, db: AsyncSession = Depends(get_db))
 
 
 @router.post("/login", response_model=TokenResponse)
-# ... (existing login code)
 async def login(request: LoginRequest, db: AsyncSession = Depends(get_db)):
     """
     Login with username and password to receive a JWT token.

@@ -41,7 +41,7 @@ export function useValidateInvitation(token: string) {
   return useQuery({
     queryKey: ["invitationValidation", token],
     queryFn: async () => {
-      const response = await apiClient.get<InvitationValidation>(`/api/invitations/validate/${token}/`)
+      const response = await apiClient.get<InvitationValidation>(`/api/invitations/validate/${token}`)
       return response.data
     },
     enabled: !!token,
@@ -54,7 +54,7 @@ export function useRevokeInvitation() {
   
   return useMutation({
     mutationFn: async (invitationId: string) => {
-      const response = await apiClient.delete<{ message: string }>(`/api/invitations/${invitationId}/`)
+      const response = await apiClient.delete<{ message: string }>(`/api/invitations/${invitationId}`)
       return response.data
     },
     onSuccess: () => {

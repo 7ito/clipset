@@ -17,7 +17,7 @@ from app.config import settings
 router = APIRouter()
 
 
-@router.post("", response_model=InvitationWithLink, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=InvitationWithLink, status_code=status.HTTP_201_CREATED)
 async def create_invitation(
     request: InvitationCreate,
     current_user: User = Depends(require_admin),
@@ -54,28 +54,25 @@ async def create_invitation(
     return InvitationWithLink(**invitation.__dict__, invitation_link=invitation_link)
 
 
-@router.get("", response_model=list[InvitationResponse])
+@router.get("/", response_model=list[InvitationResponse])
 async def list_invitations(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=100),
     current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     """
     List all invitations (admin only, paginated).
 
-    - **page**: Page number (starts at 1)
-    - **page_size**: Number of invitations per page (max 100)
+    - **skip**: Number of invitations to skip (default 0)
+    - **limit**: Maximum number of invitations to return (default 10)
     """
-    # Calculate offset
-    offset = (page - 1) * page_size
-
     # Get invitations
     result = await db.execute(
         select(Invitation)
         .order_by(Invitation.created_at.desc())
-        .limit(page_size)
-        .offset(offset)
+        .limit(limit)
+        .offset(skip)
     )
     invitations = result.scalars().all()
 

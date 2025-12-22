@@ -26,7 +26,12 @@ export function useInvitations(params: PaginationParams = {}) {
   return useQuery({
     queryKey: ["invitations", params],
     queryFn: async () => {
-      const response = await apiClient.get<InvitationResponse[]>("/api/invitations/", { params })
+      const response = await apiClient.get<InvitationResponse[]>("/api/invitations/", { 
+        params: {
+          skip: params.skip ?? (params.page ? (params.page - 1) * (params.page_size ?? 10) : 0),
+          limit: params.limit ?? params.page_size ?? 10
+        }
+      })
       return response.data
     }
   })

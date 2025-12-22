@@ -12,7 +12,12 @@ export function useUsers(params: PaginationParams = {}) {
   return useQuery({
     queryKey: ["users", params],
     queryFn: async () => {
-      const response = await apiClient.get<UserResponse[]>("/api/users/", { params })
+      const response = await apiClient.get<UserResponse[]>("/api/users/", { 
+        params: {
+          skip: params.skip ?? (params.page ? (params.page - 1) * (params.page_size ?? 10) : 0),
+          limit: params.limit ?? params.page_size ?? 10
+        }
+      })
       return response.data
     }
   })

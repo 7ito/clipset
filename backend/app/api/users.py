@@ -59,22 +59,19 @@ def build_user_response(
     return resp
 
 
-@router.get("", response_model=list[UserResponse])
+@router.get("/", response_model=list[UserResponse])
 async def list_users(
-    page: int = Query(1, ge=1),
-    page_size: int = Query(10, ge=1, le=100),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(10, ge=1, le=500),
     current_user: User = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
 ):
     """
     List all users with video and playlist counts (admin only, paginated).
 
-    - **page**: Page number (starts at 1)
-    - **page_size**: Number of users per page (max 100)
+    - **skip**: Number of users to skip (default 0)
+    - **limit**: Maximum number of users to return (default 10, max 500)
     """
-    # Calculate offset
-    offset = (page - 1) * page_size
-
     # Query users with counts
     query = (
         select(
@@ -86,8 +83,8 @@ async def list_users(
         .outerjoin(Playlist, User.id == Playlist.created_by)
         .group_by(User.id)
         .order_by(User.created_at.desc())
-        .limit(page_size)
-        .offset(offset)
+        .limit(limit)
+        .offset(skip)
     )
 
     result = await db.execute(query)

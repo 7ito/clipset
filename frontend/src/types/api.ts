@@ -5,6 +5,8 @@ export interface ApiError {
 export interface PaginationParams {
   page?: number
   page_size?: number
+  skip?: number
+  limit?: number
 }
 
 export interface ApiResponse<T> {

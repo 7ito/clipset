@@ -30,6 +30,8 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile.prod
+      args:
+        - VITE_API_BASE_URL=
     container_name: clipset-frontend
     restart: always
     logging:
@@ -48,7 +50,7 @@ services:
       # Mount data for static file serving (thumbnails, category images)
       - ./data/uploads:/data/uploads:ro
     ports:
-      - "8090:80"
+      - "80:80"
     depends_on:
       - backend
       - frontend

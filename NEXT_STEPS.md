@@ -159,6 +159,16 @@
 
 ---
 
+## Just Completed (December 23, 2025)
+
+### Production Deployment & External Access - FIXED ✅
+**Status**: Production-ready, verified
+- ✅ Fixed frontend `apiBaseUrl` hardcoded to localhost:8080.
+- ✅ Implemented relative API paths for production robustness.
+- ✅ Updated `docker-compose.prod.yml` to use port 80 for Nginx.
+- ✅ Verified login and dashboard functionality on the production setup.
+- ✅ Successfully mapped `clips.7ito.com` (via Cloudflare Tunnel) to the local deployment.
+
 ## Just Completed (December 22, 2024)
 
 ### Dynamic Video Storage Path - COMPLETE ✅

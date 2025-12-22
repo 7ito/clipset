@@ -2,6 +2,21 @@
 
 All notable changes to Clipset will be documented in this file.
 
+## [Unreleased] - 2025-12-23
+
+### Fixed - Production Deployment & External Access (7ito.com)
+- **Frontend API Configuration**: 
+  - Fixed an issue where the frontend was hardcoded to `http://localhost:8080` for API calls in production.
+  - Implemented a robust fallback to relative paths (`""`) for the `apiBaseUrl` in production, ensuring compatibility with same-origin deployments and reverse proxies.
+  - Added build-time environment variable support for `VITE_API_BASE_URL` in `Dockerfile.prod`.
+- **Infrastructure & Docker**:
+  - Updated `docker-compose.prod.yml` to use port 80 for Nginx, matching the Cloudflare Tunnel configuration for `clips.7ito.com`.
+  - Configured `VITE_API_BASE_URL` as a build argument in the production compose file.
+  - Fixed port mismatch between Docker configuration and running containers.
+- **Verification**:
+  - Verified successful login and dashboard loading on the production environment via Playwright.
+  - Confirmed the fix for the double `/api/api` prefix issue in production API calls.
+
 ## [Unreleased] - 2024-12-22
 
 ### Added - Phase 13: User Profile Customization & Password Recovery (COMPLETE ✅)

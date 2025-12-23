@@ -2,9 +2,10 @@
 Video processor service using FFmpeg.
 
 Handles video validation, transcoding, thumbnail extraction, and metadata extraction.
+All subprocess calls are async to prevent blocking the FastAPI event loop.
 """
 
-import subprocess
+import asyncio
 import json
 import logging
 from pathlib import Path
@@ -15,7 +16,7 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
-def validate_video_file(filepath: Path) -> Tuple[bool, str]:
+async def validate_video_file(filepath: Path) -> Tuple[bool, str]:
     """
     Validate that a file is a valid video using ffprobe.
 
@@ -26,38 +27,39 @@ def validate_video_file(filepath: Path) -> Tuple[bool, str]:
         Tuple of (is_valid, error_message)
     """
     try:
-        result = subprocess.run(
-            [
-                settings.FFMPEG_PATH.replace("ffmpeg", "ffprobe"),
-                "-v",
-                "error",
-                "-select_streams",
-                "v:0",
-                "-show_entries",
-                "stream=codec_type",
-                "-of",
-                "default=noprint_wrappers=1:nokey=1",
-                str(filepath),
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
+        process = await asyncio.create_subprocess_exec(
+            settings.FFMPEG_PATH.replace("ffmpeg", "ffprobe"),
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=codec_type",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            str(filepath),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
 
-        if result.returncode != 0:
-            error_msg = result.stderr.strip() or "Invalid video file"
+        stdout, stderr = await asyncio.wait_for(
+            process.communicate(), timeout=30
+        )
+
+        if process.returncode != 0:
+            error_msg = stderr.decode().strip() or "Invalid video file"
             logger.error(f"Video validation failed for {filepath}: {error_msg}")
             return False, error_msg
 
         # Check if it's a video stream
-        if "video" not in result.stdout.lower():
+        if "video" not in stdout.decode().lower():
             logger.error(f"File {filepath} is not a video file")
             return False, "File is not a valid video"
 
         logger.info(f"Video file validated successfully: {filepath}")
         return True, ""
 
-    except subprocess.TimeoutExpired:
+    except asyncio.TimeoutError:
         logger.error(f"Video validation timed out for {filepath}")
         return False, "Video validation timed out"
     except Exception as e:
@@ -65,7 +67,7 @@ def validate_video_file(filepath: Path) -> Tuple[bool, str]:
         return False, f"Validation error: {str(e)}"
 
 
-def get_video_metadata(filepath: Path) -> Dict:
+async def get_video_metadata(filepath: Path) -> Dict:
     """
     Extract video metadata using ffprobe.
 
@@ -76,27 +78,28 @@ def get_video_metadata(filepath: Path) -> Dict:
         Dict with keys: duration, width, height, codec_name
     """
     try:
-        result = subprocess.run(
-            [
-                settings.FFMPEG_PATH.replace("ffmpeg", "ffprobe"),
-                "-v",
-                "error",
-                "-show_entries",
-                "format=duration:stream=width,height,codec_name",
-                "-of",
-                "json",
-                str(filepath),
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
+        process = await asyncio.create_subprocess_exec(
+            settings.FFMPEG_PATH.replace("ffmpeg", "ffprobe"),
+            "-v",
+            "error",
+            "-show_entries",
+            "format=duration:stream=width,height,codec_name",
+            "-of",
+            "json",
+            str(filepath),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
 
-        if result.returncode != 0:
-            logger.error(f"Failed to extract metadata from {filepath}: {result.stderr}")
+        stdout, stderr = await asyncio.wait_for(
+            process.communicate(), timeout=30
+        )
+
+        if process.returncode != 0:
+            logger.error(f"Failed to extract metadata from {filepath}: {stderr.decode()}")
             return {}
 
-        data = json.loads(result.stdout)
+        data = json.loads(stdout.decode())
 
         # Extract duration from format
         duration = None
@@ -127,12 +130,15 @@ def get_video_metadata(filepath: Path) -> Dict:
         logger.info(f"Extracted metadata from {filepath}: {metadata}")
         return metadata
 
+    except asyncio.TimeoutError:
+        logger.error(f"Metadata extraction timed out for {filepath}")
+        return {}
     except Exception as e:
         logger.error(f"Error extracting metadata from {filepath}: {e}")
         return {}
 
 
-def needs_transcoding(filepath: Path) -> bool:
+async def needs_transcoding(filepath: Path) -> bool:
     """
     Check if video needs transcoding for web compatibility.
 
@@ -146,49 +152,52 @@ def needs_transcoding(filepath: Path) -> bool:
     """
     try:
         # Check codec
-        result = subprocess.run(
-            [
-                settings.FFMPEG_PATH.replace("ffmpeg", "ffprobe"),
-                "-v",
-                "error",
-                "-select_streams",
-                "v:0",
-                "-show_entries",
-                "stream=codec_name",
-                "-of",
-                "default=noprint_wrappers=1:nokey=1",
-                str(filepath),
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
+        process = await asyncio.create_subprocess_exec(
+            settings.FFMPEG_PATH.replace("ffmpeg", "ffprobe"),
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=codec_name",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            str(filepath),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
 
-        if result.returncode != 0:
+        stdout, stderr = await asyncio.wait_for(
+            process.communicate(), timeout=30
+        )
+
+        if process.returncode != 0:
             logger.warning(f"Could not determine codec for {filepath}, will transcode")
             return True
 
-        codec = result.stdout.strip().lower()
+        codec = stdout.decode().strip().lower()
 
         # Check for pixel format (8-bit vs 10-bit)
-        pix_fmt_result = subprocess.run(
-            [
-                settings.FFMPEG_PATH.replace("ffmpeg", "ffprobe"),
-                "-v",
-                "error",
-                "-select_streams",
-                "v:0",
-                "-show_entries",
-                "stream=pix_fmt",
-                "-of",
-                "default=noprint_wrappers=1:nokey=1",
-                str(filepath),
-            ],
-            capture_output=True,
-            text=True,
-            timeout=30,
+        pix_fmt_process = await asyncio.create_subprocess_exec(
+            settings.FFMPEG_PATH.replace("ffmpeg", "ffprobe"),
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=pix_fmt",
+            "-of",
+            "default=noprint_wrappers=1:nokey=1",
+            str(filepath),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
-        pix_fmt = pix_fmt_result.stdout.strip().lower()
+
+        pix_fmt_stdout, _ = await asyncio.wait_for(
+            pix_fmt_process.communicate(), timeout=30
+        )
+
+        pix_fmt = pix_fmt_stdout.decode().strip().lower()
         is_8bit = pix_fmt and "10" not in pix_fmt and "12" not in pix_fmt
 
         # Check if it's H.264 (h264, libx264, avc, etc.)
@@ -204,12 +213,15 @@ def needs_transcoding(filepath: Path) -> bool:
         )
         return needs_transcode
 
+    except asyncio.TimeoutError:
+        logger.error(f"Transcoding check timed out for {filepath}")
+        return True  # Default to transcoding if we can't determine
     except Exception as e:
         logger.error(f"Error checking if transcoding needed for {filepath}: {e}")
         return True  # Default to transcoding if we can't determine
 
 
-def transcode_video(input_path: Path, output_path: Path) -> Tuple[bool, str]:
+async def transcode_video(input_path: Path, output_path: Path) -> Tuple[bool, str]:
     """
     Transcode video to 1080p H.264 MP4 optimized for web streaming.
 
@@ -248,22 +260,26 @@ def transcode_video(input_path: Path, output_path: Path) -> Tuple[bool, str]:
 
         logger.info(f"Transcoding video: {input_path} -> {output_path}")
 
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        stdout, stderr = await asyncio.wait_for(
+            process.communicate(),
             timeout=settings.VIDEO_PROCESSING_TIMEOUT,
         )
 
-        if result.returncode != 0:
-            error_msg = result.stderr[-500:] if result.stderr else "Unknown error"
+        if process.returncode != 0:
+            error_msg = stderr.decode()[-500:] if stderr else "Unknown error"
             logger.error(f"Transcoding failed for {input_path}: {error_msg}")
             return False, f"Transcoding failed: {error_msg}"
 
         logger.info(f"Successfully transcoded video: {output_path}")
         return True, ""
 
-    except subprocess.TimeoutExpired:
+    except asyncio.TimeoutError:
         logger.error(
             f"Transcoding timed out for {input_path} (timeout: {settings.VIDEO_PROCESSING_TIMEOUT}s)"
         )
@@ -276,7 +292,7 @@ def transcode_video(input_path: Path, output_path: Path) -> Tuple[bool, str]:
         return False, f"Transcoding error: {str(e)}"
 
 
-def extract_thumbnail(
+async def extract_thumbnail(
     video_path: Path, thumbnail_path: Path, timestamp: float = 1.0
 ) -> bool:
     """
@@ -312,16 +328,24 @@ def extract_thumbnail(
 
         logger.info(f"Extracting thumbnail from {video_path} at {timestamp}s")
 
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
 
-        if result.returncode != 0:
-            logger.error(f"Thumbnail extraction failed: {result.stderr}")
+        stdout, stderr = await asyncio.wait_for(
+            process.communicate(), timeout=30
+        )
+
+        if process.returncode != 0:
+            logger.error(f"Thumbnail extraction failed: {stderr.decode()}")
             return False
 
         logger.info(f"Successfully extracted thumbnail: {thumbnail_path}")
         return True
 
-    except subprocess.TimeoutExpired:
+    except asyncio.TimeoutError:
         logger.error(f"Thumbnail extraction timed out for {video_path}")
         return False
     except Exception as e:
@@ -329,7 +353,7 @@ def extract_thumbnail(
         return False
 
 
-def process_video_file(
+async def process_video_file(
     input_path: Path, output_path: Path, thumbnail_path: Path
 ) -> Dict:
     """
@@ -359,21 +383,21 @@ def process_video_file(
     }
 
     # Step 1: Validate
-    is_valid, error_msg = validate_video_file(input_path)
+    is_valid, error_msg = await validate_video_file(input_path)
     if not is_valid:
         result["error"] = error_msg
         return result
 
     # Step 2: Extract metadata
-    metadata = get_video_metadata(input_path)
+    metadata = await get_video_metadata(input_path)
     result["duration"] = metadata.get("duration")
     result["width"] = metadata.get("width")
     result["height"] = metadata.get("height")
     result["codec"] = metadata.get("codec_name")
 
     # Step 3: Transcode if needed
-    if needs_transcoding(input_path):
-        success, error_msg = transcode_video(input_path, output_path)
+    if await needs_transcoding(input_path):
+        success, error_msg = await transcode_video(input_path, output_path)
         if not success:
             result["error"] = error_msg
             return result
@@ -391,10 +415,10 @@ def process_video_file(
             return result
 
     # Step 4: Extract thumbnail
-    thumbnail_success = extract_thumbnail(output_path, thumbnail_path, timestamp=1.0)
+    thumbnail_success = await extract_thumbnail(output_path, thumbnail_path, timestamp=1.0)
     if not thumbnail_success:
         logger.warning(f"Thumbnail extraction failed, but continuing (non-critical)")
-        # Don't fail the entire process if thumbnail fails
+        # Don't fail entire process if thumbnail fails
 
     # Success!
     result["success"] = True

@@ -347,6 +347,42 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 - Updated upload validation to accept `.hevc` and `.h265` files.
 - Improved error messaging for unsupported formats.
 
+### ✅ Phase 15: Async Video Processing (Complete)
+**Goal**: Prevent video processing from blocking the entire application
+
+**Problem**: When an upload was processing, the entire page was unusable until the processing was complete because FFmpeg subprocess calls were blocking the FastAPI event loop.
+
+**Solution**: Convert all subprocess calls to async using `asyncio.create_subprocess_exec()` to allow the event loop to continue processing other requests while videos are transcoding in the background.
+
+**Backend Changes**:
+- `video_processor.py`: All functions now async
+  - `validate_video_file()` - Uses `asyncio.create_subprocess_exec()` with 30s timeout
+  - `get_video_metadata()` - Uses `asyncio.create_subprocess_exec()` with 30s timeout
+  - `needs_transcoding()` - Uses `asyncio.create_subprocess_exec()` for both codec and pixel format checks
+  - `transcode_video()` - Uses `asyncio.create_subprocess_exec()` with configurable timeout
+  - `extract_thumbnail()` - Uses `asyncio.create_subprocess_exec()` with 30s timeout
+  - `process_video_file()` - Orchestrates all async functions in correct order
+- `background_tasks.py`: Updated `process_video_task()` to await async processor functions
+
+**Impact**:
+- ✅ Application remains fully responsive during video uploads and processing
+- ✅ Users can navigate to app while videos are being transcoded in the background
+- ✅ Multiple users can upload concurrently without blocking each other's requests
+- ✅ No infrastructure changes required (still works with FastAPI's built-in BackgroundTasks)
+- ✅ Video processing timeout increased from 300s (5 min) to 1800s (30 min) for longer videos
+
+**Testing**:
+- ✅ Verified page remains responsive during upload with Playwright
+- ✅ Successfully navigated between pages while video processing was active
+- ✅ Multiple test videos processed successfully (small_test, medium_test)
+- ✅ Admin dashboard loads correctly during background processing
+
+**Technical Notes**:
+- This solution uses Python's asyncio subprocess support, which is sufficient for single-machine deployments
+- For larger-scale deployments requiring horizontal scaling, a task queue like Celery + Redis would be appropriate
+- All existing error handling and timeout behavior is preserved
+- Timeout configuration can be adjusted via `VIDEO_PROCESSING_TIMEOUT` environment variable
+
 ### Future Enhancements (Post-MVP)
 - Advanced search and filtering
 - Comments and social interactions

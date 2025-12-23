@@ -157,6 +157,14 @@ Clipset provides a simple solution for sharing large video files without compres
 - ✅ Validation and change tracking
 - ✅ Admin-only access with proper authentication
 
+### ✅ Phase 15: Async Video Processing (Complete)
+- ✅ Converted all FFmpeg subprocess calls to async (non-blocking)
+- ✅ Application remains responsive during video uploads and processing
+- ✅ Users can navigate app while videos are transcoding in background
+- ✅ Multiple users can upload concurrently without blocking each other's requests
+- ✅ Increased video processing timeout from 5 min to 30 min for longer videos
+- ✅ No infrastructure changes required (still uses FastAPI BackgroundTasks)
+
 ## Development
 
 ### Backend Setup

@@ -1,6 +1,6 @@
 # Next Steps - Clipset Development
 
-**Last Updated**: December 19, 2024  
+**Last Updated**: December 23, 2025  
 **Current Phase**: Post-MVP Enhancements
 
 ---
@@ -182,6 +182,28 @@
 - ✅ Updated `docker-compose.prod.yml` to use port 80 for Nginx.
 - ✅ Verified login and dashboard functionality on the production setup.
 - ✅ Successfully mapped `clips.7ito.com` (via Cloudflare Tunnel) to the local deployment.
+
+## Just Completed (December 23, 2025 - Part 2)
+
+### Fixed - Non-Blocking Video Processing - COMPLETE ✅
+**Status**: Production-ready, verified
+- ✅ **Converted to async subprocess**: All FFmpeg operations now use `asyncio.create_subprocess_exec()` instead of blocking `subprocess.run()`
+- ✅ **Updated background tasks**: `process_video_task()` now properly awaits async video processor functions
+- ✅ **Application responsive**: Page remains fully navigable during video uploads and processing
+- ✅ **Concurrent uploads**: Multiple users can upload without blocking each other's requests
+- ✅ **Verified with Playwright**: Successfully navigated between pages while video processing was active
+- ✅ **No regressions**: Test videos processed successfully with completed status and thumbnails
+
+**Technical Details**:
+- `validate_video_file()`: Now async with 30s timeout
+- `get_video_metadata()`: Now async with 30s timeout
+- `needs_transcoding()`: Now async with 30s timeout for both codec and pixel format checks
+- `transcode_video()`: Now async with configurable timeout (VIDEO_PROCESSING_TIMEOUT, increased to 1800s/30min)
+- `extract_thumbnail()`: Now async with 30s timeout
+- `process_video_file()`: Orchestrates all async functions in correct order
+- Timeout increased from 300s (5 min) to 1800s (30 min) to support longer videos
+
+**Impact**: Critical improvement for production usability - users are no longer forced to wait on upload page during processing, and longer videos can be processed without timeout.
 
 ## Just Completed (December 22, 2024)
 

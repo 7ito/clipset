@@ -1,7 +1,7 @@
 """
 Background tasks service for asynchronous video processing.
 
-Handles the complete video processing pipeline in the background.
+Handles complete video processing pipeline in background.
 """
 
 import logging
@@ -30,7 +30,7 @@ async def process_video_task(video_id: str) -> None:
     7. Cleanup temp file
 
     Args:
-        video_id: ID of the Video record to process
+        video_id: ID of Video record to process
     """
     async with async_session_maker() as db:
         try:
@@ -68,8 +68,8 @@ async def process_video_task(video_id: str) -> None:
             if not temp_path.exists():
                 raise FileNotFoundError(f"Temp file not found: {temp_path}")
 
-            # Process the video
-            result = video_processor.process_video_file(
+            # Process video (now async!)
+            result = await video_processor.process_video_file(
                 input_path=temp_path,
                 output_path=video_output_path,
                 thumbnail_path=thumbnail_output_path,

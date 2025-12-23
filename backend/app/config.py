@@ -47,7 +47,7 @@ class Settings(BaseSettings):
     FFMPEG_PATH: str = "ffmpeg"  # Uses system PATH
 
     # Video Processing
-    VIDEO_PROCESSING_TIMEOUT: int = 300  # 5 minutes in seconds
+    VIDEO_PROCESSING_TIMEOUT: int = 1800  # 30 minutes in seconds
 
     # Quota Reset Schedule
     QUOTA_RESET_DAY: int = 0  # 0 = Sunday

@@ -4,6 +4,27 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2025-12-23
 
+### Fixed - Non-Blocking Video Processing (COMPLETE ✅)
+- **Backend Architecture Change**:
+  - Converted all `subprocess.run()` calls to `asyncio.create_subprocess_exec()` in `video_processor.py`
+  - Updated `background_tasks.py` to properly await async video processing functions
+  - Video transcoding no longer blocks the FastAPI event loop during processing
+  - Increased `VIDEO_PROCESSING_TIMEOUT` from 300s (5 min) to 1800s (30 min) for longer videos
+- **Impact**:
+  - Application remains fully responsive during video uploads and processing
+  - Users can navigate to app while videos are being transcoded in the background
+  - Multiple users can upload concurrently without blocking each other's requests
+  - Longer videos (up to 30 minutes) can now be processed without timeout
+- **Technical Details**:
+  - Used `asyncio.create_subprocess_exec()` for non-blocking subprocess calls
+  - All FFmpeg operations (validation, metadata extraction, transcoding, thumbnail extraction) now run asynchronously
+  - Maintains all existing error handling and timeout behavior
+- **Testing**:
+  - ✅ Verified page remains responsive during upload with Playwright
+  - ✅ Successfully navigated between pages while video processing was active
+  - ✅ Multiple test videos processed successfully (small_test, medium_test)
+  - ✅ Admin dashboard loads correctly during background processing
+
 ### Added - iOS HEVC Support (COMPLETE ✅)
 - **Backend Enhancements**:
   - Expanded `ACCEPTED_VIDEO_FORMATS` to include `hevc` and `h265`.

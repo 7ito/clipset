@@ -50,7 +50,7 @@ class Settings(BaseSettings):
     VIDEO_PROCESSING_TIMEOUT: int = 1800  # 30 minutes in seconds
 
     # GPU Transcoding Settings
-    USE_GPU_TRANSCODING: bool = True
+    USE_GPU_TRANSCODING: bool = False
     GPU_DEVICE_ID: int = 0
     NVENC_PRESET: str = "p4"  # p1 (fastest) to p7 (slowest, best quality)
     NVENC_CQ: int = 20  # Constant quality: 18 (best) to 30 (worst)

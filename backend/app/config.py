@@ -49,6 +49,15 @@ class Settings(BaseSettings):
     # Video Processing
     VIDEO_PROCESSING_TIMEOUT: int = 1800  # 30 minutes in seconds
 
+    # GPU Transcoding Settings
+    USE_GPU_TRANSCODING: bool = True
+    GPU_DEVICE_ID: int = 0
+    NVENC_PRESET: str = "p4"  # p1 (fastest) to p7 (slowest, best quality)
+    NVENC_CQ: int = 20  # Constant quality: 18 (best) to 30 (worst)
+    NVENC_RATE_CONTROL: str = "vbr"  # vbr, cbr, constqp
+    NVENC_MAX_BITRATE: str = "8M"  # Maximum bitrate cap
+    NVENC_BUFFER_SIZE: str = "16M"  # 2x maxrate for VBR smoothness
+
     # Quota Reset Schedule
     QUOTA_RESET_DAY: int = 0  # 0 = Sunday
     QUOTA_RESET_HOUR: int = 0  # Midnight

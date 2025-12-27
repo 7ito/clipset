@@ -4,13 +4,16 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.nvenc
     container_name: clipset-backend-dev
     volumes:
       # Hot reload - mount source code
       - ./backend:/app
       # Persistent data storage
       - ./data:/data
+      # Mount NVIDIA libraries from host for NVENC support
+      - /usr/lib/libnvidia-encode.so.590.48.01:/usr/lib/x86_64-linux-gnu/libnvidia-encode.so.1:ro
+      - /usr/lib/libnvcuvid.so.590.48.01:/usr/lib/x86_64-linux-gnu/libnvcuvid.so.1:ro
     environment:
       # Override paths for Docker environment
       - DATABASE_URL=sqlite+aiosqlite:////data/clipset.db
@@ -19,12 +22,22 @@ services:
       - TEMP_STORAGE_PATH=/data/uploads/temp
       - CHUNKS_STORAGE_PATH=/data/uploads/chunks
       - CATEGORY_IMAGE_STORAGE_PATH=/data/uploads/category-images
+      # GPU device visibility
+      - NVIDIA_VISIBLE_DEVICES=all
     env_file:
       - .env
     ports:
       # Expose for debugging (optional)
       - "8000:8000"
     restart: unless-stopped
+    # GPU access for NVENC video transcoding
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s

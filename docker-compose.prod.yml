@@ -4,14 +4,28 @@ services:
   backend:
     build:
       context: ./backend
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.nvenc
     container_name: clipset-backend
     volumes:
       # Only data, no source code
       - ./data:/data
+      # Mount NVIDIA libraries from host for NVENC support
+      - /usr/lib/libnvidia-encode.so.590.48.01:/usr/lib/x86_64-linux-gnu/libnvidia-encode.so.1:ro
+      - /usr/lib/libnvcuvid.so.590.48.01:/usr/lib/x86_64-linux-gnu/libnvcuvid.so.1:ro
+    environment:
+      # GPU device visibility
+      - NVIDIA_VISIBLE_DEVICES=all
     env_file:
       - .env
     restart: always
+    # GPU access for NVENC video transcoding
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s

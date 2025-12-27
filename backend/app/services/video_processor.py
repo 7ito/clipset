@@ -34,7 +34,9 @@ def _get_transcode_command(
     if use_gpu and settings.USE_GPU_TRANSCODING:
         logger.info(
             f"Using GPU transcoding: h264_nvenc "
-            f"(preset={settings.NVENC_PRESET})"
+            f"(preset={settings.NVENC_PRESET}, cq={settings.NVENC_CQ}, "
+            f"rc={settings.NVENC_RATE_CONTROL}, maxrate={settings.NVENC_MAX_BITRATE}, "
+            f"bufsize={settings.NVENC_BUFFER_SIZE}, audio=192k)"
         )
         return [
             settings.FFMPEG_PATH,
@@ -44,21 +46,31 @@ def _get_transcode_command(
             "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease",
             "-c:v",
             "h264_nvenc",
+            "-pix_fmt",
+            "yuv420p",
             "-preset",
             settings.NVENC_PRESET,
-            "-crf",
-            "23",
+            "-rc",
+            settings.NVENC_RATE_CONTROL,
+            "-cq",
+            str(settings.NVENC_CQ),
+            "-b:v",
+            "0",
+            "-maxrate",
+            settings.NVENC_MAX_BITRATE,
+            "-bufsize",
+            settings.NVENC_BUFFER_SIZE,
             "-c:a",
             "aac",
             "-b:a",
-            "128k",
+            "192k",
             "-movflags",
             "+faststart",
             "-y",
             str(output_path),
         ]
     else:
-        logger.info("Using CPU transcoding: libx264 (preset=medium, crf=23)")
+        logger.info("Using CPU transcoding: libx264 (preset=medium, crf=18, audio=192k)")
         return [
             settings.FFMPEG_PATH,
             "-i",
@@ -72,11 +84,11 @@ def _get_transcode_command(
             "-preset",
             "medium",
             "-crf",
-            "23",
+            "18",
             "-c:a",
             "aac",
             "-b:a",
-            "128k",
+            "192k",
             "-movflags",
             "+faststart",
             "-y",

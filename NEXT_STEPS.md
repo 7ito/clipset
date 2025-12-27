@@ -183,6 +183,56 @@
 - ✅ Verified login and dashboard functionality on the production setup.
 - ✅ Successfully mapped `clips.7ito.com` (via Cloudflare Tunnel) to the local deployment.
 
+## Just Completed (December 23, 2025 - Part 3)
+
+### Phase 16: GPU-Accelerated Video Transcoding - COMPLETE ✅
+**Status**: Production-ready, tested on RTX 3060 Laptop GPU  
+**Time Spent**: ~2 hours
+
+**What Was Built**:
+- **NVIDIA NVENC Integration**:
+  - Created `Dockerfile.nvenc` using NVIDIA CUDA 12.3 runtime base image
+  - Updated both development and production docker-compose files with GPU device access
+  - Mounted NVIDIA encoder libraries from host system
+  - Added GPU configuration to `.env` (enabled by default)
+
+- **Performance**:
+  - **11.5x realtime** transcoding speed for 1080p video on RTX 3060
+  - 30-second video processed in 2.6 seconds
+  - 10-minute video estimate: 1-2 minutes (vs 5-10 min CPU)
+  - **3-10x faster** than CPU transcoding
+
+- **Configuration**:
+  - `USE_GPU_TRANSCODING=true` - Enable/disable GPU acceleration
+  - `NVENC_PRESET=p4` - Quality/speed trade-off (p1=fastest, p7=best)
+  - `NVENC_CQ=20` - Constant quality (18=best, 30=worst)
+
+- **Robustness**:
+  - Automatic CPU fallback if GPU unavailable or fails
+  - All existing error handling and timeout behavior preserved
+  - Works seamlessly with async video processing from Phase 15
+
+**Testing Results**:
+- ✅ GPU device accessible in containers (`nvidia-smi` working)
+- ✅ h264_nvenc encoder available in FFmpeg
+- ✅ Transcoded 1080p test video at 11.5x realtime speed
+- ✅ Verified automatic CPU fallback when GPU access removed
+- ✅ Production deployment successful on Razer Blade 14
+
+**Documentation Updated**:
+- ✅ Added GPU Acceleration section to `DEPLOYMENT.md`
+- ✅ Updated `.env.example` with GPU settings and detailed comments
+- ✅ Added Phase 16 to `PROJECT.md` and `README.md`
+- ✅ Documented performance benchmarks and requirements
+
+**Critical Fix Applied** (Post-deployment):
+- ✅ Added `-pix_fmt yuv420p` to GPU transcode command
+- ✅ Fixes "10 bit encode not supported" error with iPhone HEVC videos
+- ✅ Tested with 10-bit 1080p video: 8.9x realtime (vs 11.5x for 8-bit)
+- ✅ Production container rebuilt and deployed
+
+**Files Modified**: 7 files (docker-compose.yml, docker-compose.prod.yml, Dockerfile.nvenc, .env, .env.example, video_processor.py, docs)
+
 ## Just Completed (December 23, 2025 - Part 2)
 
 ### Fixed - Non-Blocking Video Processing - COMPLETE ✅

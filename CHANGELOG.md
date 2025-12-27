@@ -4,6 +4,104 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2025-12-23
 
+### Changed - Video Transcoding Quality Enhancement (COMPLETE ✅)
+- **Improved Video Quality**: 
+  - Lowered CRF from 23 to 18 (both CPU and GPU transcoding)
+  - ~40-50% file size increase with significantly better visual quality
+  - Near-visually-lossless for gaming clips, sports footage, and camera footage
+  - GPU CQ lowered from 20 to 18 for consistency with CPU CRF
+
+- **Enhanced Audio Quality**:
+  - Increased audio bitrate from 128 kbps to 192 kbps
+  - Better audio clarity and fidelity for all content types
+  - Balanced trade-off between quality and file size
+
+- **Optimized GPU Transcoding with VBR+CQ Rate Control**:
+  - Implemented Variable Bitrate (VBR) mode with Constant Quality (CQ) targeting
+  - Added maxrate cap (8 Mbps) to prevent bitrate spikes and excessive file sizes
+  - Added buffer size (16 Mbps) for smoother bitrate distribution
+  - Previously unused config settings (`NVENC_RATE_CONTROL`, `NVENC_MAX_BITRATE`, 
+    `NVENC_BUFFER_SIZE`) now properly utilized in FFmpeg commands
+  - Better suited for web streaming and delivery compared to CQ-only mode
+
+- **Configuration Improvements**:
+  - Updated `.env.example` with comprehensive GPU transcoding settings
+  - Added detailed comments explaining each transcoding parameter
+  - Included recommended values by content type (gaming, sports, camera, animation)
+  - Updated video format list to include HEVC/H.265 support
+
+- **Performance Impact**:
+  - Video quality: Significantly improved, especially in fast-motion scenes
+  - File size: ~40-50% larger (CRF 18 vs 23)
+  - Processing speed: Unchanged (presets: medium/p4 maintained)
+  - GPU: 3-10x faster than CPU transcoding (11.5x realtime on RTX 3060)
+  - Rate control: Smoother bitrate distribution, better for web delivery
+
+- **Documentation Updates**:
+  - Enhanced README.md with Video Quality & Transcoding section
+  - Added comprehensive transcoding settings documentation
+  - Included quality vs. file size trade-offs
+  - Added recommended settings by content type
+
+**Files Modified**:
+- `backend/app/services/video_processor.py` - Updated GPU/CPU transcode commands
+- `backend/app/config.py` - Lowered NVENC_CQ default to 18
+- `backend/.env.example` - Added GPU transcoding documentation
+- `README.md` - Added video quality configuration guide
+
+**Impact Summary**:
+- **Quality**: Noticeably better, especially in gaming clips and fast action scenes
+- **Audio**: Improved clarity from 128k to 192k AAC
+- **Storage**: Plan for ~40-50% more disk usage per video
+- **Speed**: No performance regression (same preset speeds)
+- **Compatibility**: Better for web streaming with VBR+CQ rate control
+
+### Added - GPU-Accelerated Video Transcoding (COMPLETE ✅)
+- **NVIDIA NVENC Support**:
+  - Implemented GPU-accelerated video transcoding using NVIDIA NVENC
+  - **3-10x faster** video processing compared to CPU (8-11x realtime for 1080p)
+  - Automatic CPU fallback if GPU unavailable or fails
+  - **10-bit input support**: Automatically converts 10-bit (iPhone HEVC) to 8-bit for web compatibility
+  - Production-tested on RTX 3060 Laptop GPU (6GB VRAM)
+
+- **Configuration**:
+  - Added GPU settings to `.env`: `USE_GPU_TRANSCODING`, `NVENC_PRESET`, `NVENC_CQ`
+  - Configurable quality presets (p1-p7) and constant quality (18-30)
+  - GPU transcoding enabled by default for NVIDIA-equipped systems
+
+- **Docker Integration**:
+  - Created `Dockerfile.nvenc` using NVIDIA CUDA 12.3 runtime base image
+  - Updated `docker-compose.yml` and `docker-compose.prod.yml` with GPU device access
+  - Mounted NVIDIA encoder libraries (`libnvidia-encode`, `libnvcuvid`) from host
+  - Added `NVIDIA_VISIBLE_DEVICES=all` environment variable
+
+- **Backend Enhancements**:
+  - Updated `video_processor.py` with GPU transcode command builder
+  - Added `-pix_fmt yuv420p` to force 8-bit output (required for NVENC h264)
+  - **10-bit compatibility**: Handles 10-bit iPhone HEVC videos by converting to 8-bit
+  - Implemented fallback mechanism: GPU → CPU on any failure
+  - Added comprehensive error handling for CUDA/NVENC errors
+  - Maintained all existing timeout and validation behavior
+
+- **Performance Metrics** (RTX 3060):
+  - 30-second 1080p 8-bit video: 2.6s processing time (11.5x realtime)
+  - 30-second 1080p 10-bit video: 3.4s processing time (8.9x realtime)
+  - 10-minute 1080p video estimate: 1-2 minutes (vs 5-10 min CPU)
+  - Memory usage: 1-3GB VRAM per transcode (well within 6GB limit)
+  - **Compatible with iPhone HEVC**: 10-bit videos automatically converted
+
+- **Documentation**:
+  - Added GPU Acceleration section to `DEPLOYMENT.md`
+  - Updated `.env.example` with GPU settings and detailed comments
+  - Documented NVENC preset guide and performance benchmarks
+
+- **Testing**:
+  - ✅ Verified GPU device access in containers with `nvidia-smi`
+  - ✅ Confirmed h264_nvenc encoder availability in FFmpeg
+  - ✅ Tested transcoding 1080p video at 11.5x realtime speed
+  - ✅ Verified automatic CPU fallback when GPU access removed
+  - ✅ Production deployment tested on Razer Blade 14 with RTX 3060
+
 ### Fixed - Non-Blocking Video Processing (COMPLETE ✅)
 - **Backend Architecture Change**:
   - Converted all `subprocess.run()` calls to `asyncio.create_subprocess_exec()` in `video_processor.py`

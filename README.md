@@ -23,6 +23,14 @@ Clipset provides a simple solution for sharing large video files without compres
 - **Responsive design**: Works on desktop and mobile devices
 - **Modern UI**: Built with React 19, TailwindCSS 4, and shadcn-ui components
 
+### Video Quality & Transcoding
+- **High-Quality Transcoding**: CRF 18 for near-visually-lossless quality
+- **GPU Acceleration**: NVIDIA NVENC support with VBR+CQ rate control
+- **Optimized for Mixed Content**: Gaming clips, sports footage, and camera footage
+- **Adaptive Audio**: 192 kbps AAC for clear, balanced audio quality
+- **Configurable Quality**: Adjust CRF, presets, and bitrates via environment variables
+- **Smart Rate Control**: VBR+CQ with bitrate caps for efficient storage and smooth playback
+
 ## Tech Stack
 
 ### Frontend
@@ -165,6 +173,14 @@ Clipset provides a simple solution for sharing large video files without compres
 - ✅ Increased video processing timeout from 5 min to 30 min for longer videos
 - ✅ No infrastructure changes required (still uses FastAPI BackgroundTasks)
 
+### ✅ Phase 16: GPU-Accelerated Transcoding (Complete)
+- ✅ NVIDIA NVENC hardware acceleration for video transcoding
+- ✅ **3-10x faster** processing (11.5x realtime for 1080p on RTX 3060)
+- ✅ Automatic CPU fallback if GPU unavailable
+- ✅ Configurable quality presets (p1-p7) and CQ settings
+- ✅ Docker GPU support with nvidia-container-toolkit
+- ✅ Production-tested on RTX 3060 Laptop GPU (6GB VRAM)
+
 ## Development
 
 ### Backend Setup
@@ -276,6 +292,53 @@ Backend configuration via `.env` file:
 - Accepted video formats
 - FFmpeg configuration
 - Quota reset schedule
+
+### Video Transcoding Settings
+
+**Quality Settings:**
+- `NVENC_CQ` / CPU CRF: Target quality (0-51, lower = better, recommended 18)
+  - 16-18: Near-visually-lossless (best quality)
+  - 18-20: High quality (recommended for most content)
+  - 20-23: Good quality (smaller files)
+  - 23-28: Acceptable quality (smallest files)
+
+**Audio Settings:**
+- Audio bitrate: 192 kbps (balanced quality and file size)
+- 128 kbps: Acceptable, smaller files
+- 192 kbps: Good quality (default)
+- 256 kbps: High quality, larger files
+- 320 kbps: Maximum quality
+
+**GPU Transcoding (NVIDIA NVENC):**
+- `USE_GPU_TRANSCODING`: Enable/disable GPU acceleration (true/false)
+- `NVENC_PRESET`: Speed/quality trade-off (p1=fastest to p7=slowest/best)
+  - p3-p4: Balanced (recommended)
+  - p5-p6: Better quality, slower
+  - p7: Best quality, slowest
+- `NVENC_RATE_CONTROL`: Rate control mode
+  - `vbr`: Variable Bitrate (recommended for streaming)
+  - `cbr`: Constant Bitrate (consistent bandwidth)
+  - `constqp`: Constant Quantization (simplest)
+- `NVENC_MAX_BITRATE`: Maximum bitrate cap (e.g., 8M = 8 Mbps)
+- `NVENC_BUFFER_SIZE`: Buffer for bitrate smoothing (typically 2x maxrate, e.g., 16M)
+
+**CPU Transcoding (libx264):**
+- Preset can be adjusted in `video_processor.py`:
+  - `medium`: Balanced (default)
+  - `slow`: Better quality, 40% slower
+  - `slower`: Best quality, 100% slower
+
+**Quality vs. File Size:**
+- CRF 18: ~40-50% larger files than CRF 23, significantly better quality
+- CRF 16-18: Near-visually-lossless for gaming/sports/camera footage
+- CRF 20-23: Good quality for general use
+- CRF 24-28: Acceptable quality, optimized for storage
+
+**Recommended Settings by Content Type:**
+- Gaming Clips: CRF 18, audio 192k (fast motion, effects)
+- Sports Footage: CRF 18, audio 192k (fast action, complex motion)
+- Camera Footage: CRF 18, audio 192k (natural scenes, lighting changes)
+- Animation: CRF 20-23, audio 128k (simpler visual complexity)
 
 See `backend/.env.example` for all available options.
 

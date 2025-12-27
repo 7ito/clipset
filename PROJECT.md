@@ -383,6 +383,52 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 - All existing error handling and timeout behavior is preserved
 - Timeout configuration can be adjusted via `VIDEO_PROCESSING_TIMEOUT` environment variable
 
+### ✅ Phase 16: GPU-Accelerated Video Transcoding (Complete)
+**Goal**: Enable NVIDIA GPU acceleration for significantly faster video transcoding
+
+**Status**: Production-ready, tested on RTX 3060 Laptop GPU
+
+**Performance Improvement**: **3-10x faster** than CPU transcoding
+- 30-second 1080p video: 2.6 seconds (11.5x realtime)
+- 10-minute 1080p estimate: 1-2 minutes (vs 5-10 min CPU)
+
+**Implementation**:
+- **Docker Configuration**:
+  - Created `Dockerfile.nvenc` using NVIDIA CUDA 12.3 runtime base image
+  - Updated docker-compose files with GPU device access (`deploy.resources.reservations.devices`)
+  - Mounted NVIDIA encoder libraries from host (`libnvidia-encode`, `libnvcuvid`)
+  - Added `NVIDIA_VISIBLE_DEVICES=all` environment variable
+
+- **Backend Changes**:
+  - Enhanced `video_processor.py` with GPU transcode command builder
+  - Implemented automatic CPU fallback on GPU failure
+  - Added GPU-specific settings: `USE_GPU_TRANSCODING`, `NVENC_PRESET`, `NVENC_CQ`
+  - Maintained all existing error handling and timeout behavior
+
+- **Configuration**:
+  - GPU transcoding enabled by default (`USE_GPU_TRANSCODING=true`)
+  - Configurable NVENC preset (p1-p7): `p4` = balanced (recommended)
+  - Configurable quality (18-30): `20` = good default
+  - All settings in `.env` file
+
+**Testing**:
+- ✅ Verified GPU access with `nvidia-smi` in containers
+- ✅ Confirmed h264_nvenc encoder availability
+- ✅ Tested 1080p transcoding at 11.5x realtime speed
+- ✅ Verified automatic CPU fallback mechanism
+- ✅ Production tested on Razer Blade 14 with RTX 3060 (6GB VRAM)
+
+**Requirements**:
+- NVIDIA GPU with NVENC support (GTX 10-series or newer)
+- NVIDIA drivers (590.48.01 tested, 530.41.03+ required)
+- nvidia-container-toolkit
+- Docker with GPU support
+
+**Fallback Behavior**:
+- If GPU transcoding fails for any reason, automatically falls back to CPU
+- Ensures videos always process successfully, just slower without GPU
+- No manual intervention required
+
 ### Future Enhancements (Post-MVP)
 - Advanced search and filtering
 - Comments and social interactions

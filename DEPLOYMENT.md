@@ -306,6 +306,47 @@ WEEKLY_UPLOAD_LIMIT_BYTES=4294967296    # 4GB
 BACKEND_CORS_ORIGINS=http://localhost,https://your-domain.com
 ```
 
+**GPU Transcoding (Optional):**
+```env
+USE_GPU_TRANSCODING=true      # Enable NVIDIA NVENC acceleration
+NVENC_PRESET=p4               # p1 (fastest) to p7 (best quality)
+NVENC_CQ=20                   # Quality: 18 (best) to 30 (worst)
+```
+
+### GPU Acceleration
+
+Clipset supports NVIDIA GPU-accelerated video transcoding for **3-10x faster** processing.
+
+#### Requirements
+- NVIDIA GPU with NVENC support (GTX 10-series or newer, RTX recommended)
+- NVIDIA drivers installed (version 530.41.03 or newer)
+- nvidia-container-toolkit installed
+- Docker with GPU support
+
+#### Verification
+```bash
+# Check GPU
+nvidia-smi
+
+# Test Docker GPU access
+docker run --rm --gpus all nvidia/cuda:12.3.1-runtime-ubuntu22.04 nvidia-smi
+```
+
+#### Configuration
+GPU transcoding is **enabled by default**. Edit `.env` to customize:
+- `USE_GPU_TRANSCODING=true` - Enable/disable GPU
+- `NVENC_PRESET=p4` - Speed/quality trade-off (p1=fastest, p7=best)
+- `NVENC_CQ=20` - Quality level (18=best, 30=worst)
+
+#### Performance
+**Example (RTX 3060, 1080p 30fps)**:
+- CPU: ~5-10 min for 10-min video
+- GPU: ~1-2 min for 10-min video  
+- **Speed**: 11.5x realtime
+
+#### Automatic Fallback
+If GPU fails, Clipset automatically falls back to CPU transcoding.
+
 ### Changing Storage Paths
 
 **⚠️ Warning:** Changing storage paths does NOT move existing files. You must manually migrate data.

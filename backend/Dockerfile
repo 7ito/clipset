@@ -1,9 +1,13 @@
 FROM python:3.11-slim
 
 # Install FFmpeg and system dependencies
+# Note: NVIDIA NVENC libraries will be provided by nvidia-container-runtime at runtime
 RUN apt-get update && \
     apt-get install -y ffmpeg curl && \
     rm -rf /var/lib/apt/lists/*
+
+# Set library path for NVIDIA libraries (provided by nvidia-container-runtime)
+ENV LD_LIBRARY_PATH=/usr/local/nvidia/lib:/usr/local/nvidia/lib64:${LD_LIBRARY_PATH}
 
 # Set working directory
 WORKDIR /app

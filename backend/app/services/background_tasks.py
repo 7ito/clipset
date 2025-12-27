@@ -88,6 +88,21 @@ async def process_video_task(video_id: str) -> None:
                 video.thumbnail_filename = (
                     thumbnail_filename if thumbnail_output_path.exists() else None
                 )
+                
+                # Update file_size_bytes to transcoded file size (not original upload size)
+                if video_output_path.exists():
+                    transcoded_size = video_output_path.stat().st_size
+                    video.file_size_bytes = transcoded_size
+                    logger.info(
+                        f"Updated file_size_bytes for {video_id}: "
+                        f"{transcoded_size} bytes (transcoded from original upload size)"
+                    )
+                else:
+                    logger.warning(
+                        f"Transcoded file not found at {video_output_path}, "
+                        f"keeping original file_size_bytes"
+                    )
+                
                 logger.info(f"Video processing completed for {video_id}")
 
             await db.commit()

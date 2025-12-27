@@ -53,7 +53,7 @@ class Settings(BaseSettings):
     USE_GPU_TRANSCODING: bool = False
     GPU_DEVICE_ID: int = 0
     NVENC_PRESET: str = "p4"  # p1 (fastest) to p7 (slowest, best quality)
-    NVENC_CQ: int = 20  # Constant quality: 18 (best) to 30 (worst)
+    NVENC_CQ: int = 18  # Constant quality: 0 (best) to 51 (worst), 18 = high quality
     NVENC_RATE_CONTROL: str = "vbr"  # vbr, cbr, constqp
     NVENC_MAX_BITRATE: str = "8M"  # Maximum bitrate cap
     NVENC_BUFFER_SIZE: str = "16M"  # 2x maxrate for VBR smoothness

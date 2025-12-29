@@ -4,6 +4,7 @@ import { useVideoPlayer } from "@/hooks/useVideoPlayer"
 import { useVideoKeyboard } from "@/hooks/useVideoKeyboard"
 import { useVideoTouch } from "@/hooks/useVideoTouch"
 import { VideoControls } from "./VideoControls"
+import { cn } from "@/lib/utils"
 
 export interface VideoPlayerProps {
   src: string
@@ -131,7 +132,10 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
   return (
     <div
       ref={containerRef}
-      className={`video-player-container ${state.isFullscreen ? "fullscreen" : ""}`}
+      className={cn(
+        "video-player-container",
+        state.isFullscreen && "fullscreen"
+      )}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       tabIndex={0}

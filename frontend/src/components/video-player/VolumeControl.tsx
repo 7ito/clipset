@@ -60,6 +60,27 @@ export function VolumeControl({
     document.addEventListener("mouseup", handleGlobalMouseUp)
   }, [calculateVolumeFromPosition, onVolumeChange])
 
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+    const touch = e.touches[0]
+    const newVolume = calculateVolumeFromPosition(touch.clientY)
+    onVolumeChange(newVolume)
+  }, [calculateVolumeFromPosition, onVolumeChange])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (!isDragging) return
+    e.preventDefault()
+    const touch = e.touches[0]
+    const newVolume = calculateVolumeFromPosition(touch.clientY)
+    onVolumeChange(newVolume)
+  }, [isDragging, calculateVolumeFromPosition, onVolumeChange])
+
+  const handleTouchEnd = useCallback(() => {
+    setIsDragging(false)
+  }, [])
+
   const showSlider = isHovered || isDragging
 
   return (
@@ -82,6 +103,9 @@ export function VolumeControl({
           ref={sliderRef}
           className="video-volume-slider"
           onMouseDown={handleSliderMouseDown}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           {/* Background track */}
           <div className="video-volume-track" />

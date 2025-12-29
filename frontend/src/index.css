@@ -201,7 +201,7 @@
 /* Controls container */
 .video-controls {
   @apply absolute bottom-0 left-0 right-0;
-  @apply px-4 pb-4 pt-10;
+  @apply px-4 pt-10;
   @apply opacity-0 transition-opacity duration-300;
   @apply flex flex-col gap-3 z-10;
   filter: drop-shadow(0 4px 6px rgba(0,0,0,0.7));
@@ -310,6 +310,12 @@
   @apply flex items-center justify-center;
   @apply opacity-0 pointer-events-none scale-95;
   @apply transition-all duration-200;
+  touch-action: none;
+}
+
+.video-volume-slider {
+  @apply relative w-1 h-full cursor-pointer;
+  touch-action: none;
 }
 
 .video-volume-slider-popup.visible {
@@ -370,6 +376,48 @@
 
 .video-speed-option.active {
   @apply text-primary bg-primary/10;
+}
+
+/* ============================================
+   Speed Bottom Sheet (Mobile)
+   ============================================ */
+
+.speed-sheet-overlay {
+  @apply fixed inset-0 z-[100] bg-black/60;
+  @apply data-open:animate-in data-closed:animate-out;
+  @apply data-closed:fade-out-0 data-open:fade-in-0;
+}
+
+.speed-sheet-content {
+  @apply fixed bottom-0 left-0 right-0 z-[101];
+  @apply bg-background border-t border-border;
+  @apply rounded-t-2xl;
+  @apply data-open:animate-in data-closed:animate-out;
+  @apply data-closed:slide-out-to-bottom data-open:slide-in-from-bottom;
+  @apply duration-300;
+  touch-action: none;
+}
+
+.speed-sheet-header {
+  @apply px-4 py-3 text-sm text-muted-foreground uppercase tracking-wide;
+  @apply border-b border-border text-center;
+}
+
+.speed-sheet-options {
+  @apply py-2 max-h-[60vh] overflow-y-auto;
+  @apply overscroll-contain;
+  touch-action: pan-y;
+}
+
+.speed-sheet-option {
+  @apply w-full px-4 py-4 text-base text-foreground/80;
+  @apply text-center;
+  @apply active:bg-accent;
+  @apply transition-colors cursor-pointer;
+}
+
+.speed-sheet-option.active {
+  @apply text-primary font-medium bg-primary/10;
 }
 
 /* ============================================

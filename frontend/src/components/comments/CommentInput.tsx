@@ -50,7 +50,7 @@ export function CommentInput({
       toast.success(parentId ? "Reply posted" : "Comment posted")
       if (onSuccess) onSuccess(newComment)
     },
-    error: (error: any) => {
+    onError: (error: any) => {
       toast.error(error.response?.data?.detail || "Failed to post comment")
     }
   })

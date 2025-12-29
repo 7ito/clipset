@@ -123,7 +123,7 @@ export function useVideoPlayer(
         currentTime: video.currentTime,
         buffered: video.buffered
       }))
-      animationFrameRef.current = requestAnimationFrame(updateTime)
+      animationFrameRef.current = requestAnimationFrame(() => updateTime())
     }
   }, [videoRef])
 
@@ -294,6 +294,29 @@ export function useVideoPlayer(
     }
   }, [])
 
+  // iOS native fullscreen event listeners
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video) return
+
+    const handleBeginFullscreen = () => {
+      setState(prev => ({ ...prev, isFullscreen: true }))
+    }
+
+    const handleEndFullscreen = () => {
+      setState(prev => ({ ...prev, isFullscreen: false }))
+    }
+
+    const v = video as any
+    v.addEventListener("webkitbeginfullscreen", handleBeginFullscreen)
+    v.addEventListener("webkitendfullscreen", handleEndFullscreen)
+
+    return () => {
+      v.removeEventListener("webkitbeginfullscreen", handleBeginFullscreen)
+      v.removeEventListener("webkitendfullscreen", handleEndFullscreen)
+    }
+  }, [videoRef])
+
   // Controls
   const play = useCallback(() => {
     videoRef.current?.play().catch(() => {
@@ -363,16 +386,28 @@ export function useVideoPlayer(
     setStoredValue(STORAGE_KEYS.playbackRate, validRate)
   }, [videoRef])
 
+  const isIOS = useCallback(() => {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
+  }, [])
+
   const requestFullscreen = useCallback(() => {
     const container = containerRef.current
-    if (!container) return
+    const video = videoRef.current
+    if (!container || !video) return
     
-    if (container.requestFullscreen) {
-      container.requestFullscreen()
-    } else if ((container as any).webkitRequestFullscreen) {
-      (container as any).webkitRequestFullscreen()
+    const v = video as any
+    if (isIOS() && v.webkitEnterFullScreen) {
+      // Use native iOS video fullscreen
+      v.webkitEnterFullScreen()
+    } else {
+      // Desktop/Android: use container fullscreen API
+      if (container.requestFullscreen) {
+        container.requestFullscreen()
+      } else if ((container as any).webkitRequestFullscreen) {
+        (container as any).webkitRequestFullscreen()
+      }
     }
-  }, [containerRef])
+  }, [containerRef, videoRef, isIOS])
 
   const exitFullscreen = useCallback(() => {
     if (document.exitFullscreen) {

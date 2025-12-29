@@ -11,6 +11,7 @@ export interface UserResponse extends UserBase {
   video_count: number
   playlist_count: number
   avatar_url?: string
+  avatar_filename?: string | null
 }
 
 export interface UserWithQuota extends UserResponse {

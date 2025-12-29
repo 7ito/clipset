@@ -1,7 +1,23 @@
 import { useState, useRef, useEffect } from "react"
 import { Settings } from "lucide-react"
+import { SpeedBottomSheet } from "./SpeedBottomSheet"
 
 const PLAYBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.matchMedia("(max-width: 768px)").matches)
+    }
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
+  
+  return isMobile
+}
 
 interface PlaybackSpeedMenuProps {
   currentRate: number
@@ -14,10 +30,11 @@ export function PlaybackSpeedMenu({
 }: PlaybackSpeedMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const isMobile = useIsMobile()
 
   // Close menu when clicking outside
   useEffect(() => {
-    if (!isOpen) return
+    if (!isOpen || isMobile) return
 
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -27,7 +44,7 @@ export function PlaybackSpeedMenu({
 
     document.addEventListener("mousedown", handleClickOutside)
     return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [isOpen])
+  }, [isOpen, isMobile])
 
   // Close on escape
   useEffect(() => {
@@ -61,7 +78,16 @@ export function PlaybackSpeedMenu({
         )}
       </button>
 
-      {isOpen && (
+      {isMobile && (
+        <SpeedBottomSheet
+          isOpen={isOpen}
+          onClose={() => setIsOpen(false)}
+          currentRate={currentRate}
+          onRateChange={onRateChange}
+        />
+      )}
+
+      {!isMobile && isOpen && (
         <div className="video-speed-dropdown">
           <div className="video-speed-dropdown-header">
             Playback Speed

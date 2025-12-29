@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback } from "react"
-import { formatTimestamp, timestampToPercent } from "@/lib/timestamps"
+import { formatTimestamp } from "@/lib/timestamps"
 
 interface ProgressBarProps {
   currentTime: number

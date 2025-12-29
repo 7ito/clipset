@@ -12,7 +12,7 @@ import type { VideoPlayerRef } from "@/components/video-player"
 interface CommentSectionProps {
   videoId: string
   videoOwnerId: string
-  playerRef: React.RefObject<VideoPlayerRef>
+  playerRef: React.RefObject<VideoPlayerRef | null>
 }
 
 export function CommentSection({

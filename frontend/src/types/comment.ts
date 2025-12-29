@@ -5,6 +5,7 @@ export interface Comment {
   timestamp_seconds: number | null
   parent_id: string | null
   user_id: string
+  author_id: string
   author_username: string
   author_avatar_url: string | null
   created_at: string

@@ -4,6 +4,21 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2025-12-29
 
+### Changed - iOS Video Player
+- Switched from CSS-based "fake fullscreen" to native iOS video fullscreen (`webkitEnterFullScreen`).
+- Provides native iOS fullscreen experience with built-in controls, proper orientation handling, and status bar hiding.
+- Removed unused fake fullscreen CSS (~25 lines).
+
+### Fixed - Frontend Stability
+- Fixed several pre-existing build and lint errors in comment, playlist, and video player components.
+- Standardized ref types and removed unused imports and variables.
+- Updated user and comment types to match backend implementation.
+
+### Added - Mobile Video Player Enhancements (COMPLETE ✅)
+- **Volume Slider**: Added touch event support and `touch-action: none` to prevent page scrolling during volume adjustment.
+- **Playback Speed Menu**: Implemented a responsive bottom sheet for mobile viewports with a tap-outside-to-dismiss interaction.
+- **iOS Fullscreen Support**: Created a "fake" fullscreen mode for iOS using CSS transforms to force landscape orientation while maintaining custom control functionality and double-tap to skip.
+
 ### Changed - UI Refinements & Share Dialog (COMPLETE ✅)
 - **Video Player Enhancements**:
   - Brightened controls gradient overlay and increased visibility of control icons and text.

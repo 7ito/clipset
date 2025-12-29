@@ -21,6 +21,7 @@ Clipset provides a simple solution for sharing large video files without compres
 ### User Interface
 - **Dark mode support**: Toggle between light and dark themes with persistence
 - **Responsive design**: Works on desktop and mobile devices
+- **Video Comments**: full comment system with clickable natural language timestamps
 - **Modern UI**: Built with React 19, TailwindCSS 4, and shadcn-ui components
 
 ### Video Quality & Transcoding

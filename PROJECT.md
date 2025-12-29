@@ -428,8 +428,28 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 - If GPU transcoding fails for any reason, automatically falls back to CPU
 - Ensures videos always process successfully, just slower without GPU
 - No manual intervention required
+- Ensures videos always process successfully, just slower without GPU
+
+### ✅ Phase 17: Video Comments with Clickable Timestamps (Completed)
+**Goal**: Implement a full comment system with YouTube-style clickable natural language timestamps.
+
+**Backend**:
+- **Comment Model**: Supports single-level nested replies and optional timestamp references.
+- **Permission System**: Authors can edit within 24h; Authors, Video Owners, and Admins can delete.
+- **Marker API**: Optimized endpoint for fetching aggregated timestamps for progress bar markers.
+- **Alembic Migration**: Automated schema update for the `comments` table.
+
+**Frontend**:
+- **CommentSection**: Integrated container with sorting (Newest/Oldest/Timestamp) and markers toggle.
+- **Smart Input**: Automatically detects timestamps in text and provides an "Insert Current Time" button.
+- **Clickable Timestamps**: Natural language timestamps (e.g., "0:05", "1:23:45") in comments are automatically linked to seek the video player.
+- **Player Integration**: Displays orange markers on the video progress bar representing timestamped comments.
+- **Responsive UI**: Polished nested replies and mobile-friendly comment interactions.
+
+**Key Achievement**: Added social engagement with a feature-rich comment system that leverages the existing video player's capabilities for deep-linking and visual markers.
 
 ### Future Enhancements (Post-MVP)
+
 - Advanced search and filtering
 - Comments and social interactions
 - Video sharing with external links

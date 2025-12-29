@@ -21,6 +21,8 @@ import { LoadingPage } from "@/components/shared/LoadingSpinner"
 import { AddToPlaylistDialog } from "@/components/playlists/AddToPlaylistDialog"
 import { PlaylistQueue } from "@/components/playlists/PlaylistQueue"
 import { VideoPlayer, type VideoPlayerRef } from "@/components/video-player"
+import { CommentSection } from "@/components/comments/CommentSection"
+import type { TimestampMarker } from "@/components/video-player/ProgressBar"
 
 export const Route = createFileRoute("/_auth/videos/$id")({
   component: VideoPlayerPage,
@@ -82,6 +84,8 @@ function VideoPlayerPage() {
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(true)
   const [nextCountdown, setNextCountdown] = useState<number | null>(null)
   const [currentPlayerTime, setCurrentPlayerTime] = useState(0)
+  const [showCommentMarkers, setShowCommentMarkers] = useState(true)
+  const [commentMarkers, setCommentMarkers] = useState<TimestampMarker[]>([])
   
   const playerRef = useRef<VideoPlayerRef>(null)
 
@@ -254,6 +258,7 @@ function VideoPlayerPage() {
                 poster={video.thumbnail_filename ? getThumbnailUrl(video.thumbnail_filename) : undefined}
                 initialTime={initialTimestamp}
                 autoPlay={true}
+                markers={showCommentMarkers ? commentMarkers : []}
                 onPlay={handleVideoPlay}
                 onEnded={handleVideoEnded}
                 onTimeUpdate={handleTimeUpdate}
@@ -482,6 +487,16 @@ function VideoPlayerPage() {
               nextCountdown={nextCountdown}
             />
           )}
+
+          {/* Comment Section */}
+          <CommentSection
+            videoId={id}
+            videoOwnerId={video.uploaded_by}
+            playerRef={playerRef}
+            showMarkers={showCommentMarkers}
+            onShowMarkersChange={setShowCommentMarkers}
+            onMarkersChange={setCommentMarkers}
+          />
         </div>
       </div>
 

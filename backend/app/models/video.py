@@ -77,6 +77,9 @@ class Video(Base):
     # Relationships
     uploader = relationship("User", back_populates="videos")
     category = relationship("Category", back_populates="videos")
+    comments = relationship(
+        "Comment", back_populates="video", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<Video(id={self.id}, title={self.title}, status={self.processing_status})>"

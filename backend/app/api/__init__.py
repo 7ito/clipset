@@ -1,4 +1,4 @@
-from app.api import auth, users, invitations, categories, videos, playlists, config
+from . import auth, users, invitations, categories, videos, playlists, config, comments
 
 __all__ = [
     "auth",
@@ -8,4 +8,5 @@ __all__ = [
     "videos",
     "playlists",
     "config",
+    "comments",
 ]

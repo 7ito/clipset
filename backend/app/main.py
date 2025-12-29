@@ -7,7 +7,16 @@ from app.config import settings
 from app.database import init_db, async_session_maker
 from app.models.user import User
 from app.utils.security import hash_password
-from app.api import auth, users, invitations, categories, videos, playlists, config
+from app.api import (
+    auth,
+    users,
+    invitations,
+    categories,
+    videos,
+    playlists,
+    config,
+    comments,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -88,6 +97,7 @@ async def fix_proxy_headers(request: Request, call_next):
         request.scope["scheme"] = "https"
     return await call_next(request)
 
+
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])
@@ -96,6 +106,7 @@ app.include_router(categories.router, prefix="/api/categories", tags=["categorie
 app.include_router(videos.router, prefix="/api/videos", tags=["videos"])
 app.include_router(playlists.router, prefix="/api/playlists", tags=["playlists"])
 app.include_router(config.router, prefix="/api/config", tags=["config"])
+app.include_router(comments.router, prefix="/api", tags=["comments"])
 
 
 # Health check endpoint

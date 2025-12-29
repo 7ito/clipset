@@ -283,7 +283,7 @@
 /* Timestamp markers (for comments) */
 .video-progress-marker {
   @apply absolute top-1/2 -translate-y-1/2 -translate-x-1/2;
-  @apply w-1.5 h-1.5 bg-yellow-400 rounded-full;
+  @apply w-1.5 h-1.5 bg-orange-500 rounded-full;
   @apply z-10 cursor-pointer;
   @apply hover:scale-150 transition-transform;
 }

@@ -11,6 +11,7 @@ from app.models.video import Video, ProcessingStatus
 from app.models.config import Config
 from app.models.playlist import Playlist, PlaylistVideo
 from app.models.password_reset import PasswordResetToken
+from app.models.comment import Comment
 
 __all__ = [
     "User",
@@ -23,4 +24,5 @@ __all__ = [
     "Playlist",
     "PlaylistVideo",
     "PasswordResetToken",
+    "Comment",
 ]

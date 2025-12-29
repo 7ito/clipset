@@ -44,6 +44,9 @@ class User(Base):
     playlists = relationship(
         "Playlist", back_populates="creator", cascade="all, delete-orphan"
     )
+    comments = relationship(
+        "Comment", back_populates="author", cascade="all, delete-orphan"
+    )
 
     def __repr__(self):
         return f"<User(id={self.id}, username={self.username}, role={self.role})>"

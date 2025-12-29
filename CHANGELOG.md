@@ -56,6 +56,25 @@ All notable changes to Clipset will be documented in this file.
 - **Speed**: No performance regression (same preset speeds)
 - **Compatibility**: Better for web streaming with VBR+CQ rate control
 
+### Added - Video Comments with Clickable Timestamps (COMPLETE ✅)
+- **Full Comment System**:
+  - Users can now post comments on any video.
+  - Supports **single-level nested replies** for conversations.
+  - **YouTube-style clickable timestamps**: Any timestamp mentioned in a comment (e.g., "0:05", "2:30", "@1:15") automatically becomes a link that seeks the video.
+  - **Progress Bar Markers**: Timestamped comments appear as orange dots on the video player progress bar.
+  - **Markers Toggle**: Switch in the comment section to show/hide markers on the player.
+  - **Smart Sorting**: Sort comments by Newest, Oldest, or Video Timestamp.
+  
+- **Permissions & Editing**:
+  - **Editing window**: Users can edit their comments for up to 24 hours after posting.
+  - **Deletion**: Comments can be deleted by the author, the video owner, or an administrator.
+  - **Owner Badges**: Video owners are clearly labeled with a badge in the comment section.
+  
+- **Developer Experience**:
+  - Automated migration for the `comments` table.
+  - Reusable comment components library.
+  - Optimized marker aggregation for better performance on long videos.
+
 ### Added - GPU-Accelerated Video Transcoding (COMPLETE ✅)
 - **NVIDIA NVENC Support**:
   - Implemented GPU-accelerated video transcoding using NVIDIA NVENC

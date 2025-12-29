@@ -329,6 +329,38 @@
 
 ---
 
+## Just Completed (December 29, 2025)
+
+### Phase 17: Video Comments with Clickable Timestamps - COMPLETE ✅
+**Time Spent**: ~4 hours  
+**Status**: Production-ready, fully tested
+
+**What Was Built**:
+- **Backend API & Models**:
+  - `Comment` model supporting single-level nested replies and optional timestamps.
+  - CRUD endpoints with strict permission checks (Author/Owner/Admin).
+  - Timezone-aware 24-hour editing window enforcement.
+  - Aggregated marker endpoint for progress bar performance.
+- **Frontend Components**:
+  - `CommentSection`: Integrated container with sort (Newest/Oldest/Timestamp) and markers toggle.
+  - `CommentInput`: Smart input with "Insert current time" and auto-timestamp detection.
+  - `CommentItem`: Polished display with nested replies, owner badges, and edit/delete actions.
+  - `CommentContent`: Natural language timestamp parsing (e.g., "Check 2:30") into clickable links.
+- **Player Integration**:
+  - Orange markers on progress bar for all timestamped comments.
+  - Real-time seeking when clicking timestamps in comments.
+  - Markers toggle for a cleaner viewing experience.
+
+**Testing Results**:
+- ✅ Comment creation with/without timestamps verified.
+- ✅ Clickable timestamps correctly seek the video.
+- ✅ Single-level replies display and functionality confirmed.
+- ✅ Editing within 24h window (and rejection after) verified.
+- ✅ Permission-based deletion (Author, Video Owner, Admin) tested.
+- ✅ Progress bar markers toggle functioning correctly.
+
+---
+
 ## Immediate Next Steps (Optional Enhancements)
 
 

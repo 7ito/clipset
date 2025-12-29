@@ -22,12 +22,12 @@ export function VolumeControl({
 
   const getVolumeIcon = () => {
     if (isMuted || volume === 0) {
-      return <VolumeX className="w-5 h-5" />
+      return <VolumeX className="w-6 h-6" />
     }
     if (volume < 0.5) {
-      return <Volume1 className="w-5 h-5" />
+      return <Volume1 className="w-6 h-6" />
     }
-    return <Volume2 className="w-5 h-5" />
+    return <Volume2 className="w-6 h-6" />
   }
 
   const calculateVolumeFromPosition = useCallback((clientY: number): number => {

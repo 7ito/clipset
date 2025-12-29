@@ -1,34 +1,24 @@
-import { useState, useEffect } from "react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { MessageSquare, SortAsc, Loader2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CommentInput } from "./CommentInput"
 import { CommentItem } from "./CommentItem"
 import { EditCommentDialog } from "./EditCommentDialog"
-import { getVideoComments, getCommentMarkers } from "@/api/comments"
-import type { Comment, CommentMarker } from "@/types/comment"
+import { getVideoComments } from "@/api/comments"
+import type { Comment } from "@/types/comment"
 import type { VideoPlayerRef } from "@/components/video-player"
-import type { TimestampMarker } from "@/components/video-player/ProgressBar"
 
 interface CommentSectionProps {
   videoId: string
   videoOwnerId: string
   playerRef: React.RefObject<VideoPlayerRef>
-  onMarkersChange?: (markers: TimestampMarker[]) => void
-  showMarkers: boolean
-  onShowMarkersChange: (show: boolean) => void
 }
 
 export function CommentSection({
   videoId,
   videoOwnerId,
-  playerRef,
-  onMarkersChange,
-  showMarkers,
-  onShowMarkersChange
+  playerRef
 }: CommentSectionProps) {
   const [sort, setSort] = useState<"newest" | "oldest" | "timestamp">("newest")
   const [editingComment, setEditingComment] = useState<Comment | null>(null)
@@ -39,23 +29,6 @@ export function CommentSection({
     queryFn: () => getVideoComments(videoId, { sort })
   })
 
-  // Fetch markers
-  const { data: markersData } = useQuery({
-    queryKey: ["comment-markers", videoId],
-    queryFn: () => getCommentMarkers(videoId)
-  })
-
-  // Update parent with markers whenever they change
-  useEffect(() => {
-    if (markersData && Array.isArray(markersData) && onMarkersChange) {
-      const markers: TimestampMarker[] = markersData.map(m => ({
-        seconds: m.seconds,
-        label: `Comment at ${m.seconds}s`
-      }))
-      onMarkersChange(markers)
-    }
-  }, [markersData, onMarkersChange])
-
   const handleSeek = (seconds: number) => {
     if (playerRef.current) {
       playerRef.current.seekTo(seconds)
@@ -63,10 +36,6 @@ export function CommentSection({
       // Scroll to player
       window.scrollTo({ top: 0, behavior: "smooth" })
     }
-  }
-
-  const getCurrentTime = () => {
-    return playerRef.current?.getCurrentTime() || 0
   }
 
   return (
@@ -79,17 +48,6 @@ export function CommentSection({
             <h2 className="text-xl font-bold">
               {data?.total || 0} {data?.total === 1 ? "Comment" : "Comments"}
             </h2>
-          </div>
-          
-          <div className="flex items-center gap-2 ml-4">
-            <Switch 
-              id="show-markers" 
-              checked={showMarkers} 
-              onCheckedChange={onShowMarkersChange} 
-            />
-            <Label htmlFor="show-markers" className="text-xs cursor-pointer text-muted-foreground">
-              Video Markers
-            </Label>
           </div>
         </div>
 
@@ -109,10 +67,9 @@ export function CommentSection({
       </div>
 
       {/* Main Input */}
-      <div className="bg-accent/10 p-4 rounded-2xl">
+      <div className="bg-accent/10 p-4 rounded-none">
         <CommentInput 
           videoId={videoId} 
-          currentTime={getCurrentTime()}
           placeholder="What do you think about this video?"
         />
       </div>
@@ -128,7 +85,7 @@ export function CommentSection({
             Failed to load comments.
           </div>
         ) : !data?.comments || data.comments.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground bg-accent/5 rounded-2xl border-2 border-dashed">
+          <div className="text-center py-12 text-muted-foreground bg-accent/5 rounded-none border-2 border-dashed">
             No comments yet. Be the first to start the conversation!
           </div>
         ) : (

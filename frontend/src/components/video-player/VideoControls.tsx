@@ -1,6 +1,6 @@
 import { Play, Pause, Maximize, Minimize, Loader2 } from "lucide-react"
 import { formatTimestamp } from "@/lib/timestamps"
-import { ProgressBar, type TimestampMarker } from "./ProgressBar"
+import { ProgressBar } from "./ProgressBar"
 import { VolumeControl } from "./VolumeControl"
 import { PlaybackSpeedMenu } from "./PlaybackSpeedMenu"
 import type { VideoState, VideoControls as VideoControlsType } from "@/hooks/useVideoPlayer"
@@ -9,15 +9,13 @@ interface VideoControlsProps {
   state: VideoState
   controls: VideoControlsType
   visible: boolean
-  markers?: TimestampMarker[]
 }
 
 export function VideoControls({
   state,
   controls,
-  visible,
-  markers
-}: VideoControlsProps) {
+  visible
+}: VideoControlsProps) { 
   const {
     isPlaying,
     currentTime,
@@ -37,7 +35,6 @@ export function VideoControls({
         currentTime={currentTime}
         duration={duration}
         buffered={buffered}
-        markers={markers}
         onSeek={controls.seek}
       />
 
@@ -52,11 +49,11 @@ export function VideoControls({
             title={isPlaying ? "Pause (K)" : "Play (K)"}
           >
             {isLoading ? (
-              <Loader2 className="w-5 h-5 animate-spin" />
+              <Loader2 className="w-6 h-6 animate-spin" />
             ) : isPlaying ? (
-              <Pause className="w-5 h-5" />
+              <Pause className="w-6 h-6" />
             ) : (
-              <Play className="w-5 h-5" />
+              <Play className="w-6 h-6" />
             )}
           </button>
 
@@ -91,9 +88,9 @@ export function VideoControls({
             title={isFullscreen ? "Exit Fullscreen (F)" : "Fullscreen (F)"}
           >
             {isFullscreen ? (
-              <Minimize className="w-5 h-5" />
+              <Minimize className="w-6 h-6" />
             ) : (
-              <Maximize className="w-5 h-5" />
+              <Maximize className="w-6 h-6" />
             )}
           </button>
         </div>

@@ -72,7 +72,7 @@ export function CommentItem({
               <span className="text-[10px] text-muted-foreground italic">(edited)</span>
             )}
             {comment.author_id === videoOwnerId && (
-              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-full font-medium">
+              <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded-none font-medium border border-primary/20">
                 Owner
               </span>
             )}
@@ -80,7 +80,7 @@ export function CommentItem({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-5 px-1.5 text-[10px] text-primary hover:text-primary hover:bg-primary/10 rounded-md font-medium"
+                className="h-5 px-1.5 text-[10px] text-primary hover:text-primary hover:bg-primary/10 rounded-none font-medium border border-primary/20 bg-primary/5"
                 onClick={() => onSeek(comment.timestamp_seconds!)}
               >
                 <Clock className="w-3 h-3 mr-1" />

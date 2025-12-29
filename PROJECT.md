@@ -430,23 +430,27 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 - No manual intervention required
 - Ensures videos always process successfully, just slower without GPU
 
-### ✅ Phase 17: Video Comments with Clickable Timestamps (Completed)
-**Goal**: Implement a full comment system with YouTube-style clickable natural language timestamps.
+### ✅ Phase 17: Video Comments & UI Refinements (Completed)
+**Goal**: Implement a full comment system and polish the video player experience with a modern, YouTube-style interface.
 
 **Backend**:
 - **Comment Model**: Supports single-level nested replies and optional timestamp references.
 - **Permission System**: Authors can edit within 24h; Authors, Video Owners, and Admins can delete.
-- **Marker API**: Optimized endpoint for fetching aggregated timestamps for progress bar markers.
 - **Alembic Migration**: Automated schema update for the `comments` table.
 
 **Frontend**:
-- **CommentSection**: Integrated container with sorting (Newest/Oldest/Timestamp) and markers toggle.
-- **Smart Input**: Automatically detects timestamps in text and provides an "Insert Current Time" button.
+- **CommentSection**: Polished container with smart sorting (Newest/Oldest/Timestamp).
 - **Clickable Timestamps**: Natural language timestamps (e.g., "0:05", "1:23:45") in comments are automatically linked to seek the video player.
-- **Player Integration**: Displays orange markers on the video progress bar representing timestamped comments.
-- **Responsive UI**: Polished nested replies and mobile-friendly comment interactions.
+- **Modern Share Experience**: New Share Dialog with "Start at timestamp" functionality.
+- **Enhanced Player UI**: 
+  - Brightened control bar for better visibility.
+  - Cleaner progress bar (removed markers per user preference).
+  - Robust URL-based seeking (`?t=seconds`).
+- **Design Polish**:
+  - Unified uploader info and video description sections.
+  - Reduced usage of rounded corners for a cleaner, consistent design language across the platform.
 
-**Key Achievement**: Added social engagement with a feature-rich comment system that leverages the existing video player's capabilities for deep-linking and visual markers.
+**Key Achievement**: Transformed the video viewing experience with a feature-rich comment system and a modern sharing workflow, while maintaining design consistency throughout the platform.
 
 ### Future Enhancements (Post-MVP)
 

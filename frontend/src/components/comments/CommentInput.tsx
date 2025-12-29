@@ -1,19 +1,17 @@
 import { useState, useRef, useEffect } from "react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { Send, Clock, Loader2, X } from "lucide-react"
+import { Send, Loader2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { UserAvatar } from "@/components/shared/UserAvatar"
 import { useAuth } from "@/hooks/useAuth"
 import { createComment } from "@/api/comments"
 import { toast } from "@/lib/toast"
-import { formatTimestamp, findTimestampsInText } from "@/lib/timestamps"
 import type { Comment } from "@/types/comment"
 
 interface CommentInputProps {
   videoId: string
   parentId?: string
-  currentTime?: number
   onSuccess?: (comment: Comment) => void
   onCancel?: () => void
   autoFocus?: boolean
@@ -23,7 +21,6 @@ interface CommentInputProps {
 export function CommentInput({
   videoId,
   parentId,
-  currentTime,
   onSuccess,
   onCancel,
   autoFocus = false,
@@ -32,7 +29,6 @@ export function CommentInput({
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [content, setContent] = useState("")
-  const [detectedTimestamps, setDetectedTimestamps] = useState<string[]>([])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
@@ -40,11 +36,6 @@ export function CommentInput({
       textareaRef.current.focus()
     }
   }, [autoFocus])
-
-  useEffect(() => {
-    const found = findTimestampsInText(content)
-    setDetectedTimestamps(found.map(f => f.match))
-  }, [content])
 
   const mutation = useMutation({
     mutationFn: () => createComment(videoId, {
@@ -76,14 +67,6 @@ export function CommentInput({
     }
   }
 
-  const insertTimestamp = () => {
-    if (currentTime === undefined) return
-    const timestamp = formatTimestamp(currentTime)
-    const prefix = content && !content.endsWith(" ") ? " " : ""
-    setContent(prev => prev + prefix + timestamp + " ")
-    textareaRef.current?.focus()
-  }
-
   if (!user) return null
 
   return (
@@ -102,30 +85,11 @@ export function CommentInput({
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="min-h-[80px] pr-12 pb-10 resize-none rounded-xl bg-accent/20 border-none focus-visible:ring-1 focus-visible:ring-primary/50"
+            className="min-h-[80px] pr-12 pb-10 resize-none rounded-none bg-accent/20 border-none focus-visible:ring-1 focus-visible:ring-primary/50"
             maxLength={2000}
           />
           
           <div className="absolute left-3 bottom-3 flex items-center gap-2">
-            {currentTime !== undefined && !parentId && (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 text-xs text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full"
-                onClick={insertTimestamp}
-                title="Add current video time"
-              >
-                <Clock className="w-3.5 h-3.5 mr-1" />
-                {formatTimestamp(currentTime)}
-              </Button>
-            )}
-            
-            {detectedTimestamps.length > 0 && (
-              <span className="text-[10px] text-muted-foreground bg-accent/50 px-2 py-0.5 rounded-full">
-                Timestamps detected
-              </span>
-            )}
           </div>
 
           <div className="absolute right-3 bottom-3 flex items-center gap-2">

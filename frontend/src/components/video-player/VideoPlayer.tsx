@@ -4,14 +4,12 @@ import { useVideoPlayer } from "@/hooks/useVideoPlayer"
 import { useVideoKeyboard } from "@/hooks/useVideoKeyboard"
 import { useVideoTouch } from "@/hooks/useVideoTouch"
 import { VideoControls } from "./VideoControls"
-import type { TimestampMarker } from "./ProgressBar"
 
 export interface VideoPlayerProps {
   src: string
   poster?: string
   initialTime?: number
   autoPlay?: boolean
-  markers?: TimestampMarker[]
   onPlay?: () => void
   onPause?: () => void
   onEnded?: () => void
@@ -32,7 +30,6 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
     poster,
     initialTime = 0,
     autoPlay = true,
-    markers = [],
     onPlay,
     onPause,
     onEnded,
@@ -190,16 +187,15 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
         </div>
       )}
 
+      {/* Gradient overlay at bottom for controls visibility */}
+      <div className={`video-gradient-overlay ${controlsVisible ? "visible" : ""}`} />
+
       {/* Controls overlay */}
       <VideoControls
         state={state}
         controls={controls}
         visible={controlsVisible}
-        markers={markers}
       />
-
-      {/* Gradient overlay at bottom for controls visibility */}
-      <div className={`video-gradient-overlay ${controlsVisible ? "visible" : ""}`} />
     </div>
   )
 })

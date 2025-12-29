@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/lib/toast"
-import { copyVideoLink } from "@/lib/clipboard"
+import { ShareDialog } from "@/components/video-player/ShareDialog"
 import { formatDuration, formatUploadDate, getStatusColor } from "@/lib/formatters"
 import { parseTimestamp, formatTimestamp } from "@/lib/timestamps"
 import { useAuth } from "@/hooks/useAuth"
@@ -22,7 +22,6 @@ import { AddToPlaylistDialog } from "@/components/playlists/AddToPlaylistDialog"
 import { PlaylistQueue } from "@/components/playlists/PlaylistQueue"
 import { VideoPlayer, type VideoPlayerRef } from "@/components/video-player"
 import { CommentSection } from "@/components/comments/CommentSection"
-import type { TimestampMarker } from "@/components/video-player/ProgressBar"
 
 export const Route = createFileRoute("/_auth/videos/$id")({
   component: VideoPlayerPage,
@@ -44,29 +43,26 @@ export const Route = createFileRoute("/_auth/videos/$id")({
   },
 })
 
-function Description({ text }: { text: string }) {
+function DescriptionContent({ text }: { text: string }) {
   const [isExpanded, setIsExpanded] = useState(false)
   const isLong = text.length > 300
 
   return (
-    <Card>
-      <CardContent className="p-4">
-        <h3 className="font-semibold mb-2">Description</h3>
-        <p className={`text-sm text-muted-foreground whitespace-pre-wrap ${!isExpanded && isLong ? "line-clamp-3" : ""}`}>
-          {text}
-        </p>
-        {isLong && (
-          <Button 
-            variant="link" 
-            size="sm" 
-            className="p-0 h-auto mt-2 text-primary hover:text-primary/80"
-            onClick={() => setIsExpanded(!isExpanded)}
-          >
-            {isExpanded ? "Show less" : "Show more"}
-          </Button>
-        )}
-      </CardContent>
-    </Card>
+    <div className="space-y-2">
+      <p className={`text-sm text-foreground/90 whitespace-pre-wrap ${!isExpanded && isLong ? "line-clamp-3" : ""}`}>
+        {text}
+      </p>
+      {isLong && (
+        <Button 
+          variant="link" 
+          size="sm" 
+          className="p-0 h-auto text-primary hover:text-primary/80 font-semibold"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          {isExpanded ? "Show less" : "Show more"}
+        </Button>
+      )}
+    </div>
   )
 }
 
@@ -81,11 +77,10 @@ function VideoPlayerPage() {
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [hasIncrementedView, setHasIncrementedView] = useState(false)
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false)
+  const [isShareOpen, setIsShareOpen] = useState(false)
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(true)
   const [nextCountdown, setNextCountdown] = useState<number | null>(null)
   const [currentPlayerTime, setCurrentPlayerTime] = useState(0)
-  const [showCommentMarkers, setShowCommentMarkers] = useState(true)
-  const [commentMarkers, setCommentMarkers] = useState<TimestampMarker[]>([])
   
   const playerRef = useRef<VideoPlayerRef>(null)
 
@@ -206,16 +201,6 @@ function VideoPlayerPage() {
     })
   }
 
-  const handleCopyLink = useCallback(() => {
-    const baseUrl = window.location.origin + window.location.pathname
-    copyVideoLink(baseUrl)
-  }, [])
-
-  const handleCopyLinkAtTime = useCallback(() => {
-    const baseUrl = window.location.origin + window.location.pathname
-    copyVideoLink(baseUrl, currentPlayerTime)
-  }, [currentPlayerTime])
-
   if (isLoading) {
     return <LoadingPage text="Loading video..." />
   }
@@ -249,20 +234,19 @@ function VideoPlayerPage() {
     <div className="max-w-6xl mx-auto px-4">
       <div className="space-y-6">
         {/* Video Player */}
-        <Card className="overflow-hidden border-none bg-black ring-1 ring-border">
+        <Card className="overflow-hidden border-none bg-black ring-1 ring-border rounded-none">
           <CardContent className="p-0">
             {video.processing_status === "completed" ? (
               <VideoPlayer
                 ref={playerRef}
                 src={getVideoStreamUrl(id)}
-                poster={video.thumbnail_filename ? getThumbnailUrl(video.thumbnail_filename) : undefined}
-                initialTime={initialTimestamp}
-                autoPlay={true}
-                markers={showCommentMarkers ? commentMarkers : []}
-                onPlay={handleVideoPlay}
-                onEnded={handleVideoEnded}
-                onTimeUpdate={handleTimeUpdate}
-              />
+                 poster={video.thumbnail_filename ? getThumbnailUrl(video.thumbnail_filename) : undefined}
+                 initialTime={initialTimestamp}
+                 autoPlay={true}
+                 onPlay={handleVideoPlay}
+                 onEnded={handleVideoEnded}
+                 onTimeUpdate={handleTimeUpdate}
+               />
             ) : (
               <div className="w-full aspect-video bg-gradient-to-br from-muted/20 to-muted/5 flex items-center justify-center">
                 <div className="text-center space-y-6 p-8">
@@ -378,25 +362,12 @@ function VideoPlayerPage() {
                 <Button 
                   variant="secondary" 
                   size="sm" 
-                  onClick={handleCopyLink}
+                  onClick={() => setIsShareOpen(true)}
                   className="rounded-full"
                 >
                   <LinkIcon className="w-4 h-4 mr-2" />
-                  Copy Link
+                  Share
                 </Button>
-
-                {video.processing_status === "completed" && currentPlayerTime > 0 && (
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={handleCopyLinkAtTime}
-                    className="rounded-full"
-                    title={`Copy link at ${formatTimestamp(currentPlayerTime)}`}
-                  >
-                    <Clock className="w-4 h-4 mr-2" />
-                    {formatTimestamp(currentPlayerTime)}
-                  </Button>
-                )}
 
                 {video.processing_status === "completed" && (
                   <Button 
@@ -445,37 +416,40 @@ function VideoPlayerPage() {
             </div>
           </div>
 
-          {/* Uploader Info */}
-          <div className="flex items-center justify-between p-4 bg-accent/30 rounded-xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
-                {video.uploader_username.charAt(0).toUpperCase()}
+          {/* Uploader & Description Section */}
+          <div className="bg-accent/10 rounded-none p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold">
+                  {video.uploader_username.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <Link 
+                    to="/profile/$username" 
+                    params={{ username: video.uploader_username }}
+                    className="font-bold hover:text-primary transition-colors"
+                  >
+                    {video.uploader_username}
+                  </Link>
+                  <p className="text-xs text-muted-foreground">Uploader</p>
+                </div>
               </div>
-              <div>
-                <Link 
-                  to="/profile/$username" 
-                  params={{ username: video.uploader_username }}
-                  className="font-bold hover:text-primary transition-colors"
-                >
-                  {video.uploader_username}
+              {video.category_name && (
+                <Link to="/dashboard" search={{ category_id: video.category_id || undefined }}>
+                  <Badge variant="outline" className="hover:bg-accent transition-colors cursor-pointer px-3 py-1 rounded-none border-primary/20 bg-primary/5">
+                    <Folder className="w-3 h-3 mr-1.5 opacity-70" />
+                    {video.category_name}
+                  </Badge>
                 </Link>
-                <p className="text-xs text-muted-foreground">Uploader</p>
-              </div>
+              )}
             </div>
-            {video.category_name && (
-              <Link to="/dashboard" search={{ category_id: video.category_id || undefined }}>
-                <Badge variant="outline" className="hover:bg-accent transition-colors cursor-pointer px-3 py-1">
-                  <Folder className="w-3 h-3 mr-1.5 opacity-70" />
-                  {video.category_name}
-                </Badge>
-              </Link>
+
+            {video.description && (
+              <div className="pt-2 border-t border-border/50">
+                <DescriptionContent text={video.description} />
+              </div>
             )}
           </div>
-
-          {/* Description */}
-          {video.description && (
-            <Description text={video.description} />
-          )}
 
           {/* Playlist Queue */}
           {playlist && (
@@ -488,14 +462,11 @@ function VideoPlayerPage() {
             />
           )}
 
-          {/* Comment Section */}
+           {/* Comment Section */}
           <CommentSection
             videoId={id}
             videoOwnerId={video.uploaded_by}
             playerRef={playerRef}
-            showMarkers={showCommentMarkers}
-            onShowMarkersChange={setShowCommentMarkers}
-            onMarkersChange={setCommentMarkers}
           />
         </div>
       </div>
@@ -544,6 +515,13 @@ function VideoPlayerPage() {
         onClose={() => setIsAddToPlaylistOpen(false)}
         videoId={id}
         videoTitle={video.title}
+      />
+
+      <ShareDialog
+        isOpen={isShareOpen}
+        onClose={() => setIsShareOpen(false)}
+        videoUrl={window.location.origin + window.location.pathname}
+        currentTime={currentPlayerTime}
       />
     </div>
   )

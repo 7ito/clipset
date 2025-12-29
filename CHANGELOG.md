@@ -2,59 +2,22 @@
 
 All notable changes to Clipset will be documented in this file.
 
-## [Unreleased] - 2025-12-23
+## [Unreleased] - 2025-12-29
 
-### Changed - Video Transcoding Quality Enhancement (COMPLETE ✅)
-- **Improved Video Quality**: 
-  - Lowered CRF from 23 to 18 (both CPU and GPU transcoding)
-  - ~40-50% file size increase with significantly better visual quality
-  - Near-visually-lossless for gaming clips, sports footage, and camera footage
-  - GPU CQ lowered from 20 to 18 for consistency with CPU CRF
-
-- **Enhanced Audio Quality**:
-  - Increased audio bitrate from 128 kbps to 192 kbps
-  - Better audio clarity and fidelity for all content types
-  - Balanced trade-off between quality and file size
-
-- **Optimized GPU Transcoding with VBR+CQ Rate Control**:
-  - Implemented Variable Bitrate (VBR) mode with Constant Quality (CQ) targeting
-  - Added maxrate cap (8 Mbps) to prevent bitrate spikes and excessive file sizes
-  - Added buffer size (16 Mbps) for smoother bitrate distribution
-  - Previously unused config settings (`NVENC_RATE_CONTROL`, `NVENC_MAX_BITRATE`, 
-    `NVENC_BUFFER_SIZE`) now properly utilized in FFmpeg commands
-  - Better suited for web streaming and delivery compared to CQ-only mode
-
-- **Configuration Improvements**:
-  - Updated `.env.example` with comprehensive GPU transcoding settings
-  - Added detailed comments explaining each transcoding parameter
-  - Included recommended values by content type (gaming, sports, camera, animation)
-  - Updated video format list to include HEVC/H.265 support
-
-- **Performance Impact**:
-  - Video quality: Significantly improved, especially in fast-motion scenes
-  - File size: ~40-50% larger (CRF 18 vs 23)
-  - Processing speed: Unchanged (presets: medium/p4 maintained)
-  - GPU: 3-10x faster than CPU transcoding (11.5x realtime on RTX 3060)
-  - Rate control: Smoother bitrate distribution, better for web delivery
-
-- **Documentation Updates**:
-  - Enhanced README.md with Video Quality & Transcoding section
-  - Added comprehensive transcoding settings documentation
-  - Included quality vs. file size trade-offs
-  - Added recommended settings by content type
-
-**Files Modified**:
-- `backend/app/services/video_processor.py` - Updated GPU/CPU transcode commands
-- `backend/app/config.py` - Lowered NVENC_CQ default to 18
-- `backend/.env.example` - Added GPU transcoding documentation
-- `README.md` - Added video quality configuration guide
-
-**Impact Summary**:
-- **Quality**: Noticeably better, especially in gaming clips and fast action scenes
-- **Audio**: Improved clarity from 128k to 192k AAC
-- **Storage**: Plan for ~40-50% more disk usage per video
-- **Speed**: No performance regression (same preset speeds)
-- **Compatibility**: Better for web streaming with VBR+CQ rate control
+### Changed - UI Refinements & Share Dialog (COMPLETE ✅)
+- **Video Player Enhancements**:
+  - Brightened controls gradient overlay and increased visibility of control icons and text.
+  - Removed orange comment markers from the progress bar for a cleaner look.
+- **Improved Sharing Experience**:
+  - Replaced "Copy Link" buttons with a single "Share" button.
+  - Implemented a YouTube-style Share Dialog with an optional "Start at timestamp" checkbox.
+  - Automatically parses `?t=seconds` from URL to seek video on load.
+- **Comment System Simplification**:
+  - Simplified comment input by removing the timestamp insertion button and "Timestamps detected" badge.
+  - unified uploader info and video description into a single coherent section.
+- **Design Language Consistency**:
+  - Reduced usage of rounded corners across the video page (containers, cards, and input fields) to match the rest of the site's boxier aesthetic.
+  - Kept rounding on action buttons for better tactile feel while ensuring overall consistency.
 
 ### Added - Video Comments with Clickable Timestamps (COMPLETE ✅)
 - **Full Comment System**:

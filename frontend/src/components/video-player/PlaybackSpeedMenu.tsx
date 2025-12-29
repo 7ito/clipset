@@ -55,7 +55,7 @@ export function PlaybackSpeedMenu({
         title="Playback Speed"
       >
         {currentRate === 1 ? (
-          <Settings className="w-5 h-5" />
+          <Settings className="w-6 h-6" />
         ) : (
           <span className="text-xs font-bold">{currentRate}x</span>
         )}

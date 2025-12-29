@@ -49,10 +49,10 @@ export function PlaylistQueue({
   }
 
   return (
-    <Card className="bg-muted/30 border-none overflow-hidden ring-1 ring-border mt-8">
+    <Card className="bg-muted/30 border-none overflow-hidden ring-1 ring-border mt-8 rounded-none">
       <div className="p-4 border-b bg-muted/50 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10 text-primary">
+          <div className="p-2 rounded-none bg-primary/10 text-primary">
             <Play className="w-4 h-4" />
           </div>
           <div>

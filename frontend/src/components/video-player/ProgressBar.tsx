@@ -1,16 +1,10 @@
 import { useRef, useState, useCallback } from "react"
 import { formatTimestamp, timestampToPercent } from "@/lib/timestamps"
 
-export interface TimestampMarker {
-  seconds: number
-  label?: string
-}
-
 interface ProgressBarProps {
   currentTime: number
   duration: number
   buffered: TimeRanges | null
-  markers?: TimestampMarker[]
   onSeek: (time: number) => void
   onSeekStart?: () => void
   onSeekEnd?: () => void
@@ -20,7 +14,6 @@ export function ProgressBar({
   currentTime,
   duration,
   buffered,
-  markers = [],
   onSeek,
   onSeekStart,
   onSeekEnd
@@ -165,19 +158,6 @@ export function ProgressBar({
             style={{ width: `${hoverPosition}%` }}
           />
         )}
-
-        {/* Timestamp markers (for comments) */}
-        {markers.map((marker, index) => {
-          const position = timestampToPercent(marker.seconds, duration)
-          return (
-            <div
-              key={index}
-              className="video-progress-marker"
-              style={{ left: `${position}%` }}
-              title={marker.label || formatTimestamp(marker.seconds)}
-            />
-          )
-        })}
 
         {/* Scrubber handle */}
         <div

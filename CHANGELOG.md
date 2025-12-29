@@ -4,6 +4,21 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2025-12-29
 
+### Fixed - Video Player Seeking (COMPLETE ✅)
+- **HTTP Range Request Support**: Fixed video seeking to unbuffered positions.
+  - Previously, clicking on the progress bar to seek past the buffered content would only jump to the farthest loaded point.
+  - Now properly implements RFC 7233 Range Requests in the backend video streaming endpoint.
+  - Server responds with HTTP 206 Partial Content and appropriate `Content-Range` headers.
+  - Browser can now request any byte range, enabling instant seeking to any position in the video.
+- **Implementation Details**:
+  - Added `send_bytes_range_requests()` generator for chunked byte streaming.
+  - Added `parse_range_header()` function to safely parse Range headers.
+  - Added `range_requests_response()` wrapper for clean streaming responses.
+  - Replaced `FileResponse` with `StreamingResponse` in the `/api/videos/{short_id}/stream` endpoint.
+- **Testing Verified**:
+  - Seeking to unbuffered positions creates new buffer ranges (confirmed via browser API).
+  - HTTP 206 responses with proper `Content-Range` headers (confirmed via curl).
+
 ### Changed - iOS Video Player
 - Switched from CSS-based "fake fullscreen" to native iOS video fullscreen (`webkitEnterFullScreen`).
 - Provides native iOS fullscreen experience with built-in controls, proper orientation handling, and status bar hiding.

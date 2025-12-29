@@ -22,7 +22,6 @@ import { Route as AuthAdminRouteImport } from './routes/_auth/admin'
 import { Route as AuthUsersIndexRouteImport } from './routes/_auth/users.index'
 import { Route as AuthCategoriesIndexRouteImport } from './routes/_auth/categories.index'
 import { Route as AuthAdminIndexRouteImport } from './routes/_auth/admin.index'
-import { Route as AuthVideosIdRouteImport } from './routes/_auth/videos.$id'
 import { Route as AuthVShortIdRouteImport } from './routes/_auth/v.$shortId'
 import { Route as AuthProfileUsernameRouteImport } from './routes/_auth/profile.$username'
 import { Route as AuthCategoriesSlugRouteImport } from './routes/_auth/categories.$slug'
@@ -97,11 +96,6 @@ const AuthAdminIndexRoute = AuthAdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AuthAdminRoute,
 } as any)
-const AuthVideosIdRoute = AuthVideosIdRouteImport.update({
-  id: '/videos/$id',
-  path: '/videos/$id',
-  getParentRoute: () => AuthRoute,
-} as any)
 const AuthVShortIdRoute = AuthVShortIdRouteImport.update({
   id: '/v/$shortId',
   path: '/v/$shortId',
@@ -167,7 +161,6 @@ export interface FileRoutesByFullPath {
   '/categories/$slug': typeof AuthCategoriesSlugRoute
   '/profile/$username': typeof AuthProfileUsernameRouteWithChildren
   '/v/$shortId': typeof AuthVShortIdRoute
-  '/videos/$id': typeof AuthVideosIdRoute
   '/admin/': typeof AuthAdminIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
   '/users': typeof AuthUsersIndexRoute
@@ -189,7 +182,6 @@ export interface FileRoutesByTo {
   '/admin/users': typeof AuthAdminUsersRoute
   '/categories/$slug': typeof AuthCategoriesSlugRoute
   '/v/$shortId': typeof AuthVShortIdRoute
-  '/videos/$id': typeof AuthVideosIdRoute
   '/admin': typeof AuthAdminIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
   '/users': typeof AuthUsersIndexRoute
@@ -215,7 +207,6 @@ export interface FileRoutesById {
   '/_auth/categories/$slug': typeof AuthCategoriesSlugRoute
   '/_auth/profile/$username': typeof AuthProfileUsernameRouteWithChildren
   '/_auth/v/$shortId': typeof AuthVShortIdRoute
-  '/_auth/videos/$id': typeof AuthVideosIdRoute
   '/_auth/admin/': typeof AuthAdminIndexRoute
   '/_auth/categories/': typeof AuthCategoriesIndexRoute
   '/_auth/users/': typeof AuthUsersIndexRoute
@@ -241,7 +232,6 @@ export interface FileRouteTypes {
     | '/categories/$slug'
     | '/profile/$username'
     | '/v/$shortId'
-    | '/videos/$id'
     | '/admin/'
     | '/categories'
     | '/users'
@@ -263,7 +253,6 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/categories/$slug'
     | '/v/$shortId'
-    | '/videos/$id'
     | '/admin'
     | '/categories'
     | '/users'
@@ -288,7 +277,6 @@ export interface FileRouteTypes {
     | '/_auth/categories/$slug'
     | '/_auth/profile/$username'
     | '/_auth/v/$shortId'
-    | '/_auth/videos/$id'
     | '/_auth/admin/'
     | '/_auth/categories/'
     | '/_auth/users/'
@@ -397,13 +385,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/'
       preLoaderRoute: typeof AuthAdminIndexRouteImport
       parentRoute: typeof AuthAdminRoute
-    }
-    '/_auth/videos/$id': {
-      id: '/_auth/videos/$id'
-      path: '/videos/$id'
-      fullPath: '/videos/$id'
-      preLoaderRoute: typeof AuthVideosIdRouteImport
-      parentRoute: typeof AuthRoute
     }
     '/_auth/v/$shortId': {
       id: '/_auth/v/$shortId'
@@ -523,7 +504,6 @@ interface AuthRouteChildren {
   AuthUploadRoute: typeof AuthUploadRoute
   AuthCategoriesSlugRoute: typeof AuthCategoriesSlugRoute
   AuthVShortIdRoute: typeof AuthVShortIdRoute
-  AuthVideosIdRoute: typeof AuthVideosIdRoute
   AuthCategoriesIndexRoute: typeof AuthCategoriesIndexRoute
   AuthUsersIndexRoute: typeof AuthUsersIndexRoute
 }
@@ -535,7 +515,6 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthUploadRoute: AuthUploadRoute,
   AuthCategoriesSlugRoute: AuthCategoriesSlugRoute,
   AuthVShortIdRoute: AuthVShortIdRoute,
-  AuthVideosIdRoute: AuthVideosIdRoute,
   AuthCategoriesIndexRoute: AuthCategoriesIndexRoute,
   AuthUsersIndexRoute: AuthUsersIndexRoute,
 }

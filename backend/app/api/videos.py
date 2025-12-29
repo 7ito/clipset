@@ -6,8 +6,9 @@ Handles video upload, listing, streaming, and management.
 
 import logging
 import asyncio
+import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Generator, BinaryIO, Tuple
 from fastapi import (
     APIRouter,
     Depends,
@@ -16,9 +17,10 @@ from fastapi import (
     File,
     Form,
     BackgroundTasks,
+    Request,
     status,
 )
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_
 
@@ -48,6 +50,89 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
+
+# Default chunk size for streaming (8KB)
+STREAM_CHUNK_SIZE = 8 * 1024
+
+
+def send_bytes_range_requests(
+    file_obj: BinaryIO, start: int, end: int, chunk_size: int = STREAM_CHUNK_SIZE
+) -> Generator[bytes, None, None]:
+    """
+    Send a file in chunks using Range Requests specification RFC7233.
+
+    `start` and `end` parameters are inclusive due to specification.
+    """
+    with file_obj as f:
+        f.seek(start)
+        while (pos := f.tell()) <= end:
+            read_size = min(chunk_size, end - pos + 1)
+            yield f.read(read_size)
+
+
+def parse_range_header(range_header: str, file_size: int) -> Tuple[int, int]:
+    """
+    Parse Range header and return (start, end) byte positions.
+
+    Raises HTTPException if range is invalid.
+    """
+    try:
+        h = range_header.replace("bytes=", "").split("-")
+        start = int(h[0]) if h[0] != "" else 0
+        end = int(h[1]) if h[1] != "" else file_size - 1
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE,
+            detail=f"Invalid request range (Range: {range_header!r})",
+        )
+
+    if start > end or start < 0 or end >= file_size:
+        raise HTTPException(
+            status_code=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE,
+            detail=f"Invalid request range (Range: {range_header!r})",
+        )
+
+    return start, end
+
+
+def range_requests_response(
+    request: Request, file_path: Path, content_type: str
+) -> Response:
+    """
+    Returns StreamingResponse using Range Requests of a given file.
+
+    Handles both full file requests (HTTP 200) and partial content requests (HTTP 206).
+    """
+    file_size = os.stat(file_path).st_size
+    range_header = request.headers.get("range")
+
+    headers = {
+        "content-type": content_type,
+        "accept-ranges": "bytes",
+        "content-encoding": "identity",
+        "content-length": str(file_size),
+        "access-control-expose-headers": (
+            "content-type, accept-ranges, content-length, "
+            "content-range, content-encoding"
+        ),
+    }
+
+    start = 0
+    end = file_size - 1
+    status_code = status.HTTP_200_OK
+
+    if range_header is not None:
+        start, end = parse_range_header(range_header, file_size)
+        size = end - start + 1
+        headers["content-length"] = str(size)
+        headers["content-range"] = f"bytes {start}-{end}/{file_size}"
+        status_code = status.HTTP_206_PARTIAL_CONTENT
+
+    return StreamingResponse(
+        send_bytes_range_requests(open(file_path, mode="rb"), start, end),
+        headers=headers,
+        status_code=status_code,
+    )
 
 
 # Dependency functions
@@ -597,10 +682,16 @@ async def delete_video(
 @router.get("/{short_id}/stream")
 async def stream_video(
     short_id: str,
+    request: Request,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_user_from_token_or_query),
 ):
-    """Stream video file with Range header support."""
+    """
+    Stream video file with HTTP Range request support.
+
+    Supports partial content (HTTP 206) for seeking to any position in the video,
+    even if that position hasn't been buffered yet.
+    """
     video = await get_video_or_404(short_id, db)
 
     # Check access
@@ -623,13 +714,8 @@ async def stream_video(
             status_code=status.HTTP_404_NOT_FOUND, detail="Video file not found"
         )
 
-    # Return file response with Range header support
-    return FileResponse(
-        path=video_path,
-        media_type="video/mp4",
-        filename=video.original_filename,
-        headers={"Accept-Ranges": "bytes"},
-    )
+    # Return streaming response with proper Range header handling
+    return range_requests_response(request, video_path, "video/mp4")
 
 
 @router.get("/{short_id}/thumbnail")

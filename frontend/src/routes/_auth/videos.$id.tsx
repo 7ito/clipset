@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { Edit, Trash2, Eye, Calendar, Folder, FileVideo, Loader2, ArrowLeft, ListPlus, ChevronRight, ChevronLeft, Link as LinkIcon } from "lucide-react"
+import { Edit, Trash2, Eye, Calendar, Folder, FileVideo, Loader2, ArrowLeft, ListPlus, ChevronRight, ChevronLeft, Link as LinkIcon, Clock } from "lucide-react"
 import { getVideo, deleteVideo, updateVideo, incrementViewCount, getVideoStreamUrl, getThumbnailUrl } from "@/api/videos"
 import { getPlaylist } from "@/api/playlists"
 import { Button } from "@/components/ui/button"
@@ -13,18 +13,31 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { toast } from "@/lib/toast"
-import { copyToClipboard } from "@/lib/clipboard"
+import { copyVideoLink } from "@/lib/clipboard"
 import { formatDuration, formatUploadDate, getStatusColor } from "@/lib/formatters"
+import { parseTimestamp, formatTimestamp } from "@/lib/timestamps"
 import { useAuth } from "@/hooks/useAuth"
 import { LoadingPage } from "@/components/shared/LoadingSpinner"
 import { AddToPlaylistDialog } from "@/components/playlists/AddToPlaylistDialog"
 import { PlaylistQueue } from "@/components/playlists/PlaylistQueue"
+import { VideoPlayer, type VideoPlayerRef } from "@/components/video-player"
 
 export const Route = createFileRoute("/_auth/videos/$id")({
   component: VideoPlayerPage,
-  validateSearch: (search: Record<string, unknown>): { playlistId?: string } => {
+  validateSearch: (search: Record<string, unknown>): { playlistId?: string; t?: number } => {
+    // Parse timestamp from URL
+    const tParam = search.t
+    let timestamp: number | undefined
+
+    if (typeof tParam === "string") {
+      timestamp = parseTimestamp(tParam) ?? undefined
+    } else if (typeof tParam === "number") {
+      timestamp = tParam
+    }
+
     return {
       playlistId: (search.playlistId as string) || undefined,
+      t: timestamp
     }
   },
 })
@@ -57,7 +70,7 @@ function Description({ text }: { text: string }) {
 
 function VideoPlayerPage() {
   const { id } = Route.useParams()
-  const { playlistId } = Route.useSearch()
+  const { playlistId, t: initialTimestamp } = Route.useSearch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user } = useAuth()
@@ -68,6 +81,9 @@ function VideoPlayerPage() {
   const [isAddToPlaylistOpen, setIsAddToPlaylistOpen] = useState(false)
   const [autoPlayEnabled, setAutoPlayEnabled] = useState(true)
   const [nextCountdown, setNextCountdown] = useState<number | null>(null)
+  const [currentPlayerTime, setCurrentPlayerTime] = useState(0)
+  
+  const playerRef = useRef<VideoPlayerRef>(null)
 
   // Fetch video
   const { data: video, isLoading, refetch } = useQuery({
@@ -94,7 +110,7 @@ function VideoPlayerPage() {
 
   // Autoplay countdown logic
   useEffect(() => {
-    let timer: any
+    let timer: ReturnType<typeof setTimeout>
     if (nextCountdown !== null && nextCountdown > 0) {
       timer = setTimeout(() => setNextCountdown(nextCountdown - 1), 1000)
     } else if (nextCountdown === 0) {
@@ -118,15 +134,31 @@ function VideoPlayerPage() {
     return () => clearTimeout(timer)
   }, [nextCountdown, playlist, id, navigate, playlistId])
 
-  // Reset countdown if video changes manually
+  // Reset state when video changes
   useEffect(() => {
     setNextCountdown(null)
+    setHasIncrementedView(false)
+    setCurrentPlayerTime(0)
   }, [id])
 
-  const handleVideoEnded = () => {
+  const handleVideoEnded = useCallback(() => {
     if (!autoPlayEnabled || !playlist || playlist.videos.length <= 1) return
     setNextCountdown(3)
-  }
+  }, [autoPlayEnabled, playlist])
+
+  // Increment view count on video play
+  const handleVideoPlay = useCallback(() => {
+    if (!hasIncrementedView && video?.processing_status === "completed") {
+      incrementViewCount(id).then(() => {
+        setHasIncrementedView(true)
+        queryClient.invalidateQueries({ queryKey: ["videos", id] })
+      })
+    }
+  }, [hasIncrementedView, video?.processing_status, id, queryClient])
+
+  const handleTimeUpdate = useCallback((time: number) => {
+    setCurrentPlayerTime(time)
+  }, [])
 
   // Update mutation
   const updateMutation = useMutation({
@@ -155,16 +187,6 @@ function VideoPlayerPage() {
     }
   })
 
-  // Increment view count on video play
-  const handleVideoPlay = () => {
-    if (!hasIncrementedView && video?.processing_status === "completed") {
-      incrementViewCount(id).then(() => {
-        setHasIncrementedView(true)
-        queryClient.invalidateQueries({ queryKey: ["videos", id] })
-      })
-    }
-  }
-
   const handleEditClick = () => {
     if (video) {
       setEditTitle(video.title)
@@ -179,6 +201,16 @@ function VideoPlayerPage() {
       description: editDescription.trim() || undefined
     })
   }
+
+  const handleCopyLink = useCallback(() => {
+    const baseUrl = window.location.origin + window.location.pathname
+    copyVideoLink(baseUrl)
+  }, [])
+
+  const handleCopyLinkAtTime = useCallback(() => {
+    const baseUrl = window.location.origin + window.location.pathname
+    copyVideoLink(baseUrl, currentPlayerTime)
+  }, [currentPlayerTime])
 
   if (isLoading) {
     return <LoadingPage text="Loading video..." />
@@ -216,17 +248,16 @@ function VideoPlayerPage() {
         <Card className="overflow-hidden border-none bg-black ring-1 ring-border">
           <CardContent className="p-0">
             {video.processing_status === "completed" ? (
-              <video
-                controls
-                autoPlay
-                className="w-full aspect-video"
-                poster={video.thumbnail_filename ? getThumbnailUrl(id) : undefined}
+              <VideoPlayer
+                ref={playerRef}
+                src={getVideoStreamUrl(id)}
+                poster={video.thumbnail_filename ? getThumbnailUrl(video.thumbnail_filename) : undefined}
+                initialTime={initialTimestamp}
+                autoPlay={true}
                 onPlay={handleVideoPlay}
                 onEnded={handleVideoEnded}
-              >
-                <source src={getVideoStreamUrl(id)} type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+                onTimeUpdate={handleTimeUpdate}
+              />
             ) : (
               <div className="w-full aspect-video bg-gradient-to-br from-muted/20 to-muted/5 flex items-center justify-center">
                 <div className="text-center space-y-6 p-8">
@@ -342,12 +373,25 @@ function VideoPlayerPage() {
                 <Button 
                   variant="secondary" 
                   size="sm" 
-                  onClick={() => copyToClipboard(window.location.href)}
+                  onClick={handleCopyLink}
                   className="rounded-full"
                 >
                   <LinkIcon className="w-4 h-4 mr-2" />
                   Copy Link
                 </Button>
+
+                {video.processing_status === "completed" && currentPlayerTime > 0 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleCopyLinkAtTime}
+                    className="rounded-full"
+                    title={`Copy link at ${formatTimestamp(currentPlayerTime)}`}
+                  >
+                    <Clock className="w-4 h-4 mr-2" />
+                    {formatTimestamp(currentPlayerTime)}
+                  </Button>
+                )}
 
                 {video.processing_status === "completed" && (
                   <Button 

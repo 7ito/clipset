@@ -23,7 +23,7 @@ import { PlaylistQueue } from "@/components/playlists/PlaylistQueue"
 import { VideoPlayer, type VideoPlayerRef } from "@/components/video-player"
 import { CommentSection } from "@/components/comments/CommentSection"
 
-export const Route = createFileRoute("/_auth/videos/$id")({
+export const Route = createFileRoute("/_auth/v/$shortId")({
   component: VideoPlayerPage,
   validateSearch: (search: Record<string, unknown>): { playlistId?: string; t?: number } => {
     // Parse timestamp from URL
@@ -67,7 +67,7 @@ function DescriptionContent({ text }: { text: string }) {
 }
 
 function VideoPlayerPage() {
-  const { id } = Route.useParams()
+  const { shortId } = Route.useParams()
   const { playlistId, t: initialTimestamp } = Route.useSearch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -86,8 +86,8 @@ function VideoPlayerPage() {
 
   // Fetch video
   const { data: video, isLoading, refetch } = useQuery({
-    queryKey: ["videos", id],
-    queryFn: () => getVideo(id)
+    queryKey: ["videos", shortId],
+    queryFn: () => getVideo(shortId)
   })
 
   // Fetch playlist if context exists
@@ -113,8 +113,8 @@ function VideoPlayerPage() {
     if (nextCountdown !== null && nextCountdown > 0) {
       timer = setTimeout(() => setNextCountdown(nextCountdown - 1), 1000)
     } else if (nextCountdown === 0) {
-      if (playlist) {
-        const currentIndex = playlist.videos.findIndex(v => v.video_id === id)
+      if (playlist && video) {
+        const currentIndex = playlist.videos.findIndex(v => v.video_id === video.id)
         if (currentIndex !== -1) {
           let nextIndex = currentIndex + 1
           if (nextIndex >= playlist.videos.length) {
@@ -123,22 +123,22 @@ function VideoPlayerPage() {
           const nextVideo = playlist.videos[nextIndex]
           setNextCountdown(null)
           navigate({ 
-            to: "/videos/$id", 
-            params: { id: nextVideo.video_id },
+            to: "/v/$shortId", 
+            params: { shortId: nextVideo.video.short_id },
             search: { playlistId }
           })
         }
       }
     }
     return () => clearTimeout(timer)
-  }, [nextCountdown, playlist, id, navigate, playlistId])
+  }, [nextCountdown, playlist, video, navigate, playlistId])
 
   // Reset state when video changes
   useEffect(() => {
     setNextCountdown(null)
     setHasIncrementedView(false)
     setCurrentPlayerTime(0)
-  }, [id])
+  }, [shortId])
 
   const handleVideoEnded = useCallback(() => {
     if (!autoPlayEnabled || !playlist || playlist.videos.length <= 1) return
@@ -148,12 +148,12 @@ function VideoPlayerPage() {
   // Increment view count on video play
   const handleVideoPlay = useCallback(() => {
     if (!hasIncrementedView && video?.processing_status === "completed") {
-      incrementViewCount(id).then(() => {
+      incrementViewCount(shortId).then(() => {
         setHasIncrementedView(true)
-        queryClient.invalidateQueries({ queryKey: ["videos", id] })
+        queryClient.invalidateQueries({ queryKey: ["videos", shortId] })
       })
     }
-  }, [hasIncrementedView, video?.processing_status, id, queryClient])
+  }, [hasIncrementedView, video?.processing_status, shortId, queryClient])
 
   const handleTimeUpdate = useCallback((time: number) => {
     setCurrentPlayerTime(time)
@@ -162,11 +162,11 @@ function VideoPlayerPage() {
   // Update mutation
   const updateMutation = useMutation({
     mutationFn: (data: { title: string, description?: string }) =>
-      updateVideo(id, data),
+      updateVideo(shortId, data),
     onSuccess: () => {
       toast.success("Video updated successfully")
       setEditDialogOpen(false)
-      queryClient.invalidateQueries({ queryKey: ["videos", id] })
+      queryClient.invalidateQueries({ queryKey: ["videos", shortId] })
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || "Failed to update video")
@@ -175,7 +175,7 @@ function VideoPlayerPage() {
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: () => deleteVideo(id),
+    mutationFn: () => deleteVideo(shortId),
     onSuccess: () => {
       toast.success("Video deleted successfully")
       queryClient.invalidateQueries({ queryKey: ["videos"] })
@@ -239,7 +239,7 @@ function VideoPlayerPage() {
             {video.processing_status === "completed" ? (
               <VideoPlayer
                 ref={playerRef}
-                src={getVideoStreamUrl(id)}
+                src={getVideoStreamUrl(shortId)}
                  poster={video.thumbnail_filename ? getThumbnailUrl(video.thumbnail_filename) : undefined}
                  initialTime={initialTimestamp}
                  autoPlay={true}
@@ -295,13 +295,13 @@ function VideoPlayerPage() {
                       variant="outline"
                       size="icon"
                       className="h-8 w-8 rounded-none"
-                      disabled={playlist.videos.findIndex(v => v.video_id === id) === 0 && playlist.videos.length > 1}
+                      disabled={playlist.videos.findIndex(v => v.video_id === video.id) === 0 && playlist.videos.length > 1}
                       onClick={() => {
-                        const currentIndex = playlist.videos.findIndex(v => v.video_id === id)
+                        const currentIndex = playlist.videos.findIndex(v => v.video_id === video.id)
                         const prevIndex = currentIndex === 0 ? playlist.videos.length - 1 : currentIndex - 1
                         navigate({
-                          to: "/videos/$id",
-                          params: { id: playlist.videos[prevIndex].video_id },
+                          to: "/v/$shortId",
+                          params: { shortId: playlist.videos[prevIndex].video.short_id },
                           search: { playlistId }
                         })
                       }}
@@ -314,11 +314,11 @@ function VideoPlayerPage() {
                       size="icon"
                       className="h-8 w-8 rounded-none"
                       onClick={() => {
-                        const currentIndex = playlist.videos.findIndex(v => v.video_id === id)
+                        const currentIndex = playlist.videos.findIndex(v => v.video_id === video.id)
                         const nextIndex = (currentIndex + 1) % playlist.videos.length
                         navigate({
-                          to: "/videos/$id",
-                          params: { id: playlist.videos[nextIndex].video_id },
+                          to: "/v/$shortId",
+                          params: { shortId: playlist.videos[nextIndex].video.short_id },
                           search: { playlistId }
                         })
                       }}
@@ -455,7 +455,7 @@ function VideoPlayerPage() {
           {playlist && (
             <PlaylistQueue
               playlist={playlist}
-              currentVideoId={id}
+              currentVideoId={video.id}
               autoPlayEnabled={autoPlayEnabled}
               onAutoPlayToggle={setAutoPlayEnabled}
               nextCountdown={nextCountdown}
@@ -464,7 +464,7 @@ function VideoPlayerPage() {
 
            {/* Comment Section */}
           <CommentSection
-            videoId={id}
+            videoId={video.id}
             videoOwnerId={video.uploaded_by}
             playerRef={playerRef}
           />
@@ -513,14 +513,14 @@ function VideoPlayerPage() {
       <AddToPlaylistDialog
         isOpen={isAddToPlaylistOpen}
         onClose={() => setIsAddToPlaylistOpen(false)}
-        videoId={id}
+        videoId={video.id}
         videoTitle={video.title}
       />
 
       <ShareDialog
         isOpen={isShareOpen}
         onClose={() => setIsShareOpen(false)}
-        videoUrl={window.location.origin + window.location.pathname}
+        videoUrl={window.location.origin + "/v/" + video.short_id}
         currentTime={currentPlayerTime}
       />
     </div>

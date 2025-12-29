@@ -433,6 +433,14 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 ### ✅ Phase 17: Video Comments & UI Refinements (Completed)
 **Goal**: Implement a full comment system and polish the video player experience with a modern, YouTube-style interface.
 
+### ✅ Phase 18: Short URLs (Completed)
+**Goal**: Shorten video links from long UUIDs to short 10-character IDs.
+- **Backend**: Added `short_id` to Video model using `nanoid`.
+- **Backend**: Implemented database migration and backfilled existing videos.
+- **Backend**: Updated API endpoints to use `short_id` for video lookup.
+- **Frontend**: Updated routing from `/videos/{uuid}` to `/v/{short_id}`.
+- **Frontend**: Updated all internal links and share dialog to use short IDs.
+
 **Backend**:
 - **Comment Model**: Supports single-level nested replies and optional timestamp references.
 - **Permission System**: Authors can edit within 24h; Authors, Video Owners, and Admins can delete.

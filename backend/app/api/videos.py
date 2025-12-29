@@ -51,14 +51,14 @@ router = APIRouter()
 
 
 # Dependency functions
-async def get_video_or_404(video_id: str, db: AsyncSession) -> Video:
-    """Get video by ID or raise 404."""
-    result = await db.execute(select(Video).where(Video.id == video_id))
+async def get_video_or_404(short_id: str, db: AsyncSession) -> Video:
+    """Get video by short_id or raise 404."""
+    result = await db.execute(select(Video).where(Video.short_id == short_id))
     video = result.scalar_one_or_none()
 
     if not video:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"Video not found: {video_id}"
+            status_code=status.HTTP_404_NOT_FOUND, detail=f"Video not found: {short_id}"
         )
 
     return video
@@ -83,6 +83,7 @@ def build_video_response(
     return {
         # Video fields
         "id": video.id,
+        "short_id": video.short_id,
         "title": video.title,
         "description": video.description,
         "filename": video.filename,
@@ -485,14 +486,14 @@ async def list_videos(
     return VideoListResponse(videos=videos, total=total)
 
 
-@router.get("/{video_id}", response_model=VideoResponse)
+@router.get("/{short_id}", response_model=VideoResponse)
 async def get_video(
-    video_id: str,
+    short_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Get a single video by ID."""
-    video = await get_video_or_404(video_id, db)
+    """Get a single video by short_id."""
+    video = await get_video_or_404(short_id, db)
 
     # Check access: admins can view any video, users can view COMPLETED or their own
     if current_user.role != "admin":
@@ -520,15 +521,15 @@ async def get_video(
     return VideoResponse(**video_dict)
 
 
-@router.patch("/{video_id}", response_model=VideoResponse)
+@router.patch("/{short_id}", response_model=VideoResponse)
 async def update_video(
-    video_id: str,
+    short_id: str,
     updates: VideoUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Update video metadata (owner or admin only)."""
-    video = await get_video_or_404(video_id, db)
+    video = await get_video_or_404(short_id, db)
     await require_video_owner_or_admin(video, current_user)
 
     # Apply updates
@@ -565,14 +566,14 @@ async def update_video(
     return VideoResponse(**video_dict)
 
 
-@router.delete("/{video_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{short_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_video(
-    video_id: str,
+    short_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Delete a video (owner or admin only)."""
-    video = await get_video_or_404(video_id, db)
+    video = await get_video_or_404(short_id, db)
     await require_video_owner_or_admin(video, current_user)
 
     # Delete files
@@ -590,17 +591,17 @@ async def delete_video(
     await db.delete(video)
     await db.commit()
 
-    logger.info(f"Deleted video {video_id} by {current_user.username}")
+    logger.info(f"Deleted video {video.id} by {current_user.username}")
 
 
-@router.get("/{video_id}/stream")
+@router.get("/{short_id}/stream")
 async def stream_video(
-    video_id: str,
+    short_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_user_from_token_or_query),
 ):
     """Stream video file with Range header support."""
-    video = await get_video_or_404(video_id, db)
+    video = await get_video_or_404(short_id, db)
 
     # Check access
     if current_user.role != "admin":
@@ -631,14 +632,14 @@ async def stream_video(
     )
 
 
-@router.get("/{video_id}/thumbnail")
+@router.get("/{short_id}/thumbnail")
 async def get_thumbnail(
-    video_id: str,
+    short_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_user_from_token_or_query),
 ):
     """Get video thumbnail image."""
-    video = await get_video_or_404(video_id, db)
+    video = await get_video_or_404(short_id, db)
 
     if not video.thumbnail_filename:
         raise HTTPException(
@@ -659,14 +660,14 @@ async def get_thumbnail(
     )
 
 
-@router.post("/{video_id}/view", response_model=ViewCountResponse)
+@router.post("/{short_id}/view", response_model=ViewCountResponse)
 async def increment_view_count(
-    video_id: str,
+    short_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Increment video view count."""
-    video = await get_video_or_404(video_id, db)
+    video = await get_video_or_404(short_id, db)
 
     video.view_count += 1
     await db.commit()

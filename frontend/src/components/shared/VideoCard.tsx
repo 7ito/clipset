@@ -34,8 +34,8 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
         <div className="bg-card text-card-foreground border border-border h-full flex flex-col overflow-hidden transition-all duration-300 hover:border-primary/50 rounded-none group-hover:translate-y-[-2px]">
           <div className="relative aspect-video bg-muted overflow-hidden z-10">
             <Link 
-              to="/videos/$id"
-              params={{ id: video.id }}
+              to="/v/$shortId"
+              params={{ shortId: video.short_id }}
               search={{}}
               className="absolute inset-0 z-20"
               aria-label={`View video: ${video.title}`}
@@ -79,7 +79,7 @@ export function VideoCard({ video, showUploader = true }: VideoCardProps) {
           </div>
           
           <div className="px-2.5 pt-2 pb-2.5 z-10 flex-1 flex flex-col gap-0.5 relative">
-            <Link to="/videos/$id" params={{ id: video.id }} search={{}} className="group/title inline-block">
+            <Link to="/v/$shortId" params={{ shortId: video.short_id }} search={{}} className="group/title inline-block">
               <h3 className="font-semibold text-[13px] line-clamp-2 leading-tight group-hover/title:text-primary transition-colors">
                 {video.title}
               </h3>

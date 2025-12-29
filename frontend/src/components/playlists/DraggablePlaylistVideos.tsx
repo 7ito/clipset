@@ -197,8 +197,8 @@ function SortableVideoItem({
         {/* Video info */}
         <div className="flex-1 min-w-0">
           <Link 
-            to="/videos/$id" 
-            params={{ id: playlistVideo.video_id }}
+            to="/v/$shortId" 
+            params={{ shortId: playlistVideo.video.short_id }}
             search={{ playlistId }}
             className="font-semibold hover:text-primary transition-colors line-clamp-1"
           >

@@ -12,3 +12,4 @@ python-multipart==0.0.17
 email-validator==2.3.0
 greenlet==3.3.0
 Pillow==12.0.0
+nanoid

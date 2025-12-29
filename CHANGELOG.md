@@ -19,6 +19,12 @@ All notable changes to Clipset will be documented in this file.
 - **Playback Speed Menu**: Implemented a responsive bottom sheet for mobile viewports with a tap-outside-to-dismiss interaction.
 - **iOS Fullscreen Support**: Created a "fake" fullscreen mode for iOS using CSS transforms to force landscape orientation while maintaining custom control functionality and double-tap to skip.
 
+### Added - Short URLs (COMPLETE ✅)
+- **Short Video Links**: Video URLs now use 10-character alphanumeric short IDs instead of 36-character UUIDs.
+- **New Route**: Updated video player route from `/videos/{uuid}` to `/v/{short_id}`.
+- **Automatic Backfill**: Existing videos were automatically assigned short IDs during migration.
+- **Updated Sharing**: Share dialog and internal navigation now generate the shorter URLs.
+
 ### Changed - UI Refinements & Share Dialog (COMPLETE ✅)
 - **Video Player Enhancements**:
   - Brightened controls gradient overlay and increased visibility of control icons and text.

@@ -264,8 +264,8 @@ function PlaylistDetailPage() {
                   {/* Video info */}
                   <div className="flex-1 min-w-0">
                     <Link 
-                      to="/videos/$id" 
-                      params={{ id: pv.video_id }}
+                      to="/v/$shortId" 
+                      params={{ shortId: pv.video.short_id }}
                       search={{ playlistId: id }}
                       className="font-semibold hover:text-primary transition-colors line-clamp-1"
                     >

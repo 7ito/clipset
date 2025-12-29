@@ -251,8 +251,8 @@ function AdminDashboard() {
                 >
                   <div className="flex-1 min-w-0">
                     <Link
-                      to="/videos/$id"
-                      params={{ id: video.id }}
+                      to="/v/$shortId"
+                      params={{ shortId: video.short_id }}
                       search={{}}
                       className="font-medium hover:text-primary transition-colors line-clamp-1"
                     >

@@ -5,6 +5,17 @@
 
 ---
 
+### Short URLs - COMPLETE ✅
+**Status**: 100% Complete - Production Ready
+- ✅ Backend: Added `short_id` column to Video model with `nanoid` generation.
+- ✅ Backend: Created migration to backfill short IDs for existing videos.
+- ✅ Backend: Updated all video API endpoints to use `short_id` for identification.
+- ✅ Frontend: Switched from `/videos/$id` to `/v/$shortId` route.
+- ✅ Frontend: Updated all components and links to use short IDs.
+- ✅ Verified: Short links work correctly on dashboard, playlists, and share dialog.
+
+---
+
 ## Just Completed (Session - December 29, 2025 - Part 2)
 
 ### Mobile Video Player Fixes - COMPLETE ✅

@@ -117,10 +117,10 @@ export async function getVideos(params?: VideoListParams): Promise<VideoListResp
 }
 
 /**
- * Get a single video by ID
+ * Get a single video by short_id
  */
-export async function getVideo(id: string): Promise<Video> {
-  const response = await apiClient.get<Video>(`/api/videos/${id}`)
+export async function getVideo(shortId: string): Promise<Video> {
+  const response = await apiClient.get<Video>(`/api/videos/${shortId}`)
   return response.data
 }
 
@@ -128,25 +128,25 @@ export async function getVideo(id: string): Promise<Video> {
  * Update video metadata
  */
 export async function updateVideo(
-  id: string,
+  shortId: string,
   data: Partial<VideoUploadRequest>
 ): Promise<Video> {
-  const response = await apiClient.patch<Video>(`/api/videos/${id}`, data)
+  const response = await apiClient.patch<Video>(`/api/videos/${shortId}`, data)
   return response.data
 }
 
 /**
  * Delete a video
  */
-export async function deleteVideo(id: string): Promise<void> {
-  await apiClient.delete(`/api/videos/${id}`)
+export async function deleteVideo(shortId: string): Promise<void> {
+  await apiClient.delete(`/api/videos/${shortId}`)
 }
 
 /**
  * Increment video view count
  */
-export async function incrementViewCount(id: string): Promise<{ view_count: number }> {
-  const response = await apiClient.post<{ view_count: number }>(`/api/videos/${id}/view`)
+export async function incrementViewCount(shortId: string): Promise<{ view_count: number }> {
+  const response = await apiClient.post<{ view_count: number }>(`/api/videos/${shortId}/view`)
   return response.data
 }
 
@@ -161,10 +161,10 @@ export async function getQuotaInfo(): Promise<QuotaInfo> {
 /**
  * Get video streaming URL
  */
-export function getVideoStreamUrl(id: string): string {
+export function getVideoStreamUrl(shortId: string): string {
   const token = localStorage.getItem("clipset_token")
   const baseUrl = env.apiBaseUrl.endsWith("/") ? env.apiBaseUrl.slice(0, -1) : env.apiBaseUrl
-  return `${baseUrl}/api/videos/${id}/stream?token=${token}`
+  return `${baseUrl}/api/videos/${shortId}/stream?token=${token}`
 }
 
 import { env } from "@/config/env"

@@ -45,6 +45,7 @@ class VideoResponse(BaseResponse):
 
     # Video model fields
     id: str
+    short_id: str
     title: str
     description: Optional[str]
     filename: str

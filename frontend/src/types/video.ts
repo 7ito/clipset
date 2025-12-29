@@ -13,6 +13,7 @@ export type ProcessingStatus = typeof ProcessingStatus[keyof typeof ProcessingSt
 
 export interface Video {
   id: string
+  short_id: string
   title: string
   description: string | null
   filename: string

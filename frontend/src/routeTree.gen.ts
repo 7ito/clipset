@@ -23,6 +23,7 @@ import { Route as AuthUsersIndexRouteImport } from './routes/_auth/users.index'
 import { Route as AuthCategoriesIndexRouteImport } from './routes/_auth/categories.index'
 import { Route as AuthAdminIndexRouteImport } from './routes/_auth/admin.index'
 import { Route as AuthVideosIdRouteImport } from './routes/_auth/videos.$id'
+import { Route as AuthVShortIdRouteImport } from './routes/_auth/v.$shortId'
 import { Route as AuthProfileUsernameRouteImport } from './routes/_auth/profile.$username'
 import { Route as AuthCategoriesSlugRouteImport } from './routes/_auth/categories.$slug'
 import { Route as AuthAdminUsersRouteImport } from './routes/_auth/admin.users'
@@ -101,6 +102,11 @@ const AuthVideosIdRoute = AuthVideosIdRouteImport.update({
   path: '/videos/$id',
   getParentRoute: () => AuthRoute,
 } as any)
+const AuthVShortIdRoute = AuthVShortIdRouteImport.update({
+  id: '/v/$shortId',
+  path: '/v/$shortId',
+  getParentRoute: () => AuthRoute,
+} as any)
 const AuthProfileUsernameRoute = AuthProfileUsernameRouteImport.update({
   id: '/$username',
   path: '/$username',
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/admin/users': typeof AuthAdminUsersRoute
   '/categories/$slug': typeof AuthCategoriesSlugRoute
   '/profile/$username': typeof AuthProfileUsernameRouteWithChildren
+  '/v/$shortId': typeof AuthVShortIdRoute
   '/videos/$id': typeof AuthVideosIdRoute
   '/admin/': typeof AuthAdminIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
@@ -181,6 +188,7 @@ export interface FileRoutesByTo {
   '/admin/settings': typeof AuthAdminSettingsRoute
   '/admin/users': typeof AuthAdminUsersRoute
   '/categories/$slug': typeof AuthCategoriesSlugRoute
+  '/v/$shortId': typeof AuthVShortIdRoute
   '/videos/$id': typeof AuthVideosIdRoute
   '/admin': typeof AuthAdminIndexRoute
   '/categories': typeof AuthCategoriesIndexRoute
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/_auth/admin/users': typeof AuthAdminUsersRoute
   '/_auth/categories/$slug': typeof AuthCategoriesSlugRoute
   '/_auth/profile/$username': typeof AuthProfileUsernameRouteWithChildren
+  '/_auth/v/$shortId': typeof AuthVShortIdRoute
   '/_auth/videos/$id': typeof AuthVideosIdRoute
   '/_auth/admin/': typeof AuthAdminIndexRoute
   '/_auth/categories/': typeof AuthCategoriesIndexRoute
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/admin/users'
     | '/categories/$slug'
     | '/profile/$username'
+    | '/v/$shortId'
     | '/videos/$id'
     | '/admin/'
     | '/categories'
@@ -252,6 +262,7 @@ export interface FileRouteTypes {
     | '/admin/settings'
     | '/admin/users'
     | '/categories/$slug'
+    | '/v/$shortId'
     | '/videos/$id'
     | '/admin'
     | '/categories'
@@ -276,6 +287,7 @@ export interface FileRouteTypes {
     | '/_auth/admin/users'
     | '/_auth/categories/$slug'
     | '/_auth/profile/$username'
+    | '/_auth/v/$shortId'
     | '/_auth/videos/$id'
     | '/_auth/admin/'
     | '/_auth/categories/'
@@ -393,6 +405,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthVideosIdRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_auth/v/$shortId': {
+      id: '/_auth/v/$shortId'
+      path: '/v/$shortId'
+      fullPath: '/v/$shortId'
+      preLoaderRoute: typeof AuthVShortIdRouteImport
+      parentRoute: typeof AuthRoute
+    }
     '/_auth/profile/$username': {
       id: '/_auth/profile/$username'
       path: '/$username'
@@ -503,6 +522,7 @@ interface AuthRouteChildren {
   AuthProfileRoute: typeof AuthProfileRouteWithChildren
   AuthUploadRoute: typeof AuthUploadRoute
   AuthCategoriesSlugRoute: typeof AuthCategoriesSlugRoute
+  AuthVShortIdRoute: typeof AuthVShortIdRoute
   AuthVideosIdRoute: typeof AuthVideosIdRoute
   AuthCategoriesIndexRoute: typeof AuthCategoriesIndexRoute
   AuthUsersIndexRoute: typeof AuthUsersIndexRoute
@@ -514,6 +534,7 @@ const AuthRouteChildren: AuthRouteChildren = {
   AuthProfileRoute: AuthProfileRouteWithChildren,
   AuthUploadRoute: AuthUploadRoute,
   AuthCategoriesSlugRoute: AuthCategoriesSlugRoute,
+  AuthVShortIdRoute: AuthVShortIdRoute,
   AuthVideosIdRoute: AuthVideosIdRoute,
   AuthCategoriesIndexRoute: AuthCategoriesIndexRoute,
   AuthUsersIndexRoute: AuthUsersIndexRoute,

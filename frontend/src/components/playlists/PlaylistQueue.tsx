@@ -108,8 +108,8 @@ export function PlaylistQueue({
                 className="flex-shrink-0"
               >
                 <Link
-                  to="/videos/$id"
-                  params={{ id: pv.video_id }}
+                  to="/v/$shortId"
+                  params={{ shortId: pv.video.short_id }}
                   search={{ playlistId: playlist.id }}
                   className={`block w-48 group/item transition-all ${isActive ? 'ring-2 ring-primary rounded-none p-1 -m-1' : 'hover:opacity-80'}`}
                 >

@@ -4,6 +4,52 @@ All notable changes to Clipset will be documented in this file.
 
 ## [Unreleased] - 2025-12-29
 
+### Added - Batch Upload Feature (COMPLETE ✅)
+- **Multiple File Upload**: Enhanced upload page to support selecting and uploading multiple videos at once.
+  - File picker with `multiple` attribute for batch selection
+  - iOS-compatible (works with photo library)
+  - Maximum batch size of 20 files (with warning for larger selections)
+  
+- **File Queue Management**:
+  - Drag-and-drop reordering using @dnd-kit
+  - Auto-generated video thumbnails (client-side)
+  - File size and format validation before adding to queue
+  - Remove individual files from queue
+  
+- **Title Prefix System**:
+  - Set a shared title prefix (e.g., "Pickup Basketball Game")
+  - Auto-generates numbered titles: "Pickup Basketball Game 1", "...Game 2"
+  - Preview shows generated titles in real-time
+  - Individual titles still editable per file
+  
+- **Shared Settings**:
+  - Category selection applies to all videos in batch
+  - Individual description fields per video (expandable)
+  
+- **Playlist Integration**:
+  - "Don't add to playlist" - uploads without playlist association
+  - "Add to existing playlist" - select from user's playlists
+  - "Create new playlist" - inline form for name and description
+  - Videos automatically added to playlist after successful upload
+  
+- **Upload Progress**:
+  - Sequential upload (one video at a time)
+  - Overall progress bar (X of Y videos)
+  - Per-file progress bar during upload
+  - Status indicators per file (pending/uploading/complete/failed)
+  
+- **Completion Summary**:
+  - Success/failure counts
+  - Navigation options: View Playlist, Go to Profile, Upload More
+  - Error messages for failed uploads
+
+- **New Components**:
+  - `BatchFileItem` - Single file row with thumbnail, title, description
+  - `BatchFileQueue` - Sortable file list with drag handles
+  - `PlaylistSelector` - Radio group for playlist options
+  - `BatchUploadProgress` - Progress display and completion summary
+  - `RadioGroup` - Radix UI radio group component
+
 ### Fixed - Video Player Seeking (COMPLETE ✅)
 - **HTTP Range Request Support**: Fixed video seeking to unbuffered positions.
   - Previously, clicking on the progress bar to seek past the buffered content would only jump to the farthest loaded point.

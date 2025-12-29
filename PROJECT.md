@@ -460,6 +460,36 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 
 **Key Achievement**: Transformed the video viewing experience with a feature-rich comment system and a modern sharing workflow, while maintaining design consistency throughout the platform.
 
+### ✅ Phase 19: Batch Upload Feature (Completed)
+**Goal**: Allow users to upload multiple videos at once with shared settings and playlist integration.
+
+**Use Case**: After recording pickup basketball games, users can batch upload 4-5 videos with a shared title scheme (e.g., "Pickup Game 1", "Pickup Game 2") and add them all to a playlist in one go.
+
+**Features Implemented**:
+- Multiple file selection with iOS photo library compatibility
+- Drag-and-drop reordering before upload
+- Title prefix system with auto-numbering
+- Shared category selection for all videos
+- Individual description editing per video
+- Playlist integration:
+  - Add to existing playlist
+  - Create new playlist inline
+- Sequential upload with per-file and overall progress
+- Completion summary with navigation options
+
+**New Components**:
+- `BatchFileItem` - File row with thumbnail, title, drag handle
+- `BatchFileQueue` - Sortable list using @dnd-kit
+- `PlaylistSelector` - Radio group for playlist options
+- `BatchUploadProgress` - Progress and completion display
+- `RadioGroup` - Radix UI component
+
+**Technical Notes**:
+- Reuses existing `uploadVideo()` API (supports chunked uploads)
+- Maximum batch size: 20 files
+- Client-side video thumbnail generation
+- iOS-compatible file selection
+
 ### Future Enhancements (Post-MVP)
 
 - Advanced search and filtering

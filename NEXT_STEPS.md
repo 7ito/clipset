@@ -1,7 +1,61 @@
 # Next Steps - Clipset Development
 
 **Last Updated**: December 29, 2025  
-**Current Phase**: UI Polish & Enhanced UX
+**Current Phase**: Batch Upload Feature
+
+---
+
+## Just Completed (Session - December 29, 2025 - Part 4)
+
+### Batch Upload Feature - COMPLETE ✅
+**Status**: 100% Complete - Production Ready
+**Time Spent**: ~3 hours
+
+**What Was Built**:
+A complete batch upload system allowing users to upload multiple videos at once with shared settings and playlist integration.
+
+**Key Features**:
+1. ✅ **Multiple File Selection**: File picker with `multiple` attribute, iOS-compatible
+2. ✅ **Drag-and-Drop Reordering**: Using @dnd-kit for reordering files before upload
+3. ✅ **Title Prefix System**: Auto-generates titles like "Pickup Basketball Game 1", "...Game 2"
+4. ✅ **Shared Category Selection**: Apply one category to all videos in batch
+5. ✅ **Individual Descriptions**: Per-video description editing (expandable)
+6. ✅ **Playlist Integration**:
+   - "Don't add to playlist" (default)
+   - "Add to existing playlist" with dropdown selection
+   - "Create new playlist" with inline name/description form
+7. ✅ **Sequential Upload**: Uploads videos one at a time with per-file progress
+8. ✅ **Progress Tracking**: Overall progress + current file progress
+9. ✅ **Completion Summary**: Shows success/failure counts with navigation options
+10. ✅ **Mobile-Friendly**: Optimized for iOS photo library selection
+
+**New Components Created**:
+- `frontend/src/components/upload/BatchFileItem.tsx` - Single file row with thumbnail, title, description
+- `frontend/src/components/upload/BatchFileQueue.tsx` - File list with drag-drop reordering
+- `frontend/src/components/upload/PlaylistSelector.tsx` - Radio group for playlist options
+- `frontend/src/components/upload/BatchUploadProgress.tsx` - Progress display and completion summary
+- `frontend/src/components/ui/radio-group.tsx` - Shadcn RadioGroup component
+
+**Files Modified**:
+- `frontend/src/routes/_auth/upload.tsx` - Complete rewrite for batch support
+- `frontend/src/lib/toast.ts` - Added `warning` toast type
+
+**Technical Details**:
+- Maximum batch size: 20 files (soft limit with warning)
+- Auto-generates video thumbnails client-side
+- Validates file types and sizes before adding to queue
+- Uses existing `uploadVideo()` API (with chunked upload support for large files)
+- Creates playlist first (if needed), then uploads videos sequentially
+- Adds each video to playlist after successful upload
+
+**Testing Verified**:
+- ✅ Multiple file selection working
+- ✅ File queue with thumbnails displays correctly
+- ✅ Drag-drop reordering functional
+- ✅ Title prefix generates correct numbered titles
+- ✅ Playlist selector radio buttons work correctly
+- ✅ Create new playlist form shows when selected
+- ✅ Upload button enables/disables based on validation
 
 ---
 

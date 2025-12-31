@@ -25,7 +25,7 @@ import { CommentSection } from "@/components/comments/CommentSection"
 
 export const Route = createFileRoute("/_auth/v/$shortId")({
   component: VideoPlayerPage,
-  validateSearch: (search: Record<string, unknown>): { playlistId?: string; t?: number } => {
+  validateSearch: (search: Record<string, unknown>): { playlist?: string; t?: number } => {
     // Parse timestamp from URL
     const tParam = search.t
     let timestamp: number | undefined
@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_auth/v/$shortId")({
     }
 
     return {
-      playlistId: (search.playlistId as string) || undefined,
+      playlist: (search.playlist as string) || undefined,
       t: timestamp
     }
   },
@@ -68,7 +68,7 @@ function DescriptionContent({ text }: { text: string }) {
 
 function VideoPlayerPage() {
   const { shortId } = Route.useParams()
-  const { playlistId, t: initialTimestamp } = Route.useSearch()
+  const { playlist: playlistShortId, t: initialTimestamp } = Route.useSearch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { user } = useAuth()
@@ -90,11 +90,11 @@ function VideoPlayerPage() {
     queryFn: () => getVideo(shortId)
   })
 
-  // Fetch playlist if context exists
+  // Fetch playlist if context exists (using short_id)
   const { data: playlist } = useQuery({
-    queryKey: ["playlist", playlistId],
-    queryFn: () => getPlaylist(playlistId!),
-    enabled: !!playlistId
+    queryKey: ["playlist", playlistShortId],
+    queryFn: () => getPlaylist(playlistShortId!),
+    enabled: !!playlistShortId
   })
 
   // Poll for status updates if video is processing
@@ -125,13 +125,13 @@ function VideoPlayerPage() {
           navigate({ 
             to: "/v/$shortId", 
             params: { shortId: nextVideo.video.short_id },
-            search: { playlistId }
+            search: { playlist: playlistShortId }
           })
         }
       }
     }
     return () => clearTimeout(timer)
-  }, [nextCountdown, playlist, video, navigate, playlistId])
+  }, [nextCountdown, playlist, video, navigate, playlistShortId])
 
   // Reset state when video changes
   useEffect(() => {
@@ -302,7 +302,7 @@ function VideoPlayerPage() {
                         navigate({
                           to: "/v/$shortId",
                           params: { shortId: playlist.videos[prevIndex].video.short_id },
-                          search: { playlistId }
+                          search: { playlist: playlistShortId }
                         })
                       }}
                       title="Previous Video"
@@ -319,7 +319,7 @@ function VideoPlayerPage() {
                         navigate({
                           to: "/v/$shortId",
                           params: { shortId: playlist.videos[nextIndex].video.short_id },
-                          search: { playlistId }
+                          search: { playlist: playlistShortId }
                         })
                       }}
                       title="Next Video"

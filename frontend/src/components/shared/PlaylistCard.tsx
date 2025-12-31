@@ -5,7 +5,7 @@ import { getThumbnailUrl } from "@/api/videos"
 
 interface PlaylistCardProps {
   playlist: Playlist
-  username: string
+  username?: string // No longer required since we use short_id directly
 }
 
 // Generate a gradient based on playlist name (for consistent colors)
@@ -25,7 +25,7 @@ function generateGradient(name: string): string {
   return gradients[index]
 }
 
-export function PlaylistCard({ playlist, username }: PlaylistCardProps) {
+export function PlaylistCard({ playlist }: PlaylistCardProps) {
   const gradient = generateGradient(playlist.name)
   
   // Get cover image from first video thumbnail if available
@@ -35,8 +35,8 @@ export function PlaylistCard({ playlist, username }: PlaylistCardProps) {
   
   return (
     <Link
-      to="/profile/$username/playlist/$id"
-      params={{ username, id: playlist.id }}
+      to="/playlist/$shortId"
+      params={{ shortId: playlist.short_id }}
       className="group block"
     >
       <div className="relative overflow-hidden rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-xl">

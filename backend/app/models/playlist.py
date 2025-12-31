@@ -18,7 +18,16 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 import uuid
+from nanoid import generate
 from app.database import Base
+
+
+def generate_short_id() -> str:
+    """Generate 10-char alphanumeric short ID for URLs."""
+    return generate(
+        alphabet="0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ",
+        size=10,
+    )
 
 
 class Playlist(Base):
@@ -32,6 +41,9 @@ class Playlist(Base):
     __tablename__ = "playlists"
 
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    short_id = Column(
+        String(10), unique=True, index=True, default=generate_short_id, nullable=False
+    )
     name = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
 

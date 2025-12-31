@@ -434,12 +434,22 @@ Social media platforms compress videos or impose file size limits. Clipset provi
 **Goal**: Implement a full comment system and polish the video player experience with a modern, YouTube-style interface.
 
 ### ✅ Phase 18: Short URLs (Completed)
-**Goal**: Shorten video links from long UUIDs to short 10-character IDs.
+**Goal**: Shorten video and playlist links from long UUIDs to short 10-character IDs.
+
+**Video Short URLs**:
 - **Backend**: Added `short_id` to Video model using `nanoid`.
 - **Backend**: Implemented database migration and backfilled existing videos.
 - **Backend**: Updated API endpoints to use `short_id` for video lookup.
 - **Frontend**: Updated routing from `/videos/{uuid}` to `/v/{short_id}`.
 - **Frontend**: Updated all internal links and share dialog to use short IDs.
+
+**Playlist Short URLs**:
+- **Backend**: Added `short_id` to Playlist model using `nanoid`.
+- **Backend**: Implemented database migration and backfilled existing playlists.
+- **Backend**: Updated all playlist API endpoints to use `short_id` for identification.
+- **Frontend**: Updated routing from `/profile/{username}/playlist/{uuid}` to `/playlist/{short_id}`.
+- **Frontend**: Updated video player playlist context from `?playlistId={uuid}` to `?playlist={short_id}`.
+- **Frontend**: Removed old nested route, created standalone `/playlist/$shortId` route.
 
 **Backend**:
 - **Comment Model**: Supports single-level nested replies and optional timestamp references.

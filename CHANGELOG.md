@@ -86,6 +86,14 @@ All notable changes to Clipset will be documented in this file.
 - **Automatic Backfill**: Existing videos were automatically assigned short IDs during migration.
 - **Updated Sharing**: Share dialog and internal navigation now generate the shorter URLs.
 
+### Added - Short Playlist URLs (COMPLETE ✅)
+- **Short Playlist Links**: Playlist URLs now use 10-character alphanumeric short IDs instead of 36-character UUIDs.
+- **New Route**: Updated playlist route from `/profile/{username}/playlist/{uuid}` to `/playlist/{short_id}`.
+- **Simplified URL Structure**: Removed username from playlist URL path - playlists are now accessible at `/playlist/{short_id}`.
+- **Automatic Backfill**: Existing playlists were automatically assigned short IDs during migration.
+- **Video Player Integration**: Playlist context in video player now uses `?playlist={short_id}` instead of `?playlistId={uuid}`.
+- **Backend API Updates**: All playlist endpoints now use `short_id` for identification (`GET /api/playlists/{short_id}`, etc.).
+
 ### Changed - UI Refinements & Share Dialog (COMPLETE ✅)
 - **Video Player Enhancements**:
   - Brightened controls gradient overlay and increased visibility of control icons and text.

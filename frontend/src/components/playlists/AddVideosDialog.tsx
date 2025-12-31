@@ -53,12 +53,12 @@ export function AddVideosDialog({ isOpen, onClose, playlist }: AddVideosDialogPr
     enabled: isOpen
   })
 
-  // Add videos mutation
+  // Add videos mutation (use short_id for API calls)
   const addVideosMutation = useMutation({
     mutationFn: async (videoIds: string[]) => {
       // Add videos in the order they were selected
       const results = await Promise.allSettled(
-        videoIds.map(videoId => addVideoToPlaylist(playlist.id, videoId))
+        videoIds.map(videoId => addVideoToPlaylist(playlist.short_id, videoId))
       )
       
       // Check for failures
@@ -68,7 +68,7 @@ export function AddVideosDialog({ isOpen, onClose, playlist }: AddVideosDialogPr
       }
     },
     onSuccess: (_, videoIds) => {
-      queryClient.invalidateQueries({ queryKey: ["playlist", playlist.id] })
+      queryClient.invalidateQueries({ queryKey: ["playlist", playlist.short_id] })
       queryClient.invalidateQueries({ queryKey: ["playlists"] })
       toast.success(`Added ${videoIds.length} ${videoIds.length === 1 ? 'video' : 'videos'} to playlist`)
       handleClose()

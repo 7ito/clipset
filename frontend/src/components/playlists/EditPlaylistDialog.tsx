@@ -29,9 +29,9 @@ export function EditPlaylistDialog({ isOpen, onClose, playlist }: EditPlaylistDi
   }, [isOpen, playlist])
 
   const updateMutation = useMutation({
-    mutationFn: (data: PlaylistUpdate) => updatePlaylist(playlist.id, data),
+    mutationFn: (data: PlaylistUpdate) => updatePlaylist(playlist.short_id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["playlist", playlist.id] })
+      queryClient.invalidateQueries({ queryKey: ["playlist", playlist.short_id] })
       queryClient.invalidateQueries({ queryKey: ["playlists"] })
       toast.success("Playlist updated successfully")
       handleClose()

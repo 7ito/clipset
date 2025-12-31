@@ -32,31 +32,31 @@ export const createPlaylist = async (data: PlaylistCreate): Promise<Playlist> =>
 /**
  * Get a single playlist with all videos
  */
-export const getPlaylist = async (id: string): Promise<PlaylistWithVideos> => {
-  const response = await apiClient.get<PlaylistWithVideos>(`/api/playlists/${id}`)
+export const getPlaylist = async (shortId: string): Promise<PlaylistWithVideos> => {
+  const response = await apiClient.get<PlaylistWithVideos>(`/api/playlists/${shortId}`)
   return response.data
 }
 
 /**
  * Update playlist metadata
  */
-export const updatePlaylist = async (id: string, data: PlaylistUpdate): Promise<Playlist> => {
-  const response = await apiClient.patch<Playlist>(`/api/playlists/${id}`, data)
+export const updatePlaylist = async (shortId: string, data: PlaylistUpdate): Promise<Playlist> => {
+  const response = await apiClient.patch<Playlist>(`/api/playlists/${shortId}`, data)
   return response.data
 }
 
 /**
  * Delete a playlist
  */
-export const deletePlaylist = async (id: string): Promise<void> => {
-  await apiClient.delete(`/api/playlists/${id}`)
+export const deletePlaylist = async (shortId: string): Promise<void> => {
+  await apiClient.delete(`/api/playlists/${shortId}`)
 }
 
 /**
  * Add a video to a playlist
  */
 export const addVideoToPlaylist = async (
-  playlistId: string,
+  playlistShortId: string,
   videoId: string,
   position?: number
 ): Promise<void> => {
@@ -64,27 +64,27 @@ export const addVideoToPlaylist = async (
     video_id: videoId,
     position,
   }
-  await apiClient.post(`/api/playlists/${playlistId}/videos`, data)
+  await apiClient.post(`/api/playlists/${playlistShortId}/videos`, data)
 }
 
 /**
  * Remove a video from a playlist
  */
 export const removeVideoFromPlaylist = async (
-  playlistId: string,
+  playlistShortId: string,
   videoId: string
 ): Promise<void> => {
-  await apiClient.delete(`/api/playlists/${playlistId}/videos/${videoId}`)
+  await apiClient.delete(`/api/playlists/${playlistShortId}/videos/${videoId}`)
 }
 
 /**
  * Reorder videos in a playlist
  */
 export const reorderPlaylistVideos = async (
-  playlistId: string,
+  playlistShortId: string,
   videoPositions: Array<{ video_id: string; position: number }>
 ): Promise<void> => {
-  await apiClient.patch(`/api/playlists/${playlistId}/reorder`, {
+  await apiClient.patch(`/api/playlists/${playlistShortId}/reorder`, {
     video_positions: videoPositions,
   })
 }

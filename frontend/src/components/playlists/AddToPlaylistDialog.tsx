@@ -45,15 +45,15 @@ export function AddToPlaylistDialog({ isOpen, onClose, videoId, videoTitle }: Ad
     }
   }, [data])
 
-  // Save changes mutation
+  // Save changes mutation (selectedPlaylists now stores short_ids)
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const toAdd = Array.from(selectedPlaylists).filter(id => !initialPlaylists.has(id))
-      const toRemove = Array.from(initialPlaylists).filter(id => !selectedPlaylists.has(id))
+      const toAdd = Array.from(selectedPlaylists).filter(shortId => !initialPlaylists.has(shortId))
+      const toRemove = Array.from(initialPlaylists).filter(shortId => !selectedPlaylists.has(shortId))
 
       const results = await Promise.allSettled([
-        ...toAdd.map(playlistId => addVideoToPlaylist(playlistId, videoId)),
-        ...toRemove.map(playlistId => removeVideoFromPlaylist(playlistId, videoId))
+        ...toAdd.map(playlistShortId => addVideoToPlaylist(playlistShortId, videoId)),
+        ...toRemove.map(playlistShortId => removeVideoFromPlaylist(playlistShortId, videoId))
       ])
 
       const failures = results.filter(r => r.status === 'rejected')
@@ -87,12 +87,12 @@ export function AddToPlaylistDialog({ isOpen, onClose, videoId, videoTitle }: Ad
     onClose()
   }
 
-  const handleTogglePlaylist = (playlistId: string) => {
+  const handleTogglePlaylist = (playlistShortId: string) => {
     const newSelected = new Set(selectedPlaylists)
-    if (newSelected.has(playlistId)) {
-      newSelected.delete(playlistId)
+    if (newSelected.has(playlistShortId)) {
+      newSelected.delete(playlistShortId)
     } else {
-      newSelected.add(playlistId)
+      newSelected.add(playlistShortId)
     }
     setSelectedPlaylists(newSelected)
   }
@@ -154,12 +154,12 @@ export function AddToPlaylistDialog({ isOpen, onClose, videoId, videoTitle }: Ad
             ) : (
               <div className="space-y-2">
                 {data.playlists.map((playlist) => {
-                  const isSelected = selectedPlaylists.has(playlist.id)
+                  const isSelected = selectedPlaylists.has(playlist.short_id)
                   
                   return (
                     <button
                       key={playlist.id}
-                      onClick={() => handleTogglePlaylist(playlist.id)}
+                      onClick={() => handleTogglePlaylist(playlist.short_id)}
                       className={`w-full p-3 rounded-lg border-2 transition-all text-left ${
                         isSelected
                           ? 'border-primary bg-primary/5'

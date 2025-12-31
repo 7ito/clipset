@@ -130,7 +130,7 @@ export function PlaylistsTab({ username, isOwnProfile }: PlaylistsTabProps) {
       {/* Playlists grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {sortedPlaylists.map((playlist) => (
-          <PlaylistCard key={playlist.id} playlist={playlist} username={username} />
+          <PlaylistCard key={playlist.id} playlist={playlist} />
         ))}
       </div>
 

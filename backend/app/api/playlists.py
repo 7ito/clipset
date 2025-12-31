@@ -27,22 +27,22 @@ from app.api.deps import get_current_user, require_admin
 router = APIRouter()
 
 
-async def get_playlist_or_404(playlist_id: str, db: AsyncSession) -> Playlist:
-    """Get playlist by ID or raise 404."""
+async def get_playlist_or_404(short_id: str, db: AsyncSession) -> Playlist:
+    """Get playlist by short_id or raise 404."""
     result = await db.execute(
         select(Playlist)
         .options(
             joinedload(Playlist.creator),
             selectinload(Playlist.playlist_videos).selectinload(PlaylistVideo.video),
         )
-        .where(Playlist.id == playlist_id)
+        .where(Playlist.short_id == short_id)
     )
     playlist = result.scalar_one_or_none()
 
     if not playlist:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Playlist not found: {playlist_id}",
+            detail=f"Playlist not found: {short_id}",
         )
 
     return playlist
@@ -79,6 +79,7 @@ def build_playlist_response(
     """Build playlist response with metadata."""
     return PlaylistResponse(
         id=playlist.id,
+        short_id=playlist.short_id,
         name=playlist.name,
         description=playlist.description,
         created_by=playlist.created_by,
@@ -166,9 +167,9 @@ async def create_playlist(
     return build_playlist_response(playlist, video_count=0)
 
 
-@router.get("/{playlist_id}", response_model=PlaylistWithVideosResponse)
+@router.get("/{short_id}", response_model=PlaylistWithVideosResponse)
 async def get_playlist(
-    playlist_id: str,
+    short_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -176,7 +177,7 @@ async def get_playlist(
     Get playlist details with all videos.
     Available to all authenticated users (all playlists are public).
     """
-    playlist = await get_playlist_or_404(playlist_id, db)
+    playlist = await get_playlist_or_404(short_id, db)
 
     # Build video responses with full details
     from app.api.videos import build_video_response
@@ -222,6 +223,7 @@ async def get_playlist(
 
     return PlaylistWithVideosResponse(
         id=playlist.id,
+        short_id=playlist.short_id,
         name=playlist.name,
         description=playlist.description,
         created_by=playlist.created_by,
@@ -234,9 +236,9 @@ async def get_playlist(
     )
 
 
-@router.patch("/{playlist_id}", response_model=PlaylistResponse)
+@router.patch("/{short_id}", response_model=PlaylistResponse)
 async def update_playlist(
-    playlist_id: str,
+    short_id: str,
     playlist_data: PlaylistUpdate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -245,7 +247,7 @@ async def update_playlist(
     Update playlist metadata (name, description).
     Only the playlist creator can update.
     """
-    playlist = await get_playlist_or_404(playlist_id, db)
+    playlist = await get_playlist_or_404(short_id, db)
     await require_playlist_owner(playlist, current_user)
 
     # Update fields
@@ -257,10 +259,10 @@ async def update_playlist(
     await db.commit()
     await db.refresh(playlist)
 
-    # Get video count
+    # Get video count (use internal playlist.id for DB queries)
     count_result = await db.execute(
         select(func.count(PlaylistVideo.id)).where(
-            PlaylistVideo.playlist_id == playlist_id
+            PlaylistVideo.playlist_id == playlist.id
         )
     )
     video_count = count_result.scalar_one()
@@ -269,7 +271,7 @@ async def update_playlist(
     first_thumb_result = await db.execute(
         select(Video.thumbnail_filename)
         .join(PlaylistVideo, PlaylistVideo.video_id == Video.id)
-        .where(PlaylistVideo.playlist_id == playlist_id)
+        .where(PlaylistVideo.playlist_id == playlist.id)
         .order_by(PlaylistVideo.position)
         .limit(1)
     )
@@ -278,9 +280,9 @@ async def update_playlist(
     return build_playlist_response(playlist, video_count, first_thumbnail)
 
 
-@router.delete("/{playlist_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{short_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_playlist(
-    playlist_id: str,
+    short_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -288,7 +290,7 @@ async def delete_playlist(
     Delete a playlist.
     Only the playlist creator or admin can delete.
     """
-    playlist = await get_playlist_or_404(playlist_id, db)
+    playlist = await get_playlist_or_404(short_id, db)
     await require_playlist_owner_or_admin(playlist, current_user)
 
     await db.delete(playlist)
@@ -297,9 +299,9 @@ async def delete_playlist(
     return None
 
 
-@router.post("/{playlist_id}/videos", response_model=PlaylistVideoResponse)
+@router.post("/{short_id}/videos", response_model=PlaylistVideoResponse)
 async def add_video_to_playlist(
-    playlist_id: str,
+    short_id: str,
     video_data: PlaylistVideoAdd,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -308,7 +310,7 @@ async def add_video_to_playlist(
     Add a video to a playlist.
     Only the playlist creator can add videos.
     """
-    playlist = await get_playlist_or_404(playlist_id, db)
+    playlist = await get_playlist_or_404(short_id, db)
     await require_playlist_owner(playlist, current_user)
 
     # Check if video exists
@@ -323,10 +325,10 @@ async def add_video_to_playlist(
             detail=f"Video not found: {video_data.video_id}",
         )
 
-    # Check if video already in playlist
+    # Check if video already in playlist (use internal playlist.id for DB queries)
     existing_result = await db.execute(
         select(PlaylistVideo).where(
-            PlaylistVideo.playlist_id == playlist_id,
+            PlaylistVideo.playlist_id == playlist.id,
             PlaylistVideo.video_id == video_data.video_id,
         )
     )
@@ -343,15 +345,15 @@ async def add_video_to_playlist(
         # Append to end
         max_pos_result = await db.execute(
             select(func.max(PlaylistVideo.position)).where(
-                PlaylistVideo.playlist_id == playlist_id
+                PlaylistVideo.playlist_id == playlist.id
             )
         )
         max_pos = max_pos_result.scalar_one_or_none()
         position = (max_pos + 1) if max_pos is not None else 0
 
-    # Create playlist video entry
+    # Create playlist video entry (use internal playlist.id)
     playlist_video = PlaylistVideo(
-        playlist_id=playlist_id,
+        playlist_id=playlist.id,
         video_id=video_data.video_id,
         position=position,
         added_by=current_user.id,
@@ -385,11 +387,9 @@ async def add_video_to_playlist(
     )
 
 
-@router.delete(
-    "/{playlist_id}/videos/{video_id}", status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/{short_id}/videos/{video_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def remove_video_from_playlist(
-    playlist_id: str,
+    short_id: str,
     video_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -399,13 +399,13 @@ async def remove_video_from_playlist(
     Only the playlist creator can remove videos.
     Reorders remaining videos to fill the gap.
     """
-    playlist = await get_playlist_or_404(playlist_id, db)
+    playlist = await get_playlist_or_404(short_id, db)
     await require_playlist_owner(playlist, current_user)
 
-    # Find the playlist video entry
+    # Find the playlist video entry (use internal playlist.id)
     pv_result = await db.execute(
         select(PlaylistVideo).where(
-            PlaylistVideo.playlist_id == playlist_id,
+            PlaylistVideo.playlist_id == playlist.id,
             PlaylistVideo.video_id == video_id,
         )
     )
@@ -426,7 +426,7 @@ async def remove_video_from_playlist(
     remaining_result = await db.execute(
         select(PlaylistVideo)
         .where(
-            PlaylistVideo.playlist_id == playlist_id,
+            PlaylistVideo.playlist_id == playlist.id,
             PlaylistVideo.position > removed_position,
         )
         .order_by(PlaylistVideo.position)
@@ -441,9 +441,9 @@ async def remove_video_from_playlist(
     return None
 
 
-@router.patch("/{playlist_id}/reorder", status_code=status.HTTP_200_OK)
+@router.patch("/{short_id}/reorder", status_code=status.HTTP_200_OK)
 async def reorder_playlist_videos(
-    playlist_id: str,
+    short_id: str,
     reorder_data: PlaylistReorderRequest,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -452,7 +452,7 @@ async def reorder_playlist_videos(
     Reorder videos in a playlist.
     Only the playlist creator can reorder videos.
     """
-    playlist = await get_playlist_or_404(playlist_id, db)
+    playlist = await get_playlist_or_404(short_id, db)
     await require_playlist_owner(playlist, current_user)
 
     # Validate and update positions
@@ -466,10 +466,10 @@ async def reorder_playlist_videos(
                 detail="Each item must have video_id and position",
             )
 
-        # Find and update the playlist video
+        # Find and update the playlist video (use internal playlist.id)
         pv_result = await db.execute(
             select(PlaylistVideo).where(
-                PlaylistVideo.playlist_id == playlist_id,
+                PlaylistVideo.playlist_id == playlist.id,
                 PlaylistVideo.video_id == video_id,
             )
         )

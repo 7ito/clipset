@@ -16,7 +16,7 @@ import { DraggablePlaylistVideos } from "@/components/playlists/DraggablePlaylis
 import { toast } from "@/lib/toast"
 import { copyToClipboard } from "@/lib/clipboard"
 
-export const Route = createFileRoute("/_auth/profile/$username/playlist/$id")({
+export const Route = createFileRoute("/_auth/playlist/$shortId")({
   component: PlaylistDetailPage
 })
 
@@ -37,7 +37,7 @@ function generateGradient(name: string): string {
 }
 
 function PlaylistDetailPage() {
-  const { username, id } = Route.useParams()
+  const { shortId } = Route.useParams()
   const { user } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -45,34 +45,39 @@ function PlaylistDetailPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isAddVideosDialogOpen, setIsAddVideosDialogOpen] = useState(false)
 
-  // Fetch playlist with videos
+  // Fetch playlist with videos using short_id
   const { data: playlist, isLoading, error } = useQuery({
-    queryKey: ["playlist", id],
-    queryFn: () => getPlaylist(id)
+    queryKey: ["playlist", shortId],
+    queryFn: () => getPlaylist(shortId)
   })
 
   // Delete mutation
   const deleteMutation = useMutation({
-    mutationFn: () => deletePlaylist(id),
+    mutationFn: () => deletePlaylist(shortId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["playlists"] })
       toast.success("Playlist deleted successfully")
-      navigate({ to: "/profile/$username", params: { username } })
+      // Navigate to creator's profile after deletion
+      if (playlist) {
+        navigate({ to: "/profile/$username", params: { username: playlist.creator_username } })
+      } else {
+        navigate({ to: "/dashboard" })
+      }
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.detail || "Failed to delete playlist")
     }
   })
 
-  // Remove video mutation
+  // Remove video mutation (uses short_id for API calls)
   const removeMutation = useMutation({
-    mutationFn: (videoId: string) => removeVideoFromPlaylist(id, videoId),
+    mutationFn: (videoId: string) => removeVideoFromPlaylist(shortId, videoId),
     onMutate: async (videoId) => {
       // Optimistically remove video from UI
-      await queryClient.cancelQueries({ queryKey: ["playlist", id] })
-      const previousData = queryClient.getQueryData(["playlist", id])
+      await queryClient.cancelQueries({ queryKey: ["playlist", shortId] })
+      const previousData = queryClient.getQueryData(["playlist", shortId])
       
-      queryClient.setQueryData(["playlist", id], (old: any) => {
+      queryClient.setQueryData(["playlist", shortId], (old: any) => {
         if (!old) return old
         return {
           ...old,
@@ -86,18 +91,19 @@ function PlaylistDetailPage() {
     onError: (error: any, _videoId, context) => {
       // Revert on error
       if (context?.previousData) {
-        queryClient.setQueryData(["playlist", id], context.previousData)
+        queryClient.setQueryData(["playlist", shortId], context.previousData)
       }
       toast.error(error.response?.data?.detail || "Failed to remove video")
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["playlist", id] })
+      queryClient.invalidateQueries({ queryKey: ["playlist", shortId] })
       queryClient.invalidateQueries({ queryKey: ["playlists"] })
       toast.success("Video removed from playlist")
     }
   })
 
-  const isOwner = user?.username === username
+  // Determine ownership based on playlist data
+  const isOwner = playlist && user?.username === playlist.creator_username
 
   // Loading state
   if (isLoading) {
@@ -119,9 +125,9 @@ function PlaylistDetailPage() {
             description="This playlist doesn't exist or has been deleted."
           />
           <Button asChild variant="outline" className="mt-4">
-            <Link to="/profile/$username" params={{ username }}>
+            <Link to="/dashboard">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Profile
+              Back to Home
             </Link>
           </Button>
         </Card>
@@ -138,9 +144,9 @@ function PlaylistDetailPage() {
     <div className="space-y-8 max-w-6xl mx-auto">
       {/* Back button */}
       <Button asChild variant="ghost" size="sm">
-        <Link to="/profile/$username" params={{ username }}>
+        <Link to="/profile/$username" params={{ username: playlist.creator_username }}>
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to {username}'s Profile
+          Back to {playlist.creator_username}'s Profile
         </Link>
       </Button>
 
@@ -232,9 +238,9 @@ function PlaylistDetailPage() {
             }
           />
         ) : isOwner ? (
-          // Draggable list for owners
+          // Draggable list for owners (pass short_id for API calls)
           <DraggablePlaylistVideos
-            playlistId={playlist.id}
+            playlistId={playlist.short_id}
             videos={playlist.videos}
             onRemove={(videoId) => removeMutation.mutate(videoId)}
             isRemoving={removeMutation.isPending}
@@ -266,7 +272,7 @@ function PlaylistDetailPage() {
                     <Link 
                       to="/v/$shortId" 
                       params={{ shortId: pv.video.short_id }}
-                      search={{ playlistId: id }}
+                      search={{ playlist: shortId }}
                       className="font-semibold hover:text-primary transition-colors line-clamp-1"
                     >
                       {pv.video.title}

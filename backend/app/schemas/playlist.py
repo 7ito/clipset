@@ -57,6 +57,7 @@ class PlaylistResponse(BaseResponse):
     """Schema for playlist response with metadata."""
 
     id: str
+    short_id: str
     name: str
     description: Optional[str]
     created_by: str

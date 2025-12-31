@@ -136,7 +136,7 @@ export function PlaylistSelector({
                       </SelectTrigger>
                       <SelectContent>
                         {playlists.map((playlist) => (
-                          <SelectItem key={playlist.id} value={playlist.id}>
+                          <SelectItem key={playlist.short_id} value={playlist.short_id}>
                             <div className="flex items-center gap-2">
                               <span>{playlist.name}</span>
                               <span className="text-xs text-muted-foreground">

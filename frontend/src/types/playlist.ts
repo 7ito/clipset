@@ -6,6 +6,7 @@ import type { Video } from "./video"
 
 export interface Playlist {
   id: string
+  short_id: string
   name: string
   description: string | null
   created_by: string

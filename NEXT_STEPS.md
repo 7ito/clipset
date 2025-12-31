@@ -86,12 +86,23 @@ A complete batch upload system allowing users to upload multiple videos at once 
 
 ### Short URLs - COMPLETE ✅
 **Status**: 100% Complete - Production Ready
+
+**Video Short URLs**:
 - ✅ Backend: Added `short_id` column to Video model with `nanoid` generation.
 - ✅ Backend: Created migration to backfill short IDs for existing videos.
 - ✅ Backend: Updated all video API endpoints to use `short_id` for identification.
 - ✅ Frontend: Switched from `/videos/$id` to `/v/$shortId` route.
 - ✅ Frontend: Updated all components and links to use short IDs.
 - ✅ Verified: Short links work correctly on dashboard, playlists, and share dialog.
+
+**Playlist Short URLs**:
+- ✅ Backend: Added `short_id` column to Playlist model with `nanoid` generation.
+- ✅ Backend: Created migration to backfill short IDs for existing playlists.
+- ✅ Backend: Updated all playlist API endpoints to use `short_id` for identification.
+- ✅ Frontend: Switched from `/profile/$username/playlist/$id` to `/playlist/$shortId` route.
+- ✅ Frontend: Updated video player to use `?playlist={short_id}` instead of `?playlistId={uuid}`.
+- ✅ Frontend: Updated all playlist components (cards, dialogs, upload page) to use short IDs.
+- ✅ Verified: Build passes with no TypeScript errors.
 
 ---
 

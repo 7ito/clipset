@@ -199,7 +199,7 @@ function SortableVideoItem({
           <Link 
             to="/v/$shortId" 
             params={{ shortId: playlistVideo.video.short_id }}
-            search={{ playlistId }}
+            search={{ playlist: playlistId }}
             className="font-semibold hover:text-primary transition-colors line-clamp-1"
           >
             {playlistVideo.video.title}

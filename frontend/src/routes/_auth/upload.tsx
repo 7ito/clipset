@@ -319,7 +319,7 @@ function UploadPage() {
     setUploadMode("uploading")
     setCurrentUploadIndex(0)
 
-    let playlistId: string | null = null
+    let playlistShortId: string | null = null
     let playlistName: string | null = null
 
     // Create playlist first if needed
@@ -329,9 +329,9 @@ function UploadPage() {
           name: newPlaylistName.trim(),
           description: newPlaylistDescription.trim() || undefined
         })
-        playlistId = newPlaylist.id
+        playlistShortId = newPlaylist.short_id
         playlistName = newPlaylist.name
-        setCreatedPlaylistId(newPlaylist.id)
+        setCreatedPlaylistId(newPlaylist.short_id)
         setCreatedPlaylistName(newPlaylist.name)
       } catch (error: any) {
         toast.error(error.response?.data?.detail || "Failed to create playlist")
@@ -339,13 +339,13 @@ function UploadPage() {
         return
       }
     } else if (playlistOption === "existing" && selectedPlaylistId) {
-      playlistId = selectedPlaylistId
+      playlistShortId = selectedPlaylistId
       // Get playlist name from the list
-      const playlists = queryClient.getQueryData<{ playlists: Array<{ id: string; name: string }> }>(
+      const playlists = queryClient.getQueryData<{ playlists: Array<{ id: string; short_id: string; name: string }> }>(
         ["playlists", "by-user", user?.username]
       )
-      playlistName = playlists?.playlists.find((p) => p.id === selectedPlaylistId)?.name || null
-      setCreatedPlaylistId(playlistId)
+      playlistName = playlists?.playlists.find((p) => p.short_id === selectedPlaylistId)?.name || null
+      setCreatedPlaylistId(playlistShortId)
       setCreatedPlaylistName(playlistName)
     }
 
@@ -370,10 +370,10 @@ function UploadPage() {
           (progress) => updateFileStatus(queuedFile.id, "uploading", progress)
         )
 
-        // Add to playlist if selected
-        if (playlistId && video.id) {
+        // Add to playlist if selected (use short_id for API calls)
+        if (playlistShortId && video.id) {
           try {
-            await addVideoToPlaylist(playlistId, video.id)
+            await addVideoToPlaylist(playlistShortId, video.id)
           } catch (playlistError) {
             console.error("Failed to add video to playlist:", playlistError)
             // Don't fail the whole upload, just note it
@@ -398,10 +398,10 @@ function UploadPage() {
 
   // Navigation handlers for completion screen
   const handleViewPlaylist = () => {
-    if (createdPlaylistId && user) {
+    if (createdPlaylistId) {
       navigate({
-        to: "/profile/$username/playlist/$id",
-        params: { username: user.username, id: createdPlaylistId }
+        to: "/playlist/$shortId",
+        params: { shortId: createdPlaylistId }
       })
     }
   }

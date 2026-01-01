@@ -10,15 +10,81 @@ import asyncio
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional, Any
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
 
 
+async def detect_encoders() -> Dict[str, Any]:
+    """
+    Detect available video encoders on the system.
+
+    Returns:
+        Dict with keys: gpu_available, gpu_name, encoders
+    """
+    result = {
+        "gpu_available": False,
+        "gpu_name": None,
+        "encoders": [],
+    }
+
+    try:
+        # Get list of encoders from FFmpeg
+        cmd = [settings.FFMPEG_PATH, "-encoders", "-hide_banner"]
+        process = await asyncio.create_subprocess_exec(
+            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        stdout, _ = await asyncio.wait_for(process.communicate(), timeout=10)
+
+        if process.returncode == 0:
+            output = stdout.decode()
+            # Parse encoders we care about
+            encoder_names = [
+                "h264_nvenc",
+                "hevc_nvenc",
+                "av1_nvenc",
+                "libx264",
+                "libx265",
+            ]
+            for encoder in encoder_names:
+                if encoder in output:
+                    result["encoders"].append(encoder)
+
+            # Check if any NVENC encoder is available
+            if any("nvenc" in e for e in result["encoders"]):
+                result["gpu_available"] = True
+
+    except Exception as e:
+        logger.warning(f"Failed to detect FFmpeg encoders: {e}")
+
+    # Try to get GPU name using nvidia-smi
+    if result["gpu_available"]:
+        try:
+            cmd = ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"]
+            process = await asyncio.create_subprocess_exec(
+                *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+            )
+            stdout, _ = await asyncio.wait_for(process.communicate(), timeout=5)
+
+            if process.returncode == 0:
+                gpu_name = stdout.decode().strip().split("\n")[0]  # First GPU
+                result["gpu_name"] = gpu_name
+                logger.info(f"Detected GPU: {gpu_name}")
+
+        except Exception as e:
+            logger.debug(f"Could not get GPU name from nvidia-smi: {e}")
+
+    logger.info(f"Encoder detection result: {result}")
+    return result
+
+
 def _get_transcode_command(
-    input_path: Path, output_path: Path, use_gpu: bool = True
+    input_path: Path,
+    output_path: Path,
+    transcode_config: Optional[Dict[str, Any]] = None,
+    use_gpu: bool = True,
 ) -> list:
     """
     Build FFmpeg command for transcoding.
@@ -26,69 +92,114 @@ def _get_transcode_command(
     Args:
         input_path: Path to input video
         output_path: Path to save transcoded video
+        transcode_config: Dict of transcoding settings from database
         use_gpu: If True, try GPU encoding first
 
     Returns:
         List of FFmpeg command arguments
     """
-    if use_gpu and settings.USE_GPU_TRANSCODING:
+    # Use provided config or fall back to env settings
+    if transcode_config:
+        use_gpu_transcoding = transcode_config.get("use_gpu_transcoding", False)
+        max_width = transcode_config.get("max_width", 1920)
+        max_height = transcode_config.get("max_height", 1080)
+        audio_bitrate = transcode_config.get("audio_bitrate", "192k")
+    else:
+        use_gpu_transcoding = settings.USE_GPU_TRANSCODING
+        max_width = 1920
+        max_height = 1080
+        audio_bitrate = "192k"
+
+    scale_filter = (
+        f"scale='min({max_width},iw)':'min({max_height},ih)':"
+        f"force_original_aspect_ratio=decrease"
+    )
+
+    if use_gpu and use_gpu_transcoding:
+        # Get NVENC settings from config or env
+        if transcode_config:
+            nvenc_preset = transcode_config.get("nvenc_preset", "p4")
+            nvenc_cq = transcode_config.get("nvenc_cq", 18)
+            nvenc_rate_control = transcode_config.get("nvenc_rate_control", "vbr")
+            nvenc_max_bitrate = transcode_config.get("nvenc_max_bitrate", "8M")
+            nvenc_buffer_size = transcode_config.get("nvenc_buffer_size", "16M")
+        else:
+            nvenc_preset = settings.NVENC_PRESET
+            nvenc_cq = settings.NVENC_CQ
+            nvenc_rate_control = settings.NVENC_RATE_CONTROL
+            nvenc_max_bitrate = settings.NVENC_MAX_BITRATE
+            nvenc_buffer_size = settings.NVENC_BUFFER_SIZE
+
         logger.info(
             f"Using GPU transcoding: h264_nvenc "
-            f"(preset={settings.NVENC_PRESET}, cq={settings.NVENC_CQ}, "
-            f"rc={settings.NVENC_RATE_CONTROL}, maxrate={settings.NVENC_MAX_BITRATE}, "
-            f"bufsize={settings.NVENC_BUFFER_SIZE}, audio=192k)"
+            f"(preset={nvenc_preset}, cq={nvenc_cq}, "
+            f"rc={nvenc_rate_control}, maxrate={nvenc_max_bitrate}, "
+            f"bufsize={nvenc_buffer_size}, audio={audio_bitrate}, "
+            f"max_res={max_width}x{max_height})"
         )
         return [
             settings.FFMPEG_PATH,
             "-i",
             str(input_path),
             "-vf",
-            "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease",
+            scale_filter,
             "-c:v",
             "h264_nvenc",
             "-pix_fmt",
             "yuv420p",
             "-preset",
-            settings.NVENC_PRESET,
+            nvenc_preset,
             "-rc",
-            settings.NVENC_RATE_CONTROL,
+            nvenc_rate_control,
             "-cq",
-            str(settings.NVENC_CQ),
+            str(nvenc_cq),
             "-b:v",
             "0",
             "-maxrate",
-            settings.NVENC_MAX_BITRATE,
+            nvenc_max_bitrate,
             "-bufsize",
-            settings.NVENC_BUFFER_SIZE,
+            nvenc_buffer_size,
             "-c:a",
             "aac",
             "-b:a",
-            "192k",
+            audio_bitrate,
             "-movflags",
             "+faststart",
             "-y",
             str(output_path),
         ]
     else:
-        logger.info("Using CPU transcoding: libx264 (preset=medium, crf=18, audio=192k)")
+        # Get CPU settings from config or use defaults
+        if transcode_config:
+            cpu_preset = transcode_config.get("cpu_preset", "medium")
+            cpu_crf = transcode_config.get("cpu_crf", 18)
+        else:
+            cpu_preset = "medium"
+            cpu_crf = 18
+
+        logger.info(
+            f"Using CPU transcoding: libx264 "
+            f"(preset={cpu_preset}, crf={cpu_crf}, audio={audio_bitrate}, "
+            f"max_res={max_width}x{max_height})"
+        )
         return [
             settings.FFMPEG_PATH,
             "-i",
             str(input_path),
             "-vf",
-            "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease",
+            scale_filter,
             "-c:v",
             "libx264",
             "-pix_fmt",
             "yuv420p",
             "-preset",
-            "medium",
+            cpu_preset,
             "-crf",
-            "18",
+            str(cpu_crf),
             "-c:a",
             "aac",
             "-b:a",
-            "192k",
+            audio_bitrate,
             "-movflags",
             "+faststart",
             "-y",
@@ -97,7 +208,9 @@ def _get_transcode_command(
 
 
 async def _transcode_cpu_fallback(
-    input_path: Path, output_path: Path
+    input_path: Path,
+    output_path: Path,
+    transcode_config: Optional[Dict[str, Any]] = None,
 ) -> Tuple[bool, str]:
     """
     Fallback CPU transcoding.
@@ -105,11 +218,14 @@ async def _transcode_cpu_fallback(
     Args:
         input_path: Path to input video
         output_path: Path to save transcoded video
+        transcode_config: Dict of transcoding settings from database
 
     Returns:
         Tuple of (success, error_message)
     """
-    cmd = _get_transcode_command(input_path, output_path, use_gpu=False)
+    cmd = _get_transcode_command(
+        input_path, output_path, transcode_config, use_gpu=False
+    )
 
     logger.info(f"Transcoding with CPU (fallback): {input_path} -> {output_path}")
 
@@ -209,7 +325,9 @@ async def get_video_metadata(filepath: Path) -> Dict:
         stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30)
 
         if process.returncode != 0:
-            logger.error(f"Failed to extract metadata from {filepath}: {stderr.decode()}")
+            logger.error(
+                f"Failed to extract metadata from {filepath}: {stderr.decode()}"
+            )
             return {}
 
         data = json.loads(stdout.decode())
@@ -282,9 +400,7 @@ async def needs_transcoding(filepath: Path) -> bool:
         stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30)
 
         if process.returncode != 0:
-            logger.warning(
-                f"Could not determine codec for {filepath}, will transcode"
-            )
+            logger.warning(f"Could not determine codec for {filepath}, will transcode")
             return True
 
         codec = stdout.decode().strip().lower()
@@ -330,22 +446,36 @@ async def needs_transcoding(filepath: Path) -> bool:
         return True
 
 
-async def transcode_video(input_path: Path, output_path: Path) -> Tuple[bool, str]:
+async def transcode_video(
+    input_path: Path,
+    output_path: Path,
+    transcode_config: Optional[Dict[str, Any]] = None,
+) -> Tuple[bool, str]:
     """
-    Transcode video to 1080p H.264 MP4 optimized for web streaming.
+    Transcode video to H.264 MP4 optimized for web streaming.
 
-    Tries GPU first, falls back to CPU on failure.
+    Tries GPU first if enabled, falls back to CPU on failure.
 
     Args:
         input_path: Path to input video
         output_path: Path to save transcoded video
+        transcode_config: Dict of transcoding settings from database
 
     Returns:
         Tuple of (success, error_message)
     """
     try:
-        if settings.USE_GPU_TRANSCODING:
-            cmd = _get_transcode_command(input_path, output_path, use_gpu=True)
+        # Determine if GPU should be used
+        use_gpu = False
+        if transcode_config:
+            use_gpu = transcode_config.get("use_gpu_transcoding", False)
+        else:
+            use_gpu = settings.USE_GPU_TRANSCODING
+
+        if use_gpu:
+            cmd = _get_transcode_command(
+                input_path, output_path, transcode_config, use_gpu=True
+            )
 
             logger.info(f"Transcoding with GPU: {input_path} -> {output_path}")
 
@@ -366,27 +496,37 @@ async def transcode_video(input_path: Path, output_path: Path) -> Tuple[bool, st
                     f"GPU transcoding failed with exit code {process.returncode}, "
                     f"falling back to CPU: {error_msg}"
                 )
-                return await _transcode_cpu_fallback(input_path, output_path)
+                return await _transcode_cpu_fallback(
+                    input_path, output_path, transcode_config
+                )
 
         else:
-            return await _transcode_cpu_fallback(input_path, output_path)
+            return await _transcode_cpu_fallback(
+                input_path, output_path, transcode_config
+            )
 
     except asyncio.TimeoutError:
         logger.error(
             f"Transcoding timed out after {settings.VIDEO_PROCESSING_TIMEOUT}s, "
             f"falling back to CPU"
         )
-        return await _transcode_cpu_fallback(input_path, output_path)
+        return await _transcode_cpu_fallback(input_path, output_path, transcode_config)
 
     except Exception as e:
-        if settings.USE_GPU_TRANSCODING and (
-            "nvenc" in str(e).lower() or "cuda" in str(e).lower()
-        ):
+        use_gpu = False
+        if transcode_config:
+            use_gpu = transcode_config.get("use_gpu_transcoding", False)
+        else:
+            use_gpu = settings.USE_GPU_TRANSCODING
+
+        if use_gpu and ("nvenc" in str(e).lower() or "cuda" in str(e).lower()):
             logger.error(
                 f"GPU transcoding failed with CUDA/NVENC error, "
                 f"falling back to CPU: {e}"
             )
-            return await _transcode_cpu_fallback(input_path, output_path)
+            return await _transcode_cpu_fallback(
+                input_path, output_path, transcode_config
+            )
         else:
             logger.error(f"Error transcoding video {input_path}: {e}")
             return False, f"Transcoding error: {str(e)}"
@@ -449,7 +589,10 @@ async def extract_thumbnail(
 
 
 async def process_video_file(
-    input_path: Path, output_path: Path, thumbnail_path: Path
+    input_path: Path,
+    output_path: Path,
+    thumbnail_path: Path,
+    transcode_config: Optional[Dict[str, Any]] = None,
 ) -> Dict:
     """
     Complete video processing pipeline.
@@ -464,6 +607,7 @@ async def process_video_file(
         input_path: Path to uploaded video
         output_path: Path to save processed video
         thumbnail_path: Path to save thumbnail
+        transcode_config: Dict of transcoding settings from database
 
     Returns:
         Dict with keys: success, error, duration, width, height, codec
@@ -489,7 +633,9 @@ async def process_video_file(
     result["codec"] = metadata.get("codec_name")
 
     if await needs_transcoding(input_path):
-        success, error_msg = await transcode_video(input_path, output_path)
+        success, error_msg = await transcode_video(
+            input_path, output_path, transcode_config
+        )
         if not success:
             result["error"] = error_msg
             return result
@@ -509,9 +655,7 @@ async def process_video_file(
         output_path, thumbnail_path, timestamp=1.0
     )
     if not thumbnail_success:
-        logger.warning(
-            f"Thumbnail extraction failed, but continuing (non-critical)"
-        )
+        logger.warning(f"Thumbnail extraction failed, but continuing (non-critical)")
 
     result["success"] = True
     logger.info(f"Video processing completed successfully: {output_path}")

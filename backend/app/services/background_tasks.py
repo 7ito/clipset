@@ -10,6 +10,7 @@ from pathlib import Path
 from app.database import async_session_maker
 from app.models.video import Video, ProcessingStatus
 from app.services import storage, video_processor
+from app.services.config import get_or_create_config, get_transcoding_config_dict
 from app.config import settings
 from sqlalchemy import select
 
@@ -22,12 +23,13 @@ async def process_video_task(video_id: str) -> None:
 
     Processing steps:
     1. Update status to PROCESSING
-    2. Validate video file
-    3. Extract metadata
-    4. Transcode if needed (or copy if already compatible)
-    5. Generate thumbnail
-    6. Update Video record with results (COMPLETED or FAILED)
-    7. Cleanup temp file
+    2. Fetch transcoding config from database
+    3. Validate video file
+    4. Extract metadata
+    5. Transcode if needed (or copy if already compatible)
+    6. Generate thumbnail
+    7. Update Video record with results (COMPLETED or FAILED)
+    8. Cleanup temp file
 
     Args:
         video_id: ID of Video record to process
@@ -50,6 +52,20 @@ async def process_video_task(video_id: str) -> None:
             video.processing_status = ProcessingStatus.PROCESSING
             await db.commit()
 
+            # Fetch transcoding config from database
+            try:
+                config = await get_or_create_config(db)
+                transcode_config = get_transcoding_config_dict(config)
+                logger.info(
+                    f"Loaded transcoding config: GPU={transcode_config['use_gpu_transcoding']}, "
+                    f"max_res={transcode_config['max_width']}x{transcode_config['max_height']}"
+                )
+            except Exception as e:
+                logger.warning(
+                    f"Failed to load transcoding config, using defaults: {e}"
+                )
+                transcode_config = None
+
             # Define file paths
             temp_path = Path(settings.TEMP_STORAGE_PATH) / video.filename
 
@@ -68,11 +84,12 @@ async def process_video_task(video_id: str) -> None:
             if not temp_path.exists():
                 raise FileNotFoundError(f"Temp file not found: {temp_path}")
 
-            # Process video (now async!)
+            # Process video with transcoding config
             result = await video_processor.process_video_file(
                 input_path=temp_path,
                 output_path=video_output_path,
                 thumbnail_path=thumbnail_output_path,
+                transcode_config=transcode_config,
             )
 
             if not result["success"]:
@@ -88,7 +105,7 @@ async def process_video_task(video_id: str) -> None:
                 video.thumbnail_filename = (
                     thumbnail_filename if thumbnail_output_path.exists() else None
                 )
-                
+
                 # Update file_size_bytes to transcoded file size (not original upload size)
                 if video_output_path.exists():
                     transcoded_size = video_output_path.stat().st_size
@@ -102,7 +119,7 @@ async def process_video_task(video_id: str) -> None:
                         f"Transcoded file not found at {video_output_path}, "
                         f"keeping original file_size_bytes"
                     )
-                
+
                 logger.info(f"Video processing completed for {video_id}")
 
             await db.commit()

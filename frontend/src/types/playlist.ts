@@ -42,6 +42,10 @@ export interface PlaylistVideoAdd {
   position?: number
 }
 
+export interface PlaylistVideoBatchAdd {
+  video_ids: string[]
+}
+
 export interface PlaylistWithVideos extends Playlist {
   videos: PlaylistVideo[]
 }

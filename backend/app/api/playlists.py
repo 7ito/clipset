@@ -16,6 +16,7 @@ from app.schemas.playlist import (
     PlaylistCreate,
     PlaylistUpdate,
     PlaylistVideoAdd,
+    PlaylistVideoBatchAdd,
     PlaylistReorderRequest,
     PlaylistResponse,
     PlaylistListResponse,
@@ -297,6 +298,107 @@ async def delete_playlist(
     await db.commit()
 
     return None
+
+
+@router.post("/{short_id}/videos/batch", response_model=List[PlaylistVideoResponse])
+async def add_videos_to_playlist_batch(
+    short_id: str,
+    batch_data: PlaylistVideoBatchAdd,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """
+    Add multiple videos to a playlist in a specific order.
+    Videos are added in the order provided, appended after existing videos.
+    Videos already in the playlist are skipped.
+    Only the playlist creator can add videos.
+    """
+    playlist = await get_playlist_or_404(short_id, db)
+    await require_playlist_owner(playlist, current_user)
+
+    # Get current max position in the playlist
+    max_pos_result = await db.execute(
+        select(func.max(PlaylistVideo.position)).where(
+            PlaylistVideo.playlist_id == playlist.id
+        )
+    )
+    max_pos = max_pos_result.scalar_one_or_none()
+    next_position = (max_pos + 1) if max_pos is not None else 0
+
+    # Get videos already in this playlist
+    existing_result = await db.execute(
+        select(PlaylistVideo.video_id).where(PlaylistVideo.playlist_id == playlist.id)
+    )
+    existing_video_ids = set(existing_result.scalars().all())
+
+    # Filter out videos already in playlist, preserving order
+    video_ids_to_add = [
+        vid for vid in batch_data.video_ids if vid not in existing_video_ids
+    ]
+
+    if not video_ids_to_add:
+        return []  # All videos already in playlist
+
+    # Validate all videos exist in database
+    videos_result = await db.execute(
+        select(Video).where(Video.id.in_(video_ids_to_add))
+    )
+    found_videos = {v.id: v for v in videos_result.scalars().all()}
+
+    # Check for missing videos
+    missing_ids = [vid for vid in video_ids_to_add if vid not in found_videos]
+    if missing_ids:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Videos not found: {', '.join(missing_ids)}",
+        )
+
+    # Create PlaylistVideo entries with sequential positions
+    playlist_videos = []
+    for i, video_id in enumerate(video_ids_to_add):
+        pv = PlaylistVideo(
+            playlist_id=playlist.id,
+            video_id=video_id,
+            position=next_position + i,
+            added_by=current_user.id,
+        )
+        db.add(pv)
+        playlist_videos.append(pv)
+
+    await db.commit()
+
+    # Refresh all entries to get generated fields
+    for pv in playlist_videos:
+        await db.refresh(pv)
+
+    # Build responses
+    from app.api.videos import build_video_response
+
+    responses = []
+    for pv in playlist_videos:
+        # Get video with relationships
+        video_result = await db.execute(
+            select(Video)
+            .options(joinedload(Video.uploader), joinedload(Video.category))
+            .where(Video.id == pv.video_id)
+        )
+        video = video_result.scalar_one()
+
+        video_response = build_video_response(video, video.uploader, video.category)
+
+        responses.append(
+            PlaylistVideoResponse(
+                id=pv.id,
+                playlist_id=pv.playlist_id,
+                video_id=pv.video_id,
+                position=pv.position,
+                added_at=pv.added_at,
+                added_by=pv.added_by,
+                video=video_response,
+            )
+        )
+
+    return responses
 
 
 @router.post("/{short_id}/videos", response_model=PlaylistVideoResponse)

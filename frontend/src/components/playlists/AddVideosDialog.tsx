@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Search, VideoIcon } from "lucide-react"
 import { getVideos, getThumbnailUrl } from "@/api/videos"
 import { getCategories } from "@/api/categories"
-import { addVideoToPlaylist } from "@/api/playlists"
+import { addVideosToPlaylistBatch } from "@/api/playlists"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,7 +27,7 @@ export function AddVideosDialog({ isOpen, onClose, playlist }: AddVideosDialogPr
   const queryClient = useQueryClient()
   const [search, setSearch] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<string>("")
-  const [selectedVideoIds, setSelectedVideoIds] = useState<Set<string>>(new Set())
+  const [selectedVideoIds, setSelectedVideoIds] = useState<string[]>([])
   const [skip, setSkip] = useState(0)
   const limit = 12
 
@@ -56,16 +56,8 @@ export function AddVideosDialog({ isOpen, onClose, playlist }: AddVideosDialogPr
   // Add videos mutation (use short_id for API calls)
   const addVideosMutation = useMutation({
     mutationFn: async (videoIds: string[]) => {
-      // Add videos in the order they were selected
-      const results = await Promise.allSettled(
-        videoIds.map(videoId => addVideoToPlaylist(playlist.short_id, videoId))
-      )
-      
-      // Check for failures
-      const failures = results.filter(r => r.status === 'rejected')
-      if (failures.length > 0) {
-        throw new Error(`Failed to add ${failures.length} video(s)`)
-      }
+      // Add videos in batch, preserving selection order
+      return addVideosToPlaylistBatch(playlist.short_id, videoIds)
     },
     onSuccess: (_, videoIds) => {
       queryClient.invalidateQueries({ queryKey: ["playlist", playlist.short_id] })
@@ -81,24 +73,27 @@ export function AddVideosDialog({ isOpen, onClose, playlist }: AddVideosDialogPr
   const handleClose = () => {
     setSearch("")
     setCategoryFilter("")
-    setSelectedVideoIds(new Set())
+    setSelectedVideoIds([])
     setSkip(0)
     onClose()
   }
 
   const handleToggleVideo = (videoId: string) => {
-    const newSelected = new Set(selectedVideoIds)
-    if (newSelected.has(videoId)) {
-      newSelected.delete(videoId)
-    } else {
-      newSelected.add(videoId)
-    }
-    setSelectedVideoIds(newSelected)
+    setSelectedVideoIds(prev => {
+      const index = prev.indexOf(videoId)
+      if (index !== -1) {
+        // Remove: filter out the video
+        return prev.filter(id => id !== videoId)
+      } else {
+        // Add: append to end (preserves selection order)
+        return [...prev, videoId]
+      }
+    })
   }
 
   const handleAddSelected = () => {
-    if (selectedVideoIds.size === 0) return
-    addVideosMutation.mutate(Array.from(selectedVideoIds))
+    if (selectedVideoIds.length === 0) return
+    addVideosMutation.mutate(selectedVideoIds)
   }
 
   const handleLoadMore = () => {
@@ -177,7 +172,7 @@ export function AddVideosDialog({ isOpen, onClose, playlist }: AddVideosDialogPr
                   <VideoSelectCard
                     key={video.id}
                     video={video}
-                    isSelected={selectedVideoIds.has(video.id)}
+                    isSelected={selectedVideoIds.includes(video.id)}
                     onToggle={() => handleToggleVideo(video.id)}
                   />
                 ))}
@@ -197,8 +192,8 @@ export function AddVideosDialog({ isOpen, onClose, playlist }: AddVideosDialogPr
 
         <DialogFooter className="flex-col sm:flex-row gap-2">
           <div className="flex-1 text-sm text-muted-foreground">
-            {selectedVideoIds.size > 0 && (
-              <span>{selectedVideoIds.size} video{selectedVideoIds.size !== 1 ? 's' : ''} selected</span>
+            {selectedVideoIds.length > 0 && (
+              <span>{selectedVideoIds.length} video{selectedVideoIds.length !== 1 ? 's' : ''} selected</span>
             )}
           </div>
           <Button
@@ -211,11 +206,11 @@ export function AddVideosDialog({ isOpen, onClose, playlist }: AddVideosDialogPr
           </Button>
           <Button
             onClick={handleAddSelected}
-            disabled={selectedVideoIds.size === 0 || addVideosMutation.isPending}
+            disabled={selectedVideoIds.length === 0 || addVideosMutation.isPending}
           >
             {addVideosMutation.isPending 
               ? "Adding..." 
-              : `Add Selected (${selectedVideoIds.size})`
+              : `Add Selected (${selectedVideoIds.length})`
             }
           </Button>
         </DialogFooter>

@@ -11,6 +11,8 @@ import type {
   PlaylistListResponse,
   PlaylistWithVideos,
   PlaylistVideoAdd,
+  PlaylistVideoBatchAdd,
+  PlaylistVideo,
 } from "@/types/playlist"
 
 /**
@@ -65,6 +67,25 @@ export const addVideoToPlaylist = async (
     position,
   }
   await apiClient.post(`/api/playlists/${playlistShortId}/videos`, data)
+}
+
+/**
+ * Add multiple videos to a playlist in a specific order
+ * Videos are added in the order provided, appended after existing videos.
+ * Videos already in the playlist are skipped.
+ */
+export const addVideosToPlaylistBatch = async (
+  playlistShortId: string,
+  videoIds: string[]
+): Promise<PlaylistVideo[]> => {
+  const data: PlaylistVideoBatchAdd = {
+    video_ids: videoIds,
+  }
+  const response = await apiClient.post<PlaylistVideo[]>(
+    `/api/playlists/${playlistShortId}/videos/batch`,
+    data
+  )
+  return response.data
 }
 
 /**

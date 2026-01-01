@@ -45,6 +45,14 @@ class PlaylistVideoAdd(BaseModel):
     position: Optional[int] = None  # If None, append to end
 
 
+class PlaylistVideoBatchAdd(BaseModel):
+    """Schema for adding multiple videos to a playlist in a specific order."""
+
+    video_ids: List[str] = Field(
+        ..., min_length=1, description="Ordered list of video IDs to add"
+    )
+
+
 class PlaylistReorderRequest(BaseModel):
     """Schema for reordering videos in a playlist."""
 

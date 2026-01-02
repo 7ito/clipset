@@ -85,6 +85,7 @@ def _get_transcode_command(
     output_path: Path,
     transcode_config: Optional[Dict[str, Any]] = None,
     use_gpu: bool = True,
+    color_info: Optional[Dict[str, Optional[str]]] = None,
 ) -> list:
     """
     Build FFmpeg command for transcoding.
@@ -94,6 +95,7 @@ def _get_transcode_command(
         output_path: Path to save transcoded video
         transcode_config: Dict of transcoding settings from database
         use_gpu: If True, try GPU encoding first
+        color_info: Dict with color metadata (color_range, color_space, etc.)
 
     Returns:
         List of FFmpeg command arguments
@@ -110,10 +112,54 @@ def _get_transcode_command(
         max_height = 1080
         audio_bitrate = "192k"
 
-    scale_filter = (
-        f"scale='min({max_width},iw)':'min({max_height},ih)':"
-        f"force_original_aspect_ratio=decrease"
-    )
+    # Determine if input video uses full color range
+    # "pc" = full range (0-255), "tv" = limited range (16-235)
+    # yuvj* pixel formats are implicitly full range
+    is_full_range = False
+    if color_info:
+        input_color_range = color_info.get("color_range")
+        input_pix_fmt = color_info.get("pix_fmt") or ""
+
+        if input_color_range == "pc" or input_pix_fmt.startswith("yuvj"):
+            is_full_range = True
+
+        logger.info(
+            f"Color info detected - range: {input_color_range}, "
+            f"pix_fmt: {input_pix_fmt}, is_full_range: {is_full_range}"
+        )
+
+    # Set output pixel format based on input color range
+    # Use yuvj420p for full range to preserve colors
+    output_pix_fmt = "yuvj420p" if is_full_range else "yuv420p"
+    output_color_range = "pc" if is_full_range else "tv"
+
+    # Build scale filter with explicit color range output
+    if is_full_range:
+        scale_filter = (
+            f"scale='min({max_width},iw)':'min({max_height},ih)':"
+            f"force_original_aspect_ratio=decrease:out_range=full"
+        )
+    else:
+        scale_filter = (
+            f"scale='min({max_width},iw)':'min({max_height},ih)':"
+            f"force_original_aspect_ratio=decrease"
+        )
+
+    # Build color metadata flags (only if explicitly set in source)
+    color_flags: list[str] = ["-color_range", output_color_range]
+    if color_info:
+        color_space = color_info.get("color_space")
+        color_transfer = color_info.get("color_transfer")
+        color_primaries = color_info.get("color_primaries")
+        if color_space is not None:
+            color_flags.append("-colorspace")
+            color_flags.append(color_space)
+        if color_transfer is not None:
+            color_flags.append("-color_trc")
+            color_flags.append(color_transfer)
+        if color_primaries is not None:
+            color_flags.append("-color_primaries")
+            color_flags.append(color_primaries)
 
     if use_gpu and use_gpu_transcoding:
         # Get NVENC settings from config or env
@@ -135,9 +181,10 @@ def _get_transcode_command(
             f"(preset={nvenc_preset}, cq={nvenc_cq}, "
             f"rc={nvenc_rate_control}, maxrate={nvenc_max_bitrate}, "
             f"bufsize={nvenc_buffer_size}, audio={audio_bitrate}, "
-            f"max_res={max_width}x{max_height})"
+            f"max_res={max_width}x{max_height}, "
+            f"color_range={output_color_range}, pix_fmt={output_pix_fmt})"
         )
-        return [
+        cmd = [
             settings.FFMPEG_PATH,
             "-i",
             str(input_path),
@@ -146,7 +193,7 @@ def _get_transcode_command(
             "-c:v",
             "h264_nvenc",
             "-pix_fmt",
-            "yuv420p",
+            output_pix_fmt,
             "-preset",
             nvenc_preset,
             "-rc",
@@ -159,15 +206,21 @@ def _get_transcode_command(
             nvenc_max_bitrate,
             "-bufsize",
             nvenc_buffer_size,
-            "-c:a",
-            "aac",
-            "-b:a",
-            audio_bitrate,
-            "-movflags",
-            "+faststart",
-            "-y",
-            str(output_path),
         ]
+        cmd.extend(color_flags)
+        cmd.extend(
+            [
+                "-c:a",
+                "aac",
+                "-b:a",
+                audio_bitrate,
+                "-movflags",
+                "+faststart",
+                "-y",
+                str(output_path),
+            ]
+        )
+        return cmd
     else:
         # Get CPU settings from config or use defaults
         if transcode_config:
@@ -180,9 +233,10 @@ def _get_transcode_command(
         logger.info(
             f"Using CPU transcoding: libx264 "
             f"(preset={cpu_preset}, crf={cpu_crf}, audio={audio_bitrate}, "
-            f"max_res={max_width}x{max_height})"
+            f"max_res={max_width}x{max_height}, "
+            f"color_range={output_color_range}, pix_fmt={output_pix_fmt})"
         )
-        return [
+        cmd = [
             settings.FFMPEG_PATH,
             "-i",
             str(input_path),
@@ -191,26 +245,33 @@ def _get_transcode_command(
             "-c:v",
             "libx264",
             "-pix_fmt",
-            "yuv420p",
+            output_pix_fmt,
             "-preset",
             cpu_preset,
             "-crf",
             str(cpu_crf),
-            "-c:a",
-            "aac",
-            "-b:a",
-            audio_bitrate,
-            "-movflags",
-            "+faststart",
-            "-y",
-            str(output_path),
         ]
+        cmd.extend(color_flags)
+        cmd.extend(
+            [
+                "-c:a",
+                "aac",
+                "-b:a",
+                audio_bitrate,
+                "-movflags",
+                "+faststart",
+                "-y",
+                str(output_path),
+            ]
+        )
+        return cmd
 
 
 async def _transcode_cpu_fallback(
     input_path: Path,
     output_path: Path,
     transcode_config: Optional[Dict[str, Any]] = None,
+    color_info: Optional[Dict[str, Optional[str]]] = None,
 ) -> Tuple[bool, str]:
     """
     Fallback CPU transcoding.
@@ -219,12 +280,13 @@ async def _transcode_cpu_fallback(
         input_path: Path to input video
         output_path: Path to save transcoded video
         transcode_config: Dict of transcoding settings from database
+        color_info: Dict with color metadata (color_range, color_space, etc.)
 
     Returns:
         Tuple of (success, error_message)
     """
     cmd = _get_transcode_command(
-        input_path, output_path, transcode_config, use_gpu=False
+        input_path, output_path, transcode_config, use_gpu=False, color_info=color_info
     )
 
     logger.info(f"Transcoding with CPU (fallback): {input_path} -> {output_path}")
@@ -304,7 +366,8 @@ async def get_video_metadata(filepath: Path) -> Dict:
         filepath: Path to video file
 
     Returns:
-        Dict with keys: duration, width, height, codec_name
+        Dict with keys: duration, width, height, codec_name, and color info
+        (color_range, color_space, color_transfer, color_primaries, pix_fmt)
     """
     try:
         cmd = [
@@ -312,7 +375,7 @@ async def get_video_metadata(filepath: Path) -> Dict:
             "-v",
             "error",
             "-show_entries",
-            "format=duration:stream=width,height,codec_name",
+            "format=duration:stream=width,height,codec_name,color_range,color_space,color_transfer,color_primaries,pix_fmt",
             "-of",
             "json",
             str(filepath),
@@ -342,18 +405,33 @@ async def get_video_metadata(filepath: Path) -> Dict:
         width = None
         height = None
         codec_name = None
+        color_range = None
+        color_space = None
+        color_transfer = None
+        color_primaries = None
+        pix_fmt = None
 
         if "streams" in data and len(data["streams"]) > 0:
             stream = data["streams"][0]
             width = stream.get("width")
             height = stream.get("height")
             codec_name = stream.get("codec_name")
+            color_range = stream.get("color_range")
+            color_space = stream.get("color_space")
+            color_transfer = stream.get("color_transfer")
+            color_primaries = stream.get("color_primaries")
+            pix_fmt = stream.get("pix_fmt")
 
         metadata = {
             "duration": duration,
             "width": width,
             "height": height,
             "codec": codec_name,
+            "color_range": color_range,
+            "color_space": color_space,
+            "color_transfer": color_transfer,
+            "color_primaries": color_primaries,
+            "pix_fmt": pix_fmt,
         }
 
         logger.info(f"Extracted metadata from {filepath}: {metadata}")
@@ -450,6 +528,7 @@ async def transcode_video(
     input_path: Path,
     output_path: Path,
     transcode_config: Optional[Dict[str, Any]] = None,
+    color_info: Optional[Dict[str, Optional[str]]] = None,
 ) -> Tuple[bool, str]:
     """
     Transcode video to H.264 MP4 optimized for web streaming.
@@ -460,6 +539,7 @@ async def transcode_video(
         input_path: Path to input video
         output_path: Path to save transcoded video
         transcode_config: Dict of transcoding settings from database
+        color_info: Dict with color metadata (color_range, color_space, etc.)
 
     Returns:
         Tuple of (success, error_message)
@@ -474,7 +554,11 @@ async def transcode_video(
 
         if use_gpu:
             cmd = _get_transcode_command(
-                input_path, output_path, transcode_config, use_gpu=True
+                input_path,
+                output_path,
+                transcode_config,
+                use_gpu=True,
+                color_info=color_info,
             )
 
             logger.info(f"Transcoding with GPU: {input_path} -> {output_path}")
@@ -497,12 +581,12 @@ async def transcode_video(
                     f"falling back to CPU: {error_msg}"
                 )
                 return await _transcode_cpu_fallback(
-                    input_path, output_path, transcode_config
+                    input_path, output_path, transcode_config, color_info=color_info
                 )
 
         else:
             return await _transcode_cpu_fallback(
-                input_path, output_path, transcode_config
+                input_path, output_path, transcode_config, color_info=color_info
             )
 
     except asyncio.TimeoutError:
@@ -510,7 +594,9 @@ async def transcode_video(
             f"Transcoding timed out after {settings.VIDEO_PROCESSING_TIMEOUT}s, "
             f"falling back to CPU"
         )
-        return await _transcode_cpu_fallback(input_path, output_path, transcode_config)
+        return await _transcode_cpu_fallback(
+            input_path, output_path, transcode_config, color_info=color_info
+        )
 
     except Exception as e:
         use_gpu = False
@@ -525,7 +611,7 @@ async def transcode_video(
                 f"falling back to CPU: {e}"
             )
             return await _transcode_cpu_fallback(
-                input_path, output_path, transcode_config
+                input_path, output_path, transcode_config, color_info=color_info
             )
         else:
             logger.error(f"Error transcoding video {input_path}: {e}")
@@ -632,9 +718,18 @@ async def process_video_file(
     result["height"] = metadata.get("height")
     result["codec"] = metadata.get("codec_name")
 
+    # Extract color info from metadata to pass to transcoder
+    color_info: Dict[str, Optional[str]] = {
+        "color_range": metadata.get("color_range"),
+        "color_space": metadata.get("color_space"),
+        "color_transfer": metadata.get("color_transfer"),
+        "color_primaries": metadata.get("color_primaries"),
+        "pix_fmt": metadata.get("pix_fmt"),
+    }
+
     if await needs_transcoding(input_path):
         success, error_msg = await transcode_video(
-            input_path, output_path, transcode_config
+            input_path, output_path, transcode_config, color_info=color_info
         )
         if not success:
             result["error"] = error_msg

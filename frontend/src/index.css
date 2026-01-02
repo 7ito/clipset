@@ -313,6 +313,14 @@
   touch-action: none;
 }
 
+/* Bridge the gap between popup and button for continuous hover */
+.video-volume-slider-popup::after {
+  content: "";
+  @apply absolute left-0 w-full;
+  top: 100%;
+  height: 0.5rem; /* matches mb-2 */
+}
+
 .video-volume-slider {
   @apply relative w-1 h-full cursor-pointer;
   touch-action: none;

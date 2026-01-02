@@ -30,6 +30,9 @@ export interface SystemConfig {
   // Preset Mode
   transcode_preset_mode: string
 
+  // Video Output Format
+  video_output_format: VideoOutputFormat
+
   // Metadata
   updated_at: string
   updated_by?: string
@@ -62,6 +65,9 @@ export interface ConfigUpdate {
 
   // Preset Mode
   transcode_preset_mode?: string
+
+  // Video Output Format
+  video_output_format?: VideoOutputFormat
 }
 
 export interface EncoderInfo {
@@ -93,6 +99,9 @@ export type CpuPreset =
   | "slow"
   | "slower"
   | "veryslow"
+
+// Video output format options
+export type VideoOutputFormat = "hls" | "progressive"
 
 // Preset values for quick selection
 export const TRANSCODING_PRESETS: Record<

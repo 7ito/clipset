@@ -12,6 +12,7 @@ from app.models.user import User
 from app.schemas.config import ConfigResponse, ConfigUpdate, EncoderInfo
 from app.services.config import get_or_create_config, update_config
 from app.services.video_processor import detect_encoders
+from app.services.background_tasks import get_migration_status
 
 logger = logging.getLogger(__name__)
 
@@ -140,3 +141,22 @@ async def update_system_config(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to update system configuration",
         )
+
+
+@router.get("/hls-migration-status")
+async def get_hls_migration_status(
+    current_user: User = Depends(require_admin),
+):
+    """
+    Get the status of HLS migration for existing videos.
+
+    **Admin only**
+
+    Returns information about the HLS migration process including:
+    - Whether migration is currently running
+    - Total videos to migrate
+    - Number of videos completed
+    - Current video being processed
+    - Any errors that occurred
+    """
+    return get_migration_status()

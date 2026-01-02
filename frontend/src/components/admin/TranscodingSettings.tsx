@@ -9,6 +9,7 @@ import {
   Loader2,
   AlertTriangle,
   Info,
+  PlayCircle,
 } from "lucide-react"
 import { getEncoders } from "@/api/config"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -423,6 +424,49 @@ export function TranscodingSettings({
               <p>Quality: CRF {config.cpu_crf} ({getQualityLabel(config.cpu_crf)})</p>
             </div>
           )}
+        </div>
+
+        {/* Video Delivery Format Section */}
+        <div className="space-y-4 pt-4 border-t">
+          <h4 className="text-sm font-medium flex items-center gap-2">
+            <PlayCircle className="w-4 h-4" />
+            Video Delivery Format
+          </h4>
+
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-muted/50">
+            <Info className="w-4 h-4 mt-0.5 flex-shrink-0 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">
+              HLS (HTTP Live Streaming) provides better seeking performance, especially in Firefox.
+              Progressive mode uses a single MP4 file which is simpler but seeking can be slow.
+            </p>
+          </div>
+
+          {/* Video Output Format */}
+          <Field>
+            <FieldLabel>Output Format</FieldLabel>
+            <Select
+              value={config.video_output_format}
+              onValueChange={(value) => onUpdate("video_output_format", value)}
+              disabled={disabled}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="hls">
+                  HLS - Segmented Streaming (Recommended)
+                </SelectItem>
+                <SelectItem value="progressive">
+                  Progressive - Single MP4 File
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <FieldDescription>
+              {config.video_output_format === "hls"
+                ? "Videos are split into segments for instant seeking and better streaming performance"
+                : "Videos are stored as single MP4 files (simpler but slower seeking)"}
+            </FieldDescription>
+          </Field>
         </div>
 
         {/* Output Settings Section */}

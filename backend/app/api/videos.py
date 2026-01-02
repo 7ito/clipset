@@ -663,8 +663,20 @@ async def delete_video(
 
     # Delete files
     video_storage_base = Path(video.storage_path or settings.VIDEO_STORAGE_PATH)
+
+    # Try to delete HLS directory first
+    hls_deleted = storage.delete_hls_directory(video_storage_base, video.filename)
+
+    # Try to delete progressive MP4 file
+    # Check both with and without .mp4 extension (for legacy files)
     video_path = video_storage_base / video.filename
+    if not video_path.suffix:
+        video_path = video_storage_base / f"{video.filename}.mp4"
     storage.delete_file(video_path)
+
+    # Also try deleting if filename already has extension
+    if video.filename.endswith(".mp4"):
+        storage.delete_file(video_storage_base / video.filename)
 
     if video.thumbnail_filename:
         thumbnail_path = (
@@ -676,7 +688,10 @@ async def delete_video(
     await db.delete(video)
     await db.commit()
 
-    logger.info(f"Deleted video {video.id} by {current_user.username}")
+    logger.info(
+        f"Deleted video {video.id} by {current_user.username} "
+        f"(HLS deleted: {hls_deleted})"
+    )
 
 
 @router.get("/{short_id}/stream")
@@ -716,6 +731,145 @@ async def stream_video(
 
     # Return streaming response with proper Range header handling
     return range_requests_response(request, video_path, "video/mp4")
+
+
+@router.get("/{short_id}/hls/{filename:path}")
+async def stream_hls(
+    short_id: str,
+    filename: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_user_from_token_or_query),
+):
+    """
+    Serve HLS manifest (.m3u8) or segment (.ts) files.
+
+    This endpoint handles requests for:
+    - master.m3u8 - The HLS manifest file
+    - segment000.ts, segment001.ts, etc. - The video segments
+    """
+    video = await get_video_or_404(short_id, db)
+
+    # Check access
+    if current_user.role != "admin":
+        is_completed = video.processing_status == ProcessingStatus.COMPLETED
+        is_owner = video.uploaded_by == current_user.id
+
+        if not (is_completed or is_owner):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Video is not available for streaming",
+            )
+
+    # Get HLS directory path
+    # For HLS videos, video.filename is the directory name (stem without extension)
+    video_storage_base = Path(video.storage_path or settings.VIDEO_STORAGE_PATH)
+    hls_dir = video_storage_base / video.filename
+
+    # Validate filename to prevent directory traversal
+    if ".." in filename or filename.startswith("/"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid filename",
+        )
+
+    file_path = hls_dir / filename
+
+    if not file_path.exists():
+        # Check if this is a progressive video (not HLS)
+        progressive_path = video_storage_base / f"{video.filename}.mp4"
+        if progressive_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="This video uses progressive streaming, not HLS",
+            )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="HLS file not found",
+        )
+
+    # Determine content type based on file extension
+    if filename.endswith(".m3u8"):
+        content_type = "application/vnd.apple.mpegurl"
+        # M3U8 files should not be cached as aggressively
+        cache_control = "public, max-age=2"
+    elif filename.endswith(".ts"):
+        content_type = "video/mp2t"
+        # Segments can be cached longer since they don't change
+        cache_control = "public, max-age=86400"
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid HLS file type",
+        )
+
+    return FileResponse(
+        path=file_path,
+        media_type=content_type,
+        headers={"Cache-Control": cache_control},
+    )
+
+
+@router.get("/{short_id}/stream-info")
+async def get_stream_info(
+    short_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_user_from_token_or_query),
+):
+    """
+    Get information about how to stream this video.
+
+    Returns whether the video uses HLS or progressive streaming,
+    along with the appropriate URL to use.
+    """
+    video = await get_video_or_404(short_id, db)
+
+    # Check access
+    if current_user.role != "admin":
+        is_completed = video.processing_status == ProcessingStatus.COMPLETED
+        is_owner = video.uploaded_by == current_user.id
+
+        if not (is_completed or is_owner):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Video is not available",
+            )
+
+    # Determine if this video has HLS files
+    video_storage_base = Path(video.storage_path or settings.VIDEO_STORAGE_PATH)
+
+    # Check for HLS directory with manifest
+    hls_dir = video_storage_base / video.filename
+    hls_manifest = hls_dir / "master.m3u8"
+
+    # Check for progressive MP4 file
+    progressive_path = video_storage_base / f"{video.filename}.mp4"
+    # Also check if filename already has extension (legacy)
+    if not progressive_path.exists() and video.filename.endswith(".mp4"):
+        progressive_path = video_storage_base / video.filename
+
+    is_hls = hls_manifest.exists()
+    is_progressive = progressive_path.exists()
+
+    if is_hls:
+        return {
+            "format": "hls",
+            "manifest_url": f"/api/videos/{short_id}/hls/master.m3u8",
+            "ready": True,
+        }
+    elif is_progressive:
+        return {
+            "format": "progressive",
+            "stream_url": f"/api/videos/{short_id}/stream",
+            "ready": True,
+        }
+    else:
+        # Video files not found - might still be processing
+        return {
+            "format": "unknown",
+            "ready": False,
+            "processing_status": str(video.processing_status),
+        }
 
 
 @router.get("/{short_id}/thumbnail")

@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
 import { useEffect, useState, useRef, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { Edit, Trash2, Eye, Calendar, Folder, FileVideo, Loader2, ArrowLeft, ListPlus, ChevronRight, ChevronLeft, Link as LinkIcon } from "lucide-react"
-import { getVideo, deleteVideo, updateVideo, incrementViewCount, getVideoStreamUrl, getThumbnailUrl } from "@/api/videos"
+import { getVideo, deleteVideo, updateVideo, incrementViewCount, getVideoStreamUrl, getThumbnailUrl, getStreamInfo, getHlsManifestUrl } from "@/api/videos"
 import { getPlaylist } from "@/api/playlists"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -88,6 +88,13 @@ function VideoPlayerPage() {
   const { data: video, isLoading, refetch } = useQuery({
     queryKey: ["videos", shortId],
     queryFn: () => getVideo(shortId)
+  })
+
+  // Fetch stream info to determine HLS vs progressive
+  const { data: streamInfo } = useQuery({
+    queryKey: ["stream-info", shortId],
+    queryFn: () => getStreamInfo(shortId),
+    enabled: !!video && video.processing_status === "completed"
   })
 
   // Fetch playlist if context exists (using short_id)
@@ -236,17 +243,45 @@ function VideoPlayerPage() {
         {/* Video Player */}
         <Card className="overflow-hidden border-none bg-black ring-1 ring-border rounded-none">
           <CardContent className="p-0">
-            {video.processing_status === "completed" ? (
+            {video.processing_status === "completed" && streamInfo?.ready ? (
               <VideoPlayer
                 ref={playerRef}
                 src={getVideoStreamUrl(shortId)}
-                 poster={video.thumbnail_filename ? getThumbnailUrl(video.thumbnail_filename) : undefined}
-                 initialTime={initialTimestamp}
-                 autoPlay={true}
-                 onPlay={handleVideoPlay}
-                 onEnded={handleVideoEnded}
-                 onTimeUpdate={handleTimeUpdate}
-               />
+                hlsSrc={streamInfo?.format === "hls" ? getHlsManifestUrl(shortId) : undefined}
+                poster={video.thumbnail_filename ? getThumbnailUrl(video.thumbnail_filename) : undefined}
+                initialTime={initialTimestamp}
+                autoPlay={true}
+                onPlay={handleVideoPlay}
+                onEnded={handleVideoEnded}
+                onTimeUpdate={handleTimeUpdate}
+              />
+            ) : video.processing_status === "completed" && streamInfo && !streamInfo.ready ? (
+              /* Video is completed but HLS conversion is in progress */
+              <div className="w-full aspect-video bg-gradient-to-br from-muted/20 to-muted/5 flex items-center justify-center">
+                <div className="text-center space-y-6 p-8">
+                  <div className="inline-flex p-6 rounded-full bg-orange-500/10">
+                    <Loader2 className="w-16 h-16 animate-spin text-orange-500" />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xl font-semibold text-orange-500">Converting to HLS...</p>
+                    <p className="text-sm text-muted-foreground max-w-md">
+                      This video is being converted to streaming format for better playback. Please wait a moment.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : video.processing_status === "completed" && !streamInfo ? (
+              /* Still loading stream info */
+              <div className="w-full aspect-video bg-gradient-to-br from-muted/20 to-muted/5 flex items-center justify-center">
+                <div className="text-center space-y-6 p-8">
+                  <div className="inline-flex p-6 rounded-full bg-primary/10">
+                    <Loader2 className="w-16 h-16 animate-spin text-primary" />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xl font-semibold">Loading video...</p>
+                  </div>
+                </div>
+              </div>
             ) : (
               <div className="w-full aspect-video bg-gradient-to-br from-muted/20 to-muted/5 flex items-center justify-center">
                 <div className="text-center space-y-6 p-8">

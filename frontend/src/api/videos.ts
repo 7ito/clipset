@@ -158,8 +158,29 @@ export async function getQuotaInfo(): Promise<QuotaInfo> {
   return response.data
 }
 
+import { env } from "@/config/env"
+
 /**
- * Get video streaming URL
+ * Stream info response from the API
+ */
+export interface StreamInfo {
+  format: "hls" | "progressive" | "unknown"
+  manifest_url?: string  // For HLS
+  stream_url?: string    // For progressive
+  ready: boolean
+  processing_status?: string
+}
+
+/**
+ * Get stream info to determine how to play the video
+ */
+export async function getStreamInfo(shortId: string): Promise<StreamInfo> {
+  const response = await apiClient.get<StreamInfo>(`/api/videos/${shortId}/stream-info`)
+  return response.data
+}
+
+/**
+ * Get video streaming URL (progressive MP4)
  */
 export function getVideoStreamUrl(shortId: string): string {
   const token = localStorage.getItem("clipset_token")
@@ -167,7 +188,14 @@ export function getVideoStreamUrl(shortId: string): string {
   return `${baseUrl}/api/videos/${shortId}/stream?token=${token}`
 }
 
-import { env } from "@/config/env"
+/**
+ * Get HLS manifest URL
+ */
+export function getHlsManifestUrl(shortId: string): string {
+  const token = localStorage.getItem("clipset_token")
+  const baseUrl = env.apiBaseUrl.endsWith("/") ? env.apiBaseUrl.slice(0, -1) : env.apiBaseUrl
+  return `${baseUrl}/api/videos/${shortId}/hls/master.m3u8?token=${token}`
+}
 
 /**
  * Get video thumbnail URL

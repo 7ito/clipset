@@ -56,6 +56,11 @@ class Config(Base):
     # Preset Mode (quality, balanced, performance, custom)
     transcode_preset_mode = Column(String(20), default="balanced", nullable=False)
 
+    # Video Output Format (hls, progressive)
+    # HLS = HTTP Live Streaming with segmented .ts files for better seeking
+    # Progressive = Single .mp4 file (legacy/simpler but slower seeking)
+    video_output_format = Column(String(20), default="hls", nullable=False)
+
     # Metadata
     updated_at = Column(
         DateTime,

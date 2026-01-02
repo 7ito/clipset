@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from "react"
 import { Play, Loader2, RotateCcw, RotateCw } from "lucide-react"
+import Hls from "hls.js"
 import { useVideoPlayer } from "@/hooks/useVideoPlayer"
 import { useVideoKeyboard } from "@/hooks/useVideoKeyboard"
 import { useVideoTouch } from "@/hooks/useVideoTouch"
@@ -7,7 +8,10 @@ import { VideoControls } from "./VideoControls"
 import { cn } from "@/lib/utils"
 
 export interface VideoPlayerProps {
+  /** Progressive MP4 source URL */
   src: string
+  /** HLS manifest URL (optional - will use HLS if provided and supported) */
+  hlsSrc?: string
   poster?: string
   initialTime?: number
   autoPlay?: boolean
@@ -28,6 +32,7 @@ export interface VideoPlayerRef {
 export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function VideoPlayer(
   {
     src,
+    hlsSrc,
     poster,
     initialTime = 0,
     autoPlay = true,
@@ -41,7 +46,9 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
 ) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const hlsRef = useRef<Hls | null>(null)
   const [controlsVisible, setControlsVisible] = useState(true)
+  const [isHlsActive, setIsHlsActive] = useState(false)
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const { state, controls } = useVideoPlayer(videoRef, containerRef, {
@@ -53,6 +60,96 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
     onTimeUpdate,
     onReady
   })
+
+  // Initialize HLS.js when hlsSrc is provided
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !hlsSrc) {
+      // No HLS source, use progressive
+      setIsHlsActive(false)
+      return
+    }
+
+    // Check if browser supports HLS natively (Safari)
+    // Note: Some browsers return "maybe" but don't actually support native HLS
+    // Only Safari truly supports native HLS, so we check for Safari specifically
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
+    const canPlayNativeHls = video.canPlayType("application/vnd.apple.mpegurl") === "probably" || 
+                             (isSafari && video.canPlayType("application/vnd.apple.mpegurl"))
+    
+    if (canPlayNativeHls) {
+      // Safari has native HLS support
+      video.src = hlsSrc
+      setIsHlsActive(true)
+      return
+    }
+
+    // Use hls.js for other browsers
+    if (Hls.isSupported()) {
+      // Extract token from hlsSrc URL for use in segment requests
+      const url = new URL(hlsSrc, window.location.origin)
+      const token = url.searchParams.get("token")
+      
+      const hls = new Hls({
+        // Enable low latency mode for better seeking
+        enableWorker: true,
+        lowLatencyMode: false,
+        // Start loading from the beginning
+        startPosition: initialTime,
+        // Add token to all requests (manifest, segments, etc.)
+        xhrSetup: (xhr, requestUrl) => {
+          if (token && !requestUrl.includes("token=")) {
+            // Add token as query parameter
+            const separator = requestUrl.includes("?") ? "&" : "?"
+            xhr.open("GET", requestUrl + separator + "token=" + token, true)
+          }
+        },
+      })
+
+      hls.loadSource(hlsSrc)
+      hls.attachMedia(video)
+
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        setIsHlsActive(true)
+        // If autoplay is enabled, the useVideoPlayer hook will handle it
+      })
+
+      hls.on(Hls.Events.ERROR, (_event, data) => {
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              // Try to recover network error
+              console.error("HLS network error, attempting recovery...", data)
+              hls.startLoad()
+              break
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.error("HLS media error, attempting recovery...", data)
+              hls.recoverMediaError()
+              break
+            default:
+              // Cannot recover
+              console.error("HLS fatal error, falling back to progressive", data)
+              hls.destroy()
+              setIsHlsActive(false)
+              // Fall back to progressive source
+              video.src = src
+              break
+          }
+        }
+      })
+
+      hlsRef.current = hls
+
+      return () => {
+        hls.destroy()
+        hlsRef.current = null
+      }
+    } else {
+      // HLS not supported, fall back to progressive
+      console.warn("HLS not supported, using progressive playback")
+      setIsHlsActive(false)
+    }
+  }, [hlsSrc, src, initialTime])
 
   // Expose methods via ref
   useImperativeHandle(ref, () => ({
@@ -143,7 +240,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
       <video
         ref={videoRef}
         className="video-player-video"
-        src={src}
+        src={!hlsSrc || !isHlsActive ? src : undefined}
         poster={poster}
         playsInline
         preload="metadata"

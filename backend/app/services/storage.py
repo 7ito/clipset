@@ -141,7 +141,7 @@ def get_file_size(filepath: Path) -> int:
     return filepath.stat().st_size
 
 
-def generate_unique_filename(original_filename: str) -> str:
+def generate_unique_filename(original_filename: str, force_mp4: bool = False) -> str:
     """
     Generate a unique filename using UUID and timestamp.
 
@@ -150,14 +150,15 @@ def generate_unique_filename(original_filename: str) -> str:
 
     Args:
         original_filename: Original filename with extension
+        force_mp4: If True, always use .mp4 extension regardless of original
 
     Returns:
         Unique filename string
     """
     # Extract extension
     ext = Path(original_filename).suffix.lower()  # .mp4, .mov, etc.
-    if not ext:
-        ext = ".mp4"  # Default to .mp4 if no extension
+    if not ext or force_mp4:
+        ext = ".mp4"  # Default to .mp4 if no extension or forced
 
     # Generate unique components
     unique_id = str(uuid.uuid4())
@@ -167,6 +168,150 @@ def generate_unique_filename(original_filename: str) -> str:
     filename = f"{unique_id}_{timestamp}{ext}"
 
     return filename
+
+
+def normalize_video_extension(filename: str) -> str:
+    """
+    Normalize a video filename to use .mp4 extension.
+
+    All transcoded videos are output as H.264/AAC in MP4 container,
+    so the extension should always be .mp4 regardless of the original format.
+
+    Args:
+        filename: Original filename (e.g., "video.mov", "clip.avi")
+
+    Returns:
+        Filename with .mp4 extension (e.g., "video.mp4", "clip.mp4")
+    """
+    stem = Path(filename).stem
+    return f"{stem}.mp4"
+
+
+def get_hls_directory_name(filename: str) -> str:
+    """
+    Get the HLS directory name for a video.
+
+    For HLS output, videos are stored in a directory structure:
+    {stem}/
+        master.m3u8
+        segment000.ts
+        segment001.ts
+        ...
+
+    Args:
+        filename: Video filename (e.g., "uuid_timestamp.mp4")
+
+    Returns:
+        Directory name (stem without extension)
+    """
+    return Path(filename).stem
+
+
+def create_hls_directory(base_path: Path, filename: str) -> Path:
+    """
+    Create an HLS directory for a video.
+
+    Args:
+        base_path: Base video storage path
+        filename: Video filename (used to derive directory name)
+
+    Returns:
+        Path to the created HLS directory
+    """
+    hls_dir = base_path / get_hls_directory_name(filename)
+    hls_dir.mkdir(parents=True, exist_ok=True)
+    logger.info(f"Created HLS directory: {hls_dir}")
+    return hls_dir
+
+
+def get_hls_manifest_path(base_path: Path, filename: str) -> Path:
+    """
+    Get the path to the HLS manifest file for a video.
+
+    Args:
+        base_path: Base video storage path
+        filename: Video filename
+
+    Returns:
+        Path to master.m3u8 manifest file
+    """
+    return base_path / get_hls_directory_name(filename) / "master.m3u8"
+
+
+def get_hls_segment_path(base_path: Path, filename: str, segment_name: str) -> Path:
+    """
+    Get the path to an HLS segment file.
+
+    Args:
+        base_path: Base video storage path
+        filename: Video filename
+        segment_name: Segment filename (e.g., "segment000.ts")
+
+    Returns:
+        Path to the segment file
+    """
+    return base_path / get_hls_directory_name(filename) / segment_name
+
+
+def is_hls_video(base_path: Path, filename: str) -> bool:
+    """
+    Check if a video has HLS files (directory with manifest).
+
+    Args:
+        base_path: Base video storage path
+        filename: Video filename
+
+    Returns:
+        True if HLS manifest exists, False otherwise
+    """
+    manifest_path = get_hls_manifest_path(base_path, filename)
+    return manifest_path.exists()
+
+
+def delete_hls_directory(base_path: Path, filename: str) -> bool:
+    """
+    Delete an HLS directory and all its contents.
+
+    Args:
+        base_path: Base video storage path
+        filename: Video filename
+
+    Returns:
+        True if deleted, False if didn't exist
+    """
+    hls_dir = base_path / get_hls_directory_name(filename)
+    if hls_dir.exists() and hls_dir.is_dir():
+        try:
+            shutil.rmtree(hls_dir)
+            logger.info(f"Deleted HLS directory: {hls_dir}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete HLS directory {hls_dir}: {e}")
+            return False
+    return False
+
+
+def list_hls_segments(base_path: Path, filename: str) -> list[str]:
+    """
+    List all segment files in an HLS directory.
+
+    Args:
+        base_path: Base video storage path
+        filename: Video filename
+
+    Returns:
+        List of segment filenames (e.g., ["segment000.ts", "segment001.ts"])
+    """
+    hls_dir = base_path / get_hls_directory_name(filename)
+    if not hls_dir.exists():
+        return []
+
+    segments = []
+    for file in hls_dir.iterdir():
+        if file.is_file() and file.suffix.lower() == ".ts":
+            segments.append(file.name)
+
+    return sorted(segments)
 
 
 def cleanup_temp_files(older_than_hours: int = 24) -> int:

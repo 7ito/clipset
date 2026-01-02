@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -17,6 +18,7 @@ from app.api import (
     config,
     comments,
 )
+from app.services.background_tasks import migrate_all_videos_to_hls
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -36,10 +38,24 @@ async def lifespan(app: FastAPI):
     # Create initial admin user if none exists
     await create_initial_admin()
 
+    # Start HLS migration in background if needed
+    # This runs as a background task so it doesn't block startup
+    asyncio.create_task(start_hls_migration())
+
     yield
 
     # Shutdown
     logger.info("Shutting down Clipset API...")
+
+
+async def start_hls_migration():
+    """Start HLS migration after a short delay to allow server to fully start."""
+    await asyncio.sleep(5)  # Wait for server to be fully ready
+    logger.info("Checking if HLS migration is needed...")
+    try:
+        await migrate_all_videos_to_hls()
+    except Exception as e:
+        logger.error(f"HLS migration failed: {e}")
 
 
 async def create_initial_admin():

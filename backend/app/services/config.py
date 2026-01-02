@@ -127,6 +127,8 @@ async def get_or_create_config(db: AsyncSession) -> Config:
             audio_bitrate="192k",
             # Preset Mode
             transcode_preset_mode="balanced",
+            # Video Output Format
+            video_output_format="hls",
         )
 
         db.add(config)
@@ -250,4 +252,5 @@ def get_transcoding_config_dict(config: Config) -> Dict[str, Any]:
         "max_width": width,
         "max_height": height,
         "audio_bitrate": config.audio_bitrate,
+        "video_output_format": config.video_output_format,
     }

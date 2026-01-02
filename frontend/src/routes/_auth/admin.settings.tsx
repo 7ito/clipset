@@ -61,6 +61,7 @@ function AdminSettingsPage() {
         max_resolution: config.max_resolution,
         audio_bitrate: config.audio_bitrate,
         transcode_preset_mode: config.transcode_preset_mode,
+        video_output_format: config.video_output_format,
       })
     }
   }, [config])
@@ -86,7 +87,8 @@ function AdminSettingsPage() {
       transcodingConfig.cpu_crf !== config.cpu_crf ||
       transcodingConfig.max_resolution !== config.max_resolution ||
       transcodingConfig.audio_bitrate !== config.audio_bitrate ||
-      transcodingConfig.transcode_preset_mode !== config.transcode_preset_mode
+      transcodingConfig.transcode_preset_mode !== config.transcode_preset_mode ||
+      transcodingConfig.video_output_format !== config.video_output_format
     
     setHasChanges(uploadStorageChanged || transcodingChanged)
   }, [maxFileSize, weeklyLimit, storagePath, transcodingConfig, config])
@@ -176,6 +178,9 @@ function AdminSettingsPage() {
       if (transcodingConfig.transcode_preset_mode !== config.transcode_preset_mode) {
         updates.transcode_preset_mode = transcodingConfig.transcode_preset_mode
       }
+      if (transcodingConfig.video_output_format !== config.video_output_format) {
+        updates.video_output_format = transcodingConfig.video_output_format
+      }
     }
 
     if (Object.keys(updates).length === 0) {
@@ -204,6 +209,7 @@ function AdminSettingsPage() {
         max_resolution: config.max_resolution,
         audio_bitrate: config.audio_bitrate,
         transcode_preset_mode: config.transcode_preset_mode,
+        video_output_format: config.video_output_format,
       })
       setHasChanges(false)
     }

@@ -25,6 +25,7 @@ CPU_PRESETS = [
 ]
 RESOLUTIONS = ["720p", "1080p", "1440p", "4k"]
 PRESET_MODES = ["quality", "balanced", "performance", "custom"]
+VIDEO_OUTPUT_FORMATS = ["hls", "progressive"]
 
 # Regex patterns
 BITRATE_PATTERN = re.compile(r"^\d+[kKmMgG]?$")
@@ -81,6 +82,12 @@ class ConfigResponse(BaseResponse):
     transcode_preset_mode: str = Field(
         ...,
         description="Transcoding preset mode (quality, balanced, performance, custom)",
+    )
+
+    # Video Output Format
+    video_output_format: str = Field(
+        ...,
+        description="Video output format (hls = segmented streaming, progressive = single file)",
     )
 
     # Metadata
@@ -165,6 +172,12 @@ class ConfigUpdate(BaseModel):
     transcode_preset_mode: Optional[str] = Field(
         None,
         description="Transcoding preset mode (quality, balanced, performance, custom)",
+    )
+
+    # Video Output Format
+    video_output_format: Optional[str] = Field(
+        None,
+        description="Video output format (hls = segmented streaming, progressive = single file)",
     )
 
     @field_validator("video_storage_path")
@@ -260,6 +273,18 @@ class ConfigUpdate(BaseModel):
             return v
         if v not in PRESET_MODES:
             raise ValueError(f"Preset mode must be one of: {', '.join(PRESET_MODES)}")
+        return v
+
+    @field_validator("video_output_format")
+    @classmethod
+    def validate_video_output_format(cls, v: Optional[str]) -> Optional[str]:
+        """Validate video output format."""
+        if v is None:
+            return v
+        if v not in VIDEO_OUTPUT_FORMATS:
+            raise ValueError(
+                f"Video output format must be one of: {', '.join(VIDEO_OUTPUT_FORMATS)}"
+            )
         return v
 
 

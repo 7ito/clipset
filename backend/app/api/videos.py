@@ -7,6 +7,7 @@ Handles video upload, listing, streaming, and management.
 import logging
 import asyncio
 import os
+import re
 from pathlib import Path
 from typing import Optional, Generator, BinaryIO, Tuple
 from fastapi import (
@@ -793,6 +794,33 @@ async def stream_hls(
         content_type = "application/vnd.apple.mpegurl"
         # M3U8 files should not be cached as aggressively
         cache_control = "public, max-age=2"
+
+        # For native HLS players (Safari/iOS), we need to rewrite the manifest
+        # to include the auth token in segment URLs, since native players
+        # don't support custom headers and don't preserve query params from
+        # the manifest URL when requesting segments
+        token = request.query_params.get("token")
+        if token:
+            # Read the manifest file
+            with open(file_path, "r") as f:
+                manifest_content = f.read()
+
+            # Rewrite segment URLs to include the token
+            # Segments are referenced as relative paths like "segment000.ts"
+            def add_token_to_segment(match):
+                segment_name = match.group(0)
+                return f"{segment_name}?token={token}"
+
+            # Match .ts files (segment files) that don't already have query params
+            rewritten_manifest = re.sub(
+                r"(segment\d+\.ts)(?!\?)", add_token_to_segment, manifest_content
+            )
+
+            return Response(
+                content=rewritten_manifest,
+                media_type=content_type,
+                headers={"Cache-Control": cache_control},
+            )
     elif filename.endswith(".ts"):
         content_type = "video/mp2t"
         # Segments can be cached longer since they don't change

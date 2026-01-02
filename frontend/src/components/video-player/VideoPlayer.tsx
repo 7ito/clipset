@@ -49,6 +49,9 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
   const hlsRef = useRef<Hls | null>(null)
   const [controlsVisible, setControlsVisible] = useState(true)
   const [isHlsActive, setIsHlsActive] = useState(false)
+  // Track if we're using native HLS (Safari/iOS) vs hls.js
+  // This is needed to let React control the video src attribute for native HLS
+  const [useNativeHls, setUseNativeHls] = useState(false)
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
   const { state, controls } = useVideoPlayer(videoRef, containerRef, {
@@ -67,10 +70,11 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
     if (!video || !hlsSrc) {
       // No HLS source, use progressive
       setIsHlsActive(false)
+      setUseNativeHls(false)
       return
     }
 
-    // Check if browser supports HLS natively (Safari)
+    // Check if browser supports HLS natively (Safari/iOS)
     // Note: Some browsers return "maybe" but don't actually support native HLS
     // Only Safari truly supports native HLS, so we check for Safari specifically
     const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent)
@@ -78,13 +82,17 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
                              (isSafari && video.canPlayType("application/vnd.apple.mpegurl"))
     
     if (canPlayNativeHls) {
-      // Safari has native HLS support
-      video.src = hlsSrc
+      // Safari/iOS has native HLS support
+      // Don't set video.src here - let React control it via the src attribute
+      // to avoid race conditions where React re-render clears the src
+      setUseNativeHls(true)
       setIsHlsActive(true)
       return
     }
 
-    // Use hls.js for other browsers
+    // Use hls.js for other browsers (Chrome, Firefox, Android, etc.)
+    setUseNativeHls(false)
+    
     if (Hls.isSupported()) {
       // Extract token from hlsSrc URL for use in segment requests
       const url = new URL(hlsSrc, window.location.origin)
@@ -131,6 +139,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
               console.error("HLS fatal error, falling back to progressive", data)
               hls.destroy()
               setIsHlsActive(false)
+              setUseNativeHls(false)
               // Fall back to progressive source
               video.src = src
               break
@@ -240,7 +249,17 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
       <video
         ref={videoRef}
         className="video-player-video"
-        src={!hlsSrc || !isHlsActive ? src : undefined}
+        // Video source selection:
+        // 1. Native HLS (Safari/iOS): Use hlsSrc directly - React controls the src attribute
+        // 2. hls.js (Chrome/Firefox/Android): src is undefined - hls.js manages via MediaSource
+        // 3. Progressive fallback: Use progressive MP4 src
+        src={
+          useNativeHls && hlsSrc
+            ? hlsSrc                           // Native Safari/iOS HLS
+            : isHlsActive
+              ? undefined                      // hls.js manages the source (blob URL)
+              : src                            // Progressive MP4 fallback
+        }
         poster={poster}
         playsInline
         preload="metadata"

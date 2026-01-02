@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Volume2, Volume1, VolumeX } from "lucide-react"
 
 interface VolumeControlProps {
@@ -6,6 +6,22 @@ interface VolumeControlProps {
   isMuted: boolean
   onVolumeChange: (volume: number) => void
   onToggleMute: () => void
+}
+
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const checkMobile = () => {
+      const isSmallScreen = window.matchMedia("(max-width: 768px)").matches
+      const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches
+      const hasNoFinePointer = !window.matchMedia("(pointer: fine)").matches
+      setIsMobile(isSmallScreen || (hasCoarsePointer && hasNoFinePointer))
+    }
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
+  return isMobile
 }
 
 export function VolumeControl({
@@ -17,6 +33,12 @@ export function VolumeControl({
   const [isHovered, setIsHovered] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
   const sliderRef = useRef<HTMLDivElement>(null)
+  const isMobile = useIsMobile()
+
+  // Hide volume control entirely on mobile (use hardware volume controls)
+  if (isMobile) {
+    return null
+  }
 
   const effectiveVolume = isMuted ? 0 : volume
 
@@ -30,23 +52,22 @@ export function VolumeControl({
     return <Volume2 className="w-6 h-6" />
   }
 
-  const calculateVolumeFromPosition = useCallback((clientY: number): number => {
+  const calculateVolumeFromPositionY = (clientY: number): number => {
     if (!sliderRef.current) return volume
     const rect = sliderRef.current.getBoundingClientRect()
-    // Invert because Y increases downward but volume should increase upward
     const percent = 1 - Math.max(0, Math.min(1, (clientY - rect.top) / rect.height))
     return percent
-  }, [volume])
+  }
 
-  const handleSliderMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleSliderMouseDown = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     setIsDragging(true)
-    const newVolume = calculateVolumeFromPosition(e.clientY)
+    const newVolume = calculateVolumeFromPositionY(e.clientY)
     onVolumeChange(newVolume)
 
     const handleGlobalMouseMove = (e: MouseEvent) => {
-      const newVolume = calculateVolumeFromPosition(e.clientY)
+      const newVolume = calculateVolumeFromPositionY(e.clientY)
       onVolumeChange(newVolume)
     }
 
@@ -58,28 +79,7 @@ export function VolumeControl({
 
     document.addEventListener("mousemove", handleGlobalMouseMove)
     document.addEventListener("mouseup", handleGlobalMouseUp)
-  }, [calculateVolumeFromPosition, onVolumeChange])
-
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(true)
-    const touch = e.touches[0]
-    const newVolume = calculateVolumeFromPosition(touch.clientY)
-    onVolumeChange(newVolume)
-  }, [calculateVolumeFromPosition, onVolumeChange])
-
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging) return
-    e.preventDefault()
-    const touch = e.touches[0]
-    const newVolume = calculateVolumeFromPosition(touch.clientY)
-    onVolumeChange(newVolume)
-  }, [isDragging, calculateVolumeFromPosition, onVolumeChange])
-
-  const handleTouchEnd = useCallback(() => {
-    setIsDragging(false)
-  }, [])
+  }
 
   const showSlider = isHovered || isDragging
 
@@ -103,9 +103,6 @@ export function VolumeControl({
           ref={sliderRef}
           className="video-volume-slider"
           onMouseDown={handleSliderMouseDown}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
         >
           {/* Background track */}
           <div className="video-volume-track" />

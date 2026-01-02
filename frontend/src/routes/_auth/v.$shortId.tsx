@@ -251,6 +251,7 @@ function VideoPlayerPage() {
                 ref={playerRef}
                 src={getVideoStreamUrl(shortId)}
                 hlsSrc={streamInfo?.format === "hls" ? getHlsManifestUrl(shortId) : undefined}
+                title={video.title}
                 poster={video.thumbnail_filename ? getThumbnailUrl(video.thumbnail_filename) : undefined}
                 initialTime={initialTimestamp}
                 autoPlay={true}

@@ -12,22 +12,24 @@ export interface UseVideoTouchOptions {
   controls: VideoControls
   skipAmount?: number
   doubleTapTimeout?: number
+  onSingleTap?: () => void
 }
 
 /**
  * Hook to handle mobile touch interactions for video player
  * 
  * Features:
- * - Double-tap left third: Skip back 5 seconds
- * - Double-tap right third: Skip forward 5 seconds
- * - Single tap center: Toggle play/pause (handled by controls overlay)
+ * - Double-tap left half: Skip back 5 seconds
+ * - Double-tap right half: Skip forward 5 seconds
+ * - Single tap: Calls onSingleTap callback (for showing/hiding controls)
  */
 export function useVideoTouch(options: UseVideoTouchOptions) {
   const {
     enabled = true,
     controls,
     skipAmount = 5,
-    doubleTapTimeout = 300
+    doubleTapTimeout = 300,
+    onSingleTap
   } = options
 
   const [doubleTapState, setDoubleTapState] = useState<DoubleTapState>({
@@ -42,6 +44,7 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
     y: number
   } | null>(null)
 
+  const singleTapTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const accumulatedSkipRef = useRef<{ left: number; right: number }>({ left: 0, right: 0 })
 
@@ -80,6 +83,12 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
     const now = Date.now()
     const lastTap = lastTapRef.current
 
+    // Clear any pending single tap timeout
+    if (singleTapTimeoutRef.current) {
+      clearTimeout(singleTapTimeoutRef.current)
+      singleTapTimeoutRef.current = undefined
+    }
+
     // Check if this is a double tap
     if (
       lastTap &&
@@ -90,13 +99,13 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
       // Double tap detected
       e.preventDefault()
 
-      if (relativeX < 0.33) {
-        // Left third - skip back
+      if (relativeX < 0.5) {
+        // Left half - skip back
         controls.seekRelative(-skipAmount)
         accumulatedSkipRef.current.left += skipAmount
         showDoubleTapFeedback("left", accumulatedSkipRef.current.left)
-      } else if (relativeX > 0.67) {
-        // Right third - skip forward
+      } else {
+        // Right half - skip forward
         controls.seekRelative(skipAmount)
         accumulatedSkipRef.current.right += skipAmount
         showDoubleTapFeedback("right", accumulatedSkipRef.current.right)
@@ -109,14 +118,20 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
         y: touch.clientY
       }
     } else {
-      // First tap - record it
+      // First tap - record it and schedule single tap callback
       lastTapRef.current = {
         time: now,
         x: touch.clientX,
         y: touch.clientY
       }
+
+      // Wait for potential second tap before triggering single tap
+      singleTapTimeoutRef.current = setTimeout(() => {
+        onSingleTap?.()
+        singleTapTimeoutRef.current = undefined
+      }, doubleTapTimeout)
     }
-  }, [enabled, controls, skipAmount, doubleTapTimeout, showDoubleTapFeedback])
+  }, [enabled, controls, skipAmount, doubleTapTimeout, showDoubleTapFeedback, onSingleTap])
 
   const handleTouchEnd = useCallback((_e: React.TouchEvent<HTMLElement>) => {
     // We handle most logic in touchStart for immediate feedback

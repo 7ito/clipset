@@ -1,38 +1,29 @@
 import { useState, useRef, useEffect } from "react"
-import { Settings } from "lucide-react"
-import { SpeedBottomSheet } from "./SpeedBottomSheet"
+import { Settings, Check } from "lucide-react"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 const PLAYBACK_RATES = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2]
-
-function useIsMobile() {
-  const [isMobile, setIsMobile] = useState(false)
-  
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.matchMedia("(max-width: 768px)").matches)
-    }
-    checkMobile()
-    window.addEventListener("resize", checkMobile)
-    return () => window.removeEventListener("resize", checkMobile)
-  }, [])
-  
-  return isMobile
-}
 
 interface PlaybackSpeedMenuProps {
   currentRate: number
   onRateChange: (rate: number) => void
+  isMobile?: boolean
 }
 
 export function PlaybackSpeedMenu({
   currentRate,
-  onRateChange
+  onRateChange,
+  isMobile = false
 }: PlaybackSpeedMenuProps) {
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const isMobile = useIsMobile()
 
-  // Close menu when clicking outside
+  // Close menu when clicking outside (desktop only)
   useEffect(() => {
     if (!isOpen || isMobile) return
 
@@ -68,7 +59,10 @@ export function PlaybackSpeedMenu({
     <div className="video-speed-menu" ref={menuRef}>
       <button
         className="video-control-button video-speed-button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={(e) => {
+          e.stopPropagation()
+          setIsOpen(!isOpen)
+        }}
         title="Playback Speed"
       >
         {currentRate === 1 ? (
@@ -78,15 +72,37 @@ export function PlaybackSpeedMenu({
         )}
       </button>
 
+      {/* Mobile: Dialog */}
       {isMobile && (
-        <SpeedBottomSheet
-          isOpen={isOpen}
-          onClose={() => setIsOpen(false)}
-          currentRate={currentRate}
-          onRateChange={onRateChange}
-        />
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+          <DialogContent className="max-w-xs" showCloseButton={false}>
+            <DialogHeader>
+              <DialogTitle>Playback Speed</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-1">
+              {PLAYBACK_RATES.map((rate) => (
+                <button
+                  key={rate}
+                  className={`flex items-center justify-between px-3 py-2 rounded-md text-sm transition-colors ${
+                    rate === currentRate 
+                      ? "bg-primary text-primary-foreground" 
+                      : "hover:bg-muted"
+                  }`}
+                  onClick={() => {
+                    onRateChange(rate)
+                    setIsOpen(false)
+                  }}
+                >
+                  <span>{formatRate(rate)}</span>
+                  {rate === currentRate && <Check className="w-4 h-4" />}
+                </button>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
+      {/* Desktop: Dropdown */}
       {!isMobile && isOpen && (
         <div className="video-speed-dropdown">
           <div className="video-speed-dropdown-header">

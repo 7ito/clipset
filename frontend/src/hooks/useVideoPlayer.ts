@@ -284,13 +284,21 @@ export function useVideoPlayer(
   // Fullscreen change handler
   useEffect(() => {
     const handleFullscreenChange = () => {
-      const isFs = !!document.fullscreenElement
+      const doc = document as any
+      const isFs = !!(doc.fullscreenElement || doc.webkitFullscreenElement || doc.mozFullScreenElement || doc.msFullscreenElement)
       setState(prev => ({ ...prev, isFullscreen: isFs }))
     }
 
     document.addEventListener("fullscreenchange", handleFullscreenChange)
+    document.addEventListener("webkitfullscreenchange", handleFullscreenChange)
+    document.addEventListener("mozfullscreenchange", handleFullscreenChange)
+    document.addEventListener("MSFullscreenChange", handleFullscreenChange)
+    
     return () => {
       document.removeEventListener("fullscreenchange", handleFullscreenChange)
+      document.removeEventListener("webkitfullscreenchange", handleFullscreenChange)
+      document.removeEventListener("mozfullscreenchange", handleFullscreenChange)
+      document.removeEventListener("MSFullscreenChange", handleFullscreenChange)
     }
   }, [])
 
@@ -386,36 +394,70 @@ export function useVideoPlayer(
     setStoredValue(STORAGE_KEYS.playbackRate, validRate)
   }, [videoRef])
 
-  const isIOS = useCallback(() => {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
-  }, [])
+  // Track if we're using CSS-based fullscreen (for browsers without Fullscreen API support)
+  const usingCssFullscreenRef = useRef(false)
 
-  const requestFullscreen = useCallback(() => {
+  const requestFullscreen = useCallback(async () => {
     const container = containerRef.current
-    const video = videoRef.current
-    if (!container || !video) return
+    if (!container) return
     
-    const v = video as any
-    if (isIOS() && v.webkitEnterFullScreen) {
-      // Use native iOS video fullscreen
-      v.webkitEnterFullScreen()
-    } else {
-      // Desktop/Android: use container fullscreen API
-      if (container.requestFullscreen) {
-        container.requestFullscreen()
-      } else if ((container as any).webkitRequestFullscreen) {
-        (container as any).webkitRequestFullscreen()
+    const c = container as any
+    const doc = document as any
+    
+    // Try native Fullscreen API first
+    try {
+      if (c.requestFullscreen && doc.fullscreenEnabled) {
+        await c.requestFullscreen()
+        return
+      } else if (c.webkitRequestFullscreen && doc.webkitFullscreenEnabled) {
+        await c.webkitRequestFullscreen()
+        return
+      } else if (c.mozRequestFullScreen && doc.mozFullScreenEnabled) {
+        await c.mozRequestFullScreen()
+        return
+      } else if (c.msRequestFullscreen && doc.msFullscreenEnabled) {
+        await c.msRequestFullscreen()
+        return
       }
+    } catch (err) {
+      console.warn("Native fullscreen failed, falling back to CSS fullscreen:", err)
     }
-  }, [containerRef, videoRef, isIOS])
+    
+    // Fallback: CSS-based fullscreen (works on iOS Safari)
+    usingCssFullscreenRef.current = true
+    container.classList.add("fullscreen")
+    setState(prev => ({ ...prev, isFullscreen: true }))
+    
+    // Prevent body scroll when in CSS fullscreen
+    document.body.style.overflow = "hidden"
+  }, [containerRef])
 
   const exitFullscreen = useCallback(() => {
-    if (document.exitFullscreen) {
-      document.exitFullscreen()
-    } else if ((document as any).webkitExitFullscreen) {
-      (document as any).webkitExitFullscreen()
+    const container = containerRef.current
+    const doc = document as any
+    
+    // Check if we're using CSS-based fullscreen
+    if (usingCssFullscreenRef.current) {
+      usingCssFullscreenRef.current = false
+      container?.classList.remove("fullscreen")
+      setState(prev => ({ ...prev, isFullscreen: false }))
+      document.body.style.overflow = ""
+      return
     }
-  }, [])
+    
+    // Native fullscreen exit
+    if (doc.exitFullscreen) {
+      doc.exitFullscreen()
+    } else if (doc.webkitExitFullscreen) {
+      doc.webkitExitFullscreen()
+    } else if (doc.webkitCancelFullScreen) {
+      doc.webkitCancelFullScreen()
+    } else if (doc.mozCancelFullScreen) {
+      doc.mozCancelFullScreen()
+    } else if (doc.msExitFullscreen) {
+      doc.msExitFullscreen()
+    }
+  }, [containerRef])
 
   const toggleFullscreen = useCallback(() => {
     if (state.isFullscreen) {

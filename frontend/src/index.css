@@ -155,8 +155,13 @@
 }
 
 .video-player-container.fullscreen {
-  @apply fixed inset-0 z-50 w-screen h-screen;
+  @apply fixed inset-0 z-50;
+  width: 100vw !important;
+  height: 100vh !important;
+  /* iOS Safari viewport fix */
+  height: 100dvh !important;
   aspect-ratio: unset;
+  background: black;
 }
 
 .video-player-container.fullscreen .video-player-video {
@@ -387,45 +392,78 @@
 }
 
 /* ============================================
-   Speed Bottom Sheet (Mobile)
+   Mobile Controls Overlay (YouTube-style)
    ============================================ */
 
-.speed-sheet-overlay {
-  @apply fixed inset-0 z-[100] bg-black/60;
-  @apply data-open:animate-in data-closed:animate-out;
-  @apply data-closed:fade-out-0 data-open:fade-in-0;
+.video-controls-mobile {
+  @apply absolute inset-0 z-10;
+  @apply flex flex-col;
+  @apply opacity-0 pointer-events-none;
+  @apply transition-opacity duration-200;
 }
 
-.speed-sheet-content {
-  @apply fixed bottom-0 left-0 right-0 z-[101];
-  @apply bg-background border-t border-border;
-  @apply rounded-t-2xl;
-  @apply data-open:animate-in data-closed:animate-out;
-  @apply data-closed:slide-out-to-bottom data-open:slide-in-from-bottom;
-  @apply duration-300;
-  touch-action: none;
+.video-controls-mobile.visible {
+  @apply opacity-100 pointer-events-auto;
 }
 
-.speed-sheet-header {
-  @apply px-4 py-3 text-sm text-muted-foreground uppercase tracking-wide;
-  @apply border-b border-border text-center;
+/* Dimmed overlay background - allows touch events to pass through for double-tap */
+.video-mobile-overlay-bg {
+  @apply absolute inset-0 bg-black/50;
+  @apply transition-opacity duration-200;
 }
 
-.speed-sheet-options {
-  @apply py-2 max-h-[60vh] overflow-y-auto;
-  @apply overscroll-contain;
-  touch-action: pan-y;
+/* Top bar with title and settings */
+.video-mobile-top-bar {
+  @apply relative z-10 flex items-center justify-between;
+  @apply px-4 py-3;
+  @apply bg-gradient-to-b from-black/80 to-transparent;
+  @apply transition-opacity duration-200;
 }
 
-.speed-sheet-option {
-  @apply w-full px-4 py-4 text-base text-foreground/80;
-  @apply text-center;
-  @apply active:bg-accent;
-  @apply transition-colors cursor-pointer;
+.video-mobile-title {
+  @apply text-white font-medium text-sm truncate;
+  @apply max-w-[70%];
 }
 
-.speed-sheet-option.active {
-  @apply text-primary font-medium bg-primary/10;
+/* Center play/pause button (icon only, no background) */
+.video-mobile-center-play {
+  @apply relative z-10 m-auto;
+  @apply flex items-center justify-center;
+  @apply text-white;
+  @apply transition-transform duration-200;
+  @apply active:scale-90;
+  /* Add subtle drop shadow for visibility against video */
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+}
+
+/* Bottom bar with progress and controls */
+.video-mobile-bottom-bar {
+  @apply relative z-10 mt-auto;
+  @apply px-4 py-3;
+  @apply bg-gradient-to-t from-black/80 to-transparent;
+  @apply flex items-center gap-3;
+}
+
+.video-mobile-time {
+  @apply text-white text-xs font-mono tabular-nums;
+  @apply min-w-[40px];
+}
+
+.video-mobile-progress {
+  @apply flex-1;
+}
+
+.video-mobile-fullscreen {
+  @apply w-10 h-10 flex items-center justify-center;
+  @apply text-white rounded-md;
+  @apply transition-colors active:bg-white/20;
+}
+
+/* Seek mode: hide everything except bottom bar */
+.video-controls-mobile.seek-mode .video-mobile-overlay-bg,
+.video-controls-mobile.seek-mode .video-mobile-top-bar,
+.video-controls-mobile.seek-mode .video-mobile-center-play {
+  @apply opacity-0 pointer-events-none;
 }
 
 /* ============================================

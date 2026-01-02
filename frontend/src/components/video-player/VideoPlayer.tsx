@@ -7,11 +7,35 @@ import { useVideoTouch } from "@/hooks/useVideoTouch"
 import { VideoControls } from "./VideoControls"
 import { cn } from "@/lib/utils"
 
+// Check if device is mobile based on screen width
+// We use screen width as the primary indicator since touch detection
+// can be unreliable (some laptops have touch screens, Playwright tests, etc.)
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false)
+  useEffect(() => {
+    const checkMobile = () => {
+      // Primary check: screen width (768px is typical tablet/mobile breakpoint)
+      const isSmallScreen = window.matchMedia("(max-width: 768px)").matches
+      // Secondary check: pointer type (coarse = touch, fine = mouse)
+      const hasCoarsePointer = window.matchMedia("(pointer: coarse)").matches
+      // Consider mobile if small screen OR if it's a touch-primary device with no fine pointer
+      const hasNoFinePointer = !window.matchMedia("(pointer: fine)").matches
+      setIsMobile(isSmallScreen || (hasCoarsePointer && hasNoFinePointer))
+    }
+    checkMobile()
+    window.addEventListener("resize", checkMobile)
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
+  return isMobile
+}
+
 export interface VideoPlayerProps {
   /** Progressive MP4 source URL */
   src: string
   /** HLS manifest URL (optional - will use HLS if provided and supported) */
   hlsSrc?: string
+  /** Video title (displayed in mobile overlay) */
+  title?: string
   poster?: string
   initialTime?: number
   autoPlay?: boolean
@@ -33,6 +57,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
   {
     src,
     hlsSrc,
+    title,
     poster,
     initialTime = 0,
     autoPlay = true,
@@ -53,6 +78,9 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
   // This is needed to let React control the video src attribute for native HLS
   const [useNativeHls, setUseNativeHls] = useState(false)
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  const isMobile = useIsMobile()
+  // Track if user is seeking (to show only progress bar on mobile)
+  const [isSeeking, setIsSeeking] = useState(false)
 
   const { state, controls } = useVideoPlayer(videoRef, containerRef, {
     initialTime,
@@ -175,13 +203,6 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
     enabled: true
   })
 
-  // Mobile touch handling
-  const { doubleTapState, handlers: touchHandlers } = useVideoTouch({
-    controls,
-    enabled: true,
-    skipAmount: 5
-  })
-
   // Auto-hide controls
   const showControls = useCallback(() => {
     setControlsVisible(true)
@@ -194,6 +215,24 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
       }, 3000)
     }
   }, [state.isPlaying])
+
+  // Mobile touch handling - toggle controls on single tap, skip on double tap
+  const handleSingleTap = useCallback(() => {
+    if (isMobile) {
+      if (controlsVisible) {
+        setControlsVisible(false)
+      } else {
+        showControls()
+      }
+    }
+  }, [isMobile, controlsVisible, showControls])
+
+  const { doubleTapState, handlers: touchHandlers } = useVideoTouch({
+    controls,
+    enabled: isMobile, // Only enable touch handling on mobile
+    skipAmount: 5,
+    onSingleTap: handleSingleTap
+  })
 
   // Show controls on any interaction
   const handleMouseMove = useCallback(() => {
@@ -218,22 +257,37 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
     }
   }, [state.isPlaying, showControls])
 
-  // Click on video to toggle play/pause
+  // Click on video to toggle play/pause (desktop only - mobile uses touch handlers)
   const handleVideoClick = useCallback((e: React.MouseEvent) => {
     // Don't toggle if clicking on controls
     if ((e.target as HTMLElement).closest(".video-controls")) {
       return
     }
-    controls.togglePlay()
-  }, [controls])
+    // Desktop: toggle play/pause
+    // Mobile is handled by touch handlers with single tap detection
+    if (!isMobile) {
+      controls.togglePlay()
+    }
+  }, [controls, isMobile])
 
-  // Double-click to toggle fullscreen
+  // Double-click to toggle fullscreen (desktop only - conflicts with double-tap skip on mobile)
   const handleVideoDoubleClick = useCallback((e: React.MouseEvent) => {
+    if (isMobile) return // Disable on mobile to avoid conflict with double-tap skip
     if ((e.target as HTMLElement).closest(".video-controls")) {
       return
     }
     controls.toggleFullscreen()
-  }, [controls])
+  }, [controls, isMobile])
+
+  // Seek handlers for mobile (to show only progress bar during seek)
+  const handleSeekStart = useCallback(() => {
+    setIsSeeking(true)
+  }, [])
+
+  const handleSeekEnd = useCallback(() => {
+    setIsSeeking(false)
+    showControls() // Restart auto-hide timer
+  }, [showControls])
 
   return (
     <div
@@ -245,6 +299,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       tabIndex={0}
+      {...(isMobile ? touchHandlers : {})}
     >
       <video
         ref={videoRef}
@@ -257,7 +312,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
           useNativeHls && hlsSrc
             ? hlsSrc                           // Native Safari/iOS HLS
             : isHlsActive
-              ? undefined                      // hls.js manages the source (blob URL)
+              ? undefined                      // hls.js manages via MediaSource
               : src                            // Progressive MP4 fallback
         }
         poster={poster}
@@ -265,7 +320,6 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
         preload="metadata"
         onClick={handleVideoClick}
         onDoubleClick={handleVideoDoubleClick}
-        {...touchHandlers}
       />
 
       {/* Loading spinner */}
@@ -296,14 +350,22 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
         </div>
       )}
 
-      {/* Gradient overlay at bottom for controls visibility */}
-      <div className={`video-gradient-overlay ${controlsVisible ? "visible" : ""}`} />
+      {/* Gradient overlay at bottom for controls visibility (desktop only) */}
+      {!isMobile && (
+        <div className={`video-gradient-overlay ${controlsVisible ? "visible" : ""}`} />
+      )}
 
       {/* Controls overlay */}
       <VideoControls
         state={state}
         controls={controls}
         visible={controlsVisible}
+        isMobile={isMobile}
+        title={title}
+        isSeeking={isSeeking}
+        onSeekStart={handleSeekStart}
+        onSeekEnd={handleSeekEnd}
+        onDismiss={() => setControlsVisible(false)}
       />
     </div>
   )

@@ -1,10 +1,20 @@
 import { useState, useCallback, useRef } from "react"
 import type { VideoControls } from "./useVideoPlayer"
 
+// Swipe gesture thresholds
+const SWIPE_START_THRESHOLD = 60    // Start showing visual feedback (after scroll-to-hide zone)
+const SWIPE_EXIT_THRESHOLD = 150    // Exit fullscreen when released
+
 export interface DoubleTapState {
   side: "left" | "right" | null
   visible: boolean
   amount: number
+}
+
+export interface SwipeState {
+  active: boolean       // Is a swipe gesture in progress (past start threshold)?
+  deltaY: number        // Current drag distance from start
+  progress: number      // 0 to 1, how close to exit threshold
 }
 
 export interface UseVideoTouchOptions {
@@ -14,6 +24,8 @@ export interface UseVideoTouchOptions {
   doubleTapTimeout?: number
   onSingleTap?: () => void
   onCenterTap?: () => void
+  isFullscreen?: boolean
+  onExitFullscreen?: () => void
 }
 
 /**
@@ -24,6 +36,7 @@ export interface UseVideoTouchOptions {
  * - Double-tap right half: Skip forward 5 seconds
  * - Single tap center: Toggle play/pause (calls onCenterTap)
  * - Single tap elsewhere: Toggle controls (calls onSingleTap)
+ * - Swipe down in fullscreen: Exit fullscreen (with visual feedback)
  */
 export function useVideoTouch(options: UseVideoTouchOptions) {
   const {
@@ -32,13 +45,21 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
     skipAmount = 5,
     doubleTapTimeout = 300,
     onSingleTap,
-    onCenterTap
+    onCenterTap,
+    isFullscreen = false,
+    onExitFullscreen
   } = options
 
   const [doubleTapState, setDoubleTapState] = useState<DoubleTapState>({
     side: null,
     visible: false,
     amount: 0
+  })
+
+  const [swipeState, setSwipeState] = useState<SwipeState>({
+    active: false,
+    deltaY: 0,
+    progress: 0
   })
 
   const lastTapRef = useRef<{
@@ -50,6 +71,10 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
   const singleTapTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const accumulatedSkipRef = useRef<{ left: number; right: number }>({ left: 0, right: 0 })
+  
+  // Swipe tracking refs
+  const swipeStartRef = useRef<{ y: number; time: number } | null>(null)
+  const isSwipingRef = useRef(false)
 
   const showDoubleTapFeedback = useCallback((side: "left" | "right", amount: number) => {
     // Clear any existing hide timeout
@@ -99,6 +124,12 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
 
     const now = Date.now()
     const lastTap = lastTapRef.current
+
+    // Track start position for potential swipe gesture (in fullscreen)
+    if (isFullscreen) {
+      swipeStartRef.current = { y: touch.clientY, time: now }
+      isSwipingRef.current = false
+    }
 
     // Clear any pending single tap timeout
     if (singleTapTimeoutRef.current) {
@@ -160,17 +191,71 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
         singleTapTimeoutRef.current = undefined
       }, doubleTapTimeout)
     }
-  }, [enabled, controls, skipAmount, doubleTapTimeout, showDoubleTapFeedback, onSingleTap, onCenterTap])
+  }, [enabled, controls, skipAmount, doubleTapTimeout, showDoubleTapFeedback, onSingleTap, onCenterTap, isFullscreen])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent<HTMLElement>) => {
+    if (!enabled || !isFullscreen || !swipeStartRef.current) return
+
+    const touch = e.touches[0]
+    const deltaY = touch.clientY - swipeStartRef.current.y
+
+    // Only track downward swipes
+    if (deltaY <= 0) {
+      // Reset swipe state if swiping up
+      if (isSwipingRef.current) {
+        isSwipingRef.current = false
+        setSwipeState({ active: false, deltaY: 0, progress: 0 })
+      }
+      return
+    }
+
+    // Once past the start threshold, activate swipe mode
+    if (deltaY >= SWIPE_START_THRESHOLD) {
+      // Prevent default to stop body scroll once we're in swipe mode
+      e.preventDefault()
+
+      // Cancel any pending tap timeouts
+      if (singleTapTimeoutRef.current) {
+        clearTimeout(singleTapTimeoutRef.current)
+        singleTapTimeoutRef.current = undefined
+      }
+
+      isSwipingRef.current = true
+
+      // Calculate progress (0 to 1) based on distance past start threshold
+      const effectiveDelta = deltaY - SWIPE_START_THRESHOLD
+      const progress = Math.min(effectiveDelta / (SWIPE_EXIT_THRESHOLD - SWIPE_START_THRESHOLD), 1)
+
+      setSwipeState({
+        active: true,
+        deltaY,
+        progress
+      })
+    }
+  }, [enabled, isFullscreen])
 
   const handleTouchEnd = useCallback((_e: React.TouchEvent<HTMLElement>) => {
-    // We handle most logic in touchStart for immediate feedback
-    // This is here for potential future use
-  }, [])
+    // Handle swipe gesture completion
+    if (isSwipingRef.current && swipeState.active) {
+      if (swipeState.deltaY >= SWIPE_EXIT_THRESHOLD) {
+        // Exit fullscreen
+        onExitFullscreen?.()
+      }
+      // Reset swipe state (will animate back via CSS transition)
+      setSwipeState({ active: false, deltaY: 0, progress: 0 })
+    }
+
+    // Reset swipe tracking
+    swipeStartRef.current = null
+    isSwipingRef.current = false
+  }, [swipeState, onExitFullscreen])
 
   return {
     doubleTapState,
+    swipeState,
     handlers: {
       onTouchStart: handleTouchStart,
+      onTouchMove: handleTouchMove,
       onTouchEnd: handleTouchEnd
     }
   }

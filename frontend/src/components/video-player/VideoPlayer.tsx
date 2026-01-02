@@ -229,12 +229,14 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
     }
   }, [isMobile, controlsVisible, showControls])
 
-  const { doubleTapState, handlers: touchHandlers } = useVideoTouch({
+  const { doubleTapState, swipeState, handlers: touchHandlers } = useVideoTouch({
     controls,
     enabled: isMobile, // Only enable touch handling on mobile
     skipAmount: 5,
     onSingleTap: handleSingleTap,
-    onCenterTap: controls.togglePlay
+    onCenterTap: controls.togglePlay,
+    isFullscreen: state.isFullscreen,
+    onExitFullscreen: controls.exitFullscreen
   })
 
   // Show controls on any interaction
@@ -294,6 +296,17 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
     showControls() // Restart auto-hide timer
   }, [showControls])
 
+  // Calculate swipe transform styles
+  const swipeTransformStyle = swipeState.active ? {
+    transform: `scale(${1 - swipeState.progress * 0.15}) translateY(${swipeState.progress * 30}px)`,
+    opacity: 1 - swipeState.progress * 0.3,
+    transition: "none"
+  } : {
+    transform: "scale(1) translateY(0)",
+    opacity: 1,
+    transition: "transform 0.2s ease-out, opacity 0.2s ease-out"
+  }
+
   return (
     <div
       ref={containerRef}
@@ -305,6 +318,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
       onMouseLeave={handleMouseLeave}
       tabIndex={0}
       {...(isMobile ? touchHandlers : {})}
+      style={state.isFullscreen && isMobile ? swipeTransformStyle : undefined}
     >
       <video
         ref={videoRef}

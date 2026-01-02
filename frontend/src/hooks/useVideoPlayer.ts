@@ -428,8 +428,13 @@ export function useVideoPlayer(
     container.classList.add("fullscreen")
     setState(prev => ({ ...prev, isFullscreen: true }))
     
-    // Prevent body scroll when in CSS fullscreen
-    document.body.style.overflow = "hidden"
+    // Add scroll spacer to allow scroll-to-hide browser UI on mobile
+    // Don't set overflow:hidden - we want the body to be scrollable
+    // so users can scroll down to hide the browser UI (especially in landscape)
+    const spacer = document.createElement("div")
+    spacer.id = "fullscreen-scroll-spacer"
+    spacer.style.height = "50px"
+    document.body.appendChild(spacer)
   }, [containerRef])
 
   const exitFullscreen = useCallback(() => {
@@ -441,7 +446,13 @@ export function useVideoPlayer(
       usingCssFullscreenRef.current = false
       container?.classList.remove("fullscreen")
       setState(prev => ({ ...prev, isFullscreen: false }))
-      document.body.style.overflow = ""
+      
+      // Remove scroll spacer
+      const spacer = document.getElementById("fullscreen-scroll-spacer")
+      spacer?.remove()
+      
+      // Scroll back to top
+      window.scrollTo(0, 0)
       return
     }
     

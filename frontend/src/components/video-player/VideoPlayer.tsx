@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect, forwardRef, useImperativeHandle } from "react"
-import { Play, Loader2, RotateCcw, RotateCw } from "lucide-react"
+import { Loader2, RotateCcw, RotateCw } from "lucide-react"
 import Hls from "hls.js"
 import { useVideoPlayer } from "@/hooks/useVideoPlayer"
 import { useVideoKeyboard } from "@/hooks/useVideoKeyboard"
@@ -248,17 +248,6 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
         onDoubleClick={handleVideoDoubleClick}
         {...touchHandlers}
       />
-
-      {/* Center play button (shown when paused and not loading) */}
-      {!state.isPlaying && !state.isLoading && state.isReady && (
-        <button
-          className="video-center-play"
-          onClick={controls.togglePlay}
-          aria-label="Play"
-        >
-          <Play className="w-16 h-16" />
-        </button>
-      )}
 
       {/* Loading spinner */}
       {state.isLoading && (

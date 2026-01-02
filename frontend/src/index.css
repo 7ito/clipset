@@ -247,11 +247,11 @@
    ============================================ */
 
 .video-progress-container {
-  @apply relative w-full h-6 flex items-center cursor-pointer;
+  @apply relative w-full h-10 flex items-center cursor-pointer;
 }
 
 .video-progress-bar {
-  @apply relative w-full h-1 group-hover/progress:h-1.5;
+  @apply relative w-full h-1.5 group-hover/progress:h-2;
   @apply transition-all duration-150;
 }
 

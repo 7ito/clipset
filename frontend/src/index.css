@@ -427,8 +427,8 @@
 
 /* Center play/pause button (icon only, no background) */
 .video-mobile-center-play {
-  @apply relative z-10 m-auto;
-  @apply flex items-center justify-center;
+  @apply absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2;
+  @apply z-10 flex items-center justify-center;
   @apply text-white;
   @apply transition-transform duration-200;
   @apply active:scale-90;

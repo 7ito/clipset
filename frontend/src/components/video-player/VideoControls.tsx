@@ -15,7 +15,6 @@ interface VideoControlsProps {
   isSeeking?: boolean
   onSeekStart?: () => void
   onSeekEnd?: () => void
-  onDismiss?: () => void
 }
 
 export function VideoControls({
@@ -26,8 +25,7 @@ export function VideoControls({
   title,
   isSeeking = false,
   onSeekStart,
-  onSeekEnd,
-  onDismiss
+  onSeekEnd
 }: VideoControlsProps) { 
   const {
     isPlaying,
@@ -49,14 +47,8 @@ export function VideoControls({
         visible && "visible",
         isSeeking && "seek-mode"
       )}>
-        {/* Dimmed overlay background - tap to dismiss */}
-        <div 
-          className="video-mobile-overlay-bg" 
-          onClick={(e) => {
-            e.stopPropagation()
-            onDismiss?.()
-          }}
-        />
+        {/* Dimmed overlay background - touch handler manages tap interactions */}
+        <div className="video-mobile-overlay-bg" />
 
         {/* Top bar with title and settings */}
         <div className="video-mobile-top-bar">

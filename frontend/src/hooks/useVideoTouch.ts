@@ -13,6 +13,7 @@ export interface UseVideoTouchOptions {
   skipAmount?: number
   doubleTapTimeout?: number
   onSingleTap?: () => void
+  onCenterTap?: () => void
 }
 
 /**
@@ -21,7 +22,8 @@ export interface UseVideoTouchOptions {
  * Features:
  * - Double-tap left half: Skip back 5 seconds
  * - Double-tap right half: Skip forward 5 seconds
- * - Single tap: Calls onSingleTap callback (for showing/hiding controls)
+ * - Single tap center: Toggle play/pause (calls onCenterTap)
+ * - Single tap elsewhere: Toggle controls (calls onSingleTap)
  */
 export function useVideoTouch(options: UseVideoTouchOptions) {
   const {
@@ -29,7 +31,8 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
     controls,
     skipAmount = 5,
     doubleTapTimeout = 300,
-    onSingleTap
+    onSingleTap,
+    onCenterTap
   } = options
 
   const [doubleTapState, setDoubleTapState] = useState<DoubleTapState>({
@@ -73,12 +76,26 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
   const handleTouchStart = useCallback((e: React.TouchEvent<HTMLElement>) => {
     if (!enabled) return
 
+    // Ignore touches on interactive elements (buttons, control bars, etc.)
+    // but allow touches on the overlay background for double-tap skip
+    const touchedElement = e.target as HTMLElement
+    if (
+      touchedElement.closest("button") ||
+      touchedElement.closest(".video-mobile-top-bar") ||
+      touchedElement.closest(".video-mobile-bottom-bar") ||
+      touchedElement.closest(".video-controls") // desktop controls
+    ) {
+      return
+    }
+
     const touch = e.touches[0]
     const target = e.currentTarget
     const rect = target.getBoundingClientRect()
     
     const x = touch.clientX - rect.left
+    const y = touch.clientY - rect.top
     const relativeX = x / rect.width
+    const relativeY = y / rect.height
 
     const now = Date.now()
     const lastTap = lastTapRef.current
@@ -118,7 +135,19 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
         y: touch.clientY
       }
     } else {
-      // First tap - record it and schedule single tap callback
+      // Check if tap is in center zone (middle 40% horizontally and vertically)
+      const isCenterX = relativeX >= 0.3 && relativeX <= 0.7
+      const isCenterY = relativeY >= 0.3 && relativeY <= 0.7
+
+      if (isCenterX && isCenterY) {
+        // Center tap - toggle play/pause IMMEDIATELY (no double-tap skip in center)
+        onCenterTap?.()
+        // Don't record this tap - center taps don't participate in double-tap detection
+        lastTapRef.current = null
+        return
+      }
+
+      // Edge tap - record it and wait for potential double-tap
       lastTapRef.current = {
         time: now,
         x: touch.clientX,
@@ -131,7 +160,7 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
         singleTapTimeoutRef.current = undefined
       }, doubleTapTimeout)
     }
-  }, [enabled, controls, skipAmount, doubleTapTimeout, showDoubleTapFeedback, onSingleTap])
+  }, [enabled, controls, skipAmount, doubleTapTimeout, showDoubleTapFeedback, onSingleTap, onCenterTap])
 
   const handleTouchEnd = useCallback((_e: React.TouchEvent<HTMLElement>) => {
     // We handle most logic in touchStart for immediate feedback

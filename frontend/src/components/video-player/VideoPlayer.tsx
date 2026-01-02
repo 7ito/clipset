@@ -204,15 +204,17 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
   })
 
   // Auto-hide controls
-  const showControls = useCallback(() => {
+  const showControls = useCallback((delay?: number) => {
     setControlsVisible(true)
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current)
     }
     if (state.isPlaying) {
+      // Use custom delay if provided, otherwise default to 3 seconds
+      const hideDelay = delay ?? 3000
       hideTimeoutRef.current = setTimeout(() => {
         setControlsVisible(false)
-      }, 3000)
+      }, hideDelay)
     }
   }, [state.isPlaying])
 
@@ -231,7 +233,8 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
     controls,
     enabled: isMobile, // Only enable touch handling on mobile
     skipAmount: 5,
-    onSingleTap: handleSingleTap
+    onSingleTap: handleSingleTap,
+    onCenterTap: controls.togglePlay
   })
 
   // Show controls on any interaction
@@ -245,7 +248,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
     }
   }, [state.isPlaying])
 
-  // Keep controls visible when paused
+  // Keep controls visible when paused, hide after 1 second when playing on mobile
   useEffect(() => {
     if (!state.isPlaying) {
       setControlsVisible(true)
@@ -253,9 +256,11 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
         clearTimeout(hideTimeoutRef.current)
       }
     } else {
-      showControls()
+      // On mobile, hide controls after 1 second when video starts playing
+      // On desktop, use the normal 3 second delay
+      showControls(isMobile ? 1000 : 3000)
     }
-  }, [state.isPlaying, showControls])
+  }, [state.isPlaying, showControls, isMobile])
 
   // Click on video to toggle play/pause (desktop only - mobile uses touch handlers)
   const handleVideoClick = useCallback((e: React.MouseEvent) => {
@@ -365,7 +370,6 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
         isSeeking={isSeeking}
         onSeekStart={handleSeekStart}
         onSeekEnd={handleSeekEnd}
-        onDismiss={() => setControlsVisible(false)}
       />
     </div>
   )

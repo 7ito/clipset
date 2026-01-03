@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 43200  # 30 days
 
+    # HLS Signed URLs - separate secret for nginx secure_link validation
+    # If not set, derived from SECRET_KEY (but explicit setting recommended for production)
+    HLS_SIGNING_SECRET: str = ""
+
     # Initial Admin User
     INITIAL_ADMIN_EMAIL: str = "admin@clipset.local"
     INITIAL_ADMIN_USERNAME: str = "admin"
@@ -72,6 +76,21 @@ class Settings(BaseSettings):
     def accepted_formats(self) -> List[str]:
         """Parse accepted video formats from comma-separated string."""
         return [fmt.strip().lower() for fmt in self.ACCEPTED_VIDEO_FORMATS.split(",")]
+
+    @property
+    def hls_signing_secret(self) -> str:
+        """
+        Get HLS signing secret for nginx secure_link validation.
+        If not explicitly set, derives from SECRET_KEY using HMAC.
+        """
+        if self.HLS_SIGNING_SECRET:
+            return self.HLS_SIGNING_SECRET
+        # Derive from SECRET_KEY if not set
+        import hashlib
+
+        return hashlib.sha256(f"{self.SECRET_KEY}:hls-signing".encode()).hexdigest()[
+            :32
+        ]
 
     class Config:
         env_file = ".env"

@@ -92,6 +92,10 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
     onReady
   })
 
+  // Track manifest refetch attempts to prevent infinite loops
+  const manifestRefetchAttempts = useRef(0)
+  const MAX_MANIFEST_REFETCH_ATTEMPTS = 3
+
   // Initialize HLS.js when hlsSrc is provided
   useEffect(() => {
     const video = videoRef.current
@@ -101,6 +105,9 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
       setUseNativeHls(false)
       return
     }
+
+    // Reset refetch attempts when hlsSrc changes
+    manifestRefetchAttempts.current = 0
 
     // Check if browser supports HLS natively (Safari/iOS)
     // Note: Some browsers return "maybe" but don't actually support native HLS
@@ -122,7 +129,9 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
     setUseNativeHls(false)
     
     if (Hls.isSupported()) {
-      // Extract token from hlsSrc URL for use in segment requests
+      // Extract token from hlsSrc URL for use in manifest requests
+      // Note: Segment URLs now use signed URLs embedded in the manifest,
+      // so we only need the token for manifest requests
       const url = new URL(hlsSrc, window.location.origin)
       const token = url.searchParams.get("token")
       
@@ -132,10 +141,11 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
         lowLatencyMode: false,
         // Start loading from the beginning
         startPosition: initialTime,
-        // Add token to all requests (manifest, segments, etc.)
+        // Add token to manifest requests only (segments use signed URLs)
         xhrSetup: (xhr, requestUrl) => {
-          if (token && !requestUrl.includes("token=")) {
-            // Add token as query parameter
+          // Only add token to manifest requests (.m3u8 files)
+          // Segment requests use signed URLs from the manifest
+          if (token && requestUrl.includes(".m3u8") && !requestUrl.includes("token=")) {
             const separator = requestUrl.includes("?") ? "&" : "?"
             xhr.open("GET", requestUrl + separator + "token=" + token, true)
           }
@@ -147,10 +157,51 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         setIsHlsActive(true)
+        // Reset refetch attempts on successful manifest parse
+        manifestRefetchAttempts.current = 0
         // If autoplay is enabled, the useVideoPlayer hook will handle it
       })
 
       hls.on(Hls.Events.ERROR, (_event, data) => {
+        // Check for 410 Gone (expired signed URLs) on segment requests
+        // This happens when the user leaves the tab open longer than the URL expiry time
+        const isExpiredSegment = data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR && 
+                                  data.response?.code === 410
+
+        if (isExpiredSegment) {
+          console.warn("HLS segment URL expired (410), refetching manifest for fresh signed URLs...")
+          
+          // Prevent infinite refetch loops
+          if (manifestRefetchAttempts.current >= MAX_MANIFEST_REFETCH_ATTEMPTS) {
+            console.error("Max manifest refetch attempts reached, falling back to progressive")
+            hls.destroy()
+            setIsHlsActive(false)
+            setUseNativeHls(false)
+            video.src = src
+            return
+          }
+          
+          manifestRefetchAttempts.current++
+          
+          // Save current playback position
+          const currentTime = video.currentTime
+          const wasPlaying = !video.paused
+          
+          // Reload the manifest to get fresh signed URLs
+          hls.loadSource(hlsSrc)
+          
+          // Restore playback position after manifest reloads
+          hls.once(Hls.Events.MANIFEST_PARSED, () => {
+            video.currentTime = currentTime
+            if (wasPlaying) {
+              video.play().catch(() => {
+                // Autoplay may be blocked, that's okay
+              })
+            }
+          })
+          return
+        }
+
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:

@@ -72,8 +72,8 @@ services:
     image: nginx:alpine
     container_name: clipset-nginx-dev
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      # Mount data for static file serving (thumbnails, category images)
+      - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+      # Mount data for static file serving (thumbnails, category images, HLS segments)
       - ./data/uploads:/data/uploads:ro
     ports:
       - "8080:80"
@@ -81,6 +81,12 @@ services:
       - backend
       - frontend
     restart: unless-stopped
+    environment:
+      # HLS signing secret - must match backend config
+      # If not set in .env, backend derives it from SECRET_KEY
+      - HLS_SIGNING_SECRET=${HLS_SIGNING_SECRET:-}
+    # Inject HLS_SIGNING_SECRET into nginx config using sed (avoids envsubst issues with nginx variables)
+    command: /bin/sh -c "sed 's/__HLS_SECRET__/'\"$$HLS_SIGNING_SECRET\"'/g' /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
     networks:
       - clipset-network
 

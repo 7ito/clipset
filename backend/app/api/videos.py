@@ -48,6 +48,7 @@ from app.services import storage, upload_quota, chunk_manager
 from app.services.config import get_or_create_config
 from app.services.background_tasks import process_video_task
 from app.config import settings
+from app.utils.security import generate_signed_hls_url
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -743,11 +744,15 @@ async def stream_hls(
     current_user: User = Depends(get_user_from_token_or_query),
 ):
     """
-    Serve HLS manifest (.m3u8) or segment (.ts) files.
+    Serve HLS manifest (.m3u8) files with signed segment URLs.
 
     This endpoint handles requests for:
-    - master.m3u8 - The HLS manifest file
-    - segment000.ts, segment001.ts, etc. - The video segments
+    - master.m3u8 - The HLS manifest file (served by FastAPI with signed URLs)
+    - segment000.ts, etc. - Redirects to nginx /hls/ for direct serving
+
+    Segments are served directly by nginx using signed URLs for optimal performance.
+    The manifest is rewritten to include time-limited signed URLs for each segment,
+    which nginx validates using secure_link module.
     """
     video = await get_video_or_404(short_id, db)
 
@@ -789,53 +794,50 @@ async def stream_hls(
             detail="HLS file not found",
         )
 
-    # Determine content type based on file extension
+    # Handle manifest files (.m3u8)
     if filename.endswith(".m3u8"):
         content_type = "application/vnd.apple.mpegurl"
-        # M3U8 files should not be cached as aggressively
-        cache_control = "public, max-age=2"
+        # Manifest cached for 1 hour (well under 12-hour segment expiry)
+        cache_control = "public, max-age=3600"
 
-        # For native HLS players (Safari/iOS), we need to rewrite the manifest
-        # to include the auth token in segment URLs, since native players
-        # don't support custom headers and don't preserve query params from
-        # the manifest URL when requesting segments
-        token = request.query_params.get("token")
-        if token:
-            # Read the manifest file
-            with open(file_path, "r") as f:
-                manifest_content = f.read()
+        # Read the manifest file
+        with open(file_path, "r") as f:
+            manifest_content = f.read()
 
-            # Rewrite segment URLs to include the token
-            # Segments are referenced as relative paths like "segment000.ts"
-            def add_token_to_segment(match):
-                segment_name = match.group(0)
-                return f"{segment_name}?token={token}"
+        # Rewrite segment URLs to use signed URLs for direct nginx serving
+        # Segments are referenced as relative paths like "segment000.ts"
+        def sign_segment_url(match):
+            segment_name = match.group(0)
+            # Path relative to /data/uploads/videos/ for nginx
+            segment_path = f"{video.filename}/{segment_name}"
+            # Generate signed URL with 12-hour expiry
+            return generate_signed_hls_url(segment_path, expires_in=43200)
 
-            # Match .ts files (segment files) that don't already have query params
-            rewritten_manifest = re.sub(
-                r"(segment\d+\.ts)(?!\?)", add_token_to_segment, manifest_content
-            )
+        # Match .ts files (segment files) that don't already have query params
+        rewritten_manifest = re.sub(
+            r"(segment\d+\.ts)(?!\?)", sign_segment_url, manifest_content
+        )
 
-            return Response(
-                content=rewritten_manifest,
-                media_type=content_type,
-                headers={"Cache-Control": cache_control},
-            )
+        return Response(
+            content=rewritten_manifest,
+            media_type=content_type,
+            headers={"Cache-Control": cache_control},
+        )
+
+    # Segment requests (.ts) should go directly to nginx /hls/ endpoint
+    # If they reach here, it means nginx isn't configured yet or there's
+    # a misconfiguration. Return 410 to signal frontend to refetch manifest.
     elif filename.endswith(".ts"):
-        content_type = "video/mp2t"
-        # Segments can be cached longer since they don't change
-        cache_control = "public, max-age=86400"
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="Segment URLs have changed. Please refetch the manifest.",
+        )
+
     else:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid HLS file type",
         )
-
-    return FileResponse(
-        path=file_path,
-        media_type=content_type,
-        headers={"Cache-Control": cache_control},
-    )
 
 
 @router.get("/{short_id}/stream-info")

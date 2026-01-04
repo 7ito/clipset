@@ -286,7 +286,9 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
     skipAmount: 5,
     onSingleTap: handleSingleTap,
     onCenterTap: controls.togglePlay,
+    onDoubleTapSkip: () => setControlsVisible(false),
     isFullscreen: state.isFullscreen,
+    onEnterFullscreen: controls.requestFullscreen,
     onExitFullscreen: controls.exitFullscreen
   })
 
@@ -347,16 +349,34 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
     showControls() // Restart auto-hide timer
   }, [showControls])
 
-  // Calculate swipe transform styles
-  const swipeTransformStyle = swipeState.active ? {
-    transform: `scale(${1 - swipeState.progress * 0.15}) translateY(${swipeState.progress * 30}px)`,
-    opacity: 1 - swipeState.progress * 0.3,
-    transition: "none"
-  } : {
-    transform: "scale(1) translateY(0)",
-    opacity: 1,
-    transition: "transform 0.2s ease-out, opacity 0.2s ease-out"
+  // Calculate swipe transform styles for both enter (swipe up) and exit (swipe down) fullscreen
+  const getSwipeTransformStyle = () => {
+    if (!swipeState.active) {
+      return {
+        transform: "scale(1) translateY(0)",
+        opacity: 1,
+        transition: "transform 0.2s ease-out, opacity 0.2s ease-out"
+      }
+    }
+
+    if (swipeState.direction === "down") {
+      // Swipe down to exit fullscreen - scale down, move down, fade
+      return {
+        transform: `scale(${1 - swipeState.progress * 0.15}) translateY(${swipeState.progress * 30}px)`,
+        opacity: 1 - swipeState.progress * 0.3,
+        transition: "none"
+      }
+    } else {
+      // Swipe up to enter fullscreen - subtle scale up, move up slightly
+      return {
+        transform: `scale(${1 + swipeState.progress * 0.03}) translateY(${-swipeState.progress * 10}px)`,
+        opacity: 1,
+        transition: "none"
+      }
+    }
   }
+
+  const swipeTransformStyle = getSwipeTransformStyle()
 
   return (
     <div
@@ -369,7 +389,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(function
       onMouseLeave={handleMouseLeave}
       tabIndex={0}
       {...(isMobile ? touchHandlers : {})}
-      style={state.isFullscreen && isMobile ? swipeTransformStyle : undefined}
+      style={isMobile && swipeState.active ? swipeTransformStyle : undefined}
     >
       <video
         ref={videoRef}

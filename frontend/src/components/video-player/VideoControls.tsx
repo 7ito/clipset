@@ -3,6 +3,7 @@ import { formatTimestamp } from "@/lib/timestamps"
 import { ProgressBar } from "./ProgressBar"
 import { VolumeControl } from "./VolumeControl"
 import { PlaybackSpeedMenu } from "./PlaybackSpeedMenu"
+import { MobileSettingsMenu } from "./MobileSettingsMenu"
 import { cn } from "@/lib/utils"
 import type { VideoState, VideoControls as VideoControlsType } from "@/hooks/useVideoPlayer"
 
@@ -53,10 +54,11 @@ export function VideoControls({
         {/* Top bar with title and settings */}
         <div className="video-mobile-top-bar">
           <span className="video-mobile-title">{title || "Video"}</span>
-          <PlaybackSpeedMenu
+          <MobileSettingsMenu
             currentRate={playbackRate}
             onRateChange={controls.setPlaybackRate}
-            isMobile={true}
+            onRequestFullscreen={controls.requestFullscreen}
+            isFullscreen={isFullscreen}
           />
         </div>
 

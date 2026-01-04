@@ -13,8 +13,9 @@ export interface DoubleTapState {
 
 export interface SwipeState {
   active: boolean       // Is a swipe gesture in progress (past start threshold)?
-  deltaY: number        // Current drag distance from start
-  progress: number      // 0 to 1, how close to exit threshold
+  direction: "up" | "down" | null  // Swipe direction
+  deltaY: number        // Current drag distance from start (absolute value)
+  progress: number      // 0 to 1, how close to threshold
 }
 
 export interface UseVideoTouchOptions {
@@ -24,7 +25,9 @@ export interface UseVideoTouchOptions {
   doubleTapTimeout?: number
   onSingleTap?: () => void
   onCenterTap?: () => void
+  onDoubleTapSkip?: () => void
   isFullscreen?: boolean
+  onEnterFullscreen?: () => void
   onExitFullscreen?: () => void
 }
 
@@ -36,6 +39,7 @@ export interface UseVideoTouchOptions {
  * - Double-tap right half: Skip forward 5 seconds
  * - Single tap center: Toggle play/pause (calls onCenterTap)
  * - Single tap elsewhere: Toggle controls (calls onSingleTap)
+ * - Swipe up when not fullscreen: Enter fullscreen (with visual feedback)
  * - Swipe down in fullscreen: Exit fullscreen (with visual feedback)
  */
 export function useVideoTouch(options: UseVideoTouchOptions) {
@@ -46,7 +50,9 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
     doubleTapTimeout = 300,
     onSingleTap,
     onCenterTap,
+    onDoubleTapSkip,
     isFullscreen = false,
+    onEnterFullscreen,
     onExitFullscreen
   } = options
 
@@ -58,6 +64,7 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
 
   const [swipeState, setSwipeState] = useState<SwipeState>({
     active: false,
+    direction: null,
     deltaY: 0,
     progress: 0
   })
@@ -125,11 +132,11 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
     const now = Date.now()
     const lastTap = lastTapRef.current
 
-    // Track start position for potential swipe gesture (in fullscreen)
-    if (isFullscreen) {
-      swipeStartRef.current = { y: touch.clientY, time: now }
-      isSwipingRef.current = false
-    }
+    // Track start position for potential swipe gesture
+    // Swipe up to enter fullscreen (when not fullscreen)
+    // Swipe down to exit fullscreen (when fullscreen)
+    swipeStartRef.current = { y: touch.clientY, time: now }
+    isSwipingRef.current = false
 
     // Clear any pending single tap timeout
     if (singleTapTimeoutRef.current) {
@@ -159,6 +166,9 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
         showDoubleTapFeedback("right", accumulatedSkipRef.current.right)
       }
 
+      // Hide controls after double-tap skip
+      onDoubleTapSkip?.()
+
       // Reset last tap to allow triple tap
       lastTapRef.current = {
         time: now,
@@ -166,9 +176,9 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
         y: touch.clientY
       }
     } else {
-      // Check if tap is in center zone (middle 40% horizontally and vertically)
-      const isCenterX = relativeX >= 0.3 && relativeX <= 0.7
-      const isCenterY = relativeY >= 0.3 && relativeY <= 0.7
+      // Check if tap is in center zone (middle 20% horizontally and vertically)
+      const isCenterX = relativeX >= 0.4 && relativeX <= 0.6
+      const isCenterY = relativeY >= 0.4 && relativeY <= 0.6
 
       if (isCenterX && isCenterY) {
         // Center tap - toggle play/pause IMMEDIATELY (no double-tap skip in center)
@@ -191,26 +201,33 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
         singleTapTimeoutRef.current = undefined
       }, doubleTapTimeout)
     }
-  }, [enabled, controls, skipAmount, doubleTapTimeout, showDoubleTapFeedback, onSingleTap, onCenterTap, isFullscreen])
+  }, [enabled, controls, skipAmount, doubleTapTimeout, showDoubleTapFeedback, onSingleTap, onCenterTap, onDoubleTapSkip, isFullscreen])
 
   const handleTouchMove = useCallback((e: React.TouchEvent<HTMLElement>) => {
-    if (!enabled || !isFullscreen || !swipeStartRef.current) return
+    if (!enabled || !swipeStartRef.current) return
 
     const touch = e.touches[0]
     const deltaY = touch.clientY - swipeStartRef.current.y
+    const absDeltaY = Math.abs(deltaY)
 
-    // Only track downward swipes
-    if (deltaY <= 0) {
-      // Reset swipe state if swiping up
+    // Determine swipe direction
+    const isSwipingDown = deltaY > 0
+    const isSwipingUp = deltaY < 0
+
+    // Only allow swipe-down in fullscreen, swipe-up when not fullscreen
+    const isValidSwipe = (isFullscreen && isSwipingDown) || (!isFullscreen && isSwipingUp)
+
+    if (!isValidSwipe) {
+      // Reset if swiping in wrong direction
       if (isSwipingRef.current) {
         isSwipingRef.current = false
-        setSwipeState({ active: false, deltaY: 0, progress: 0 })
+        setSwipeState({ active: false, direction: null, deltaY: 0, progress: 0 })
       }
       return
     }
 
     // Once past the start threshold, activate swipe mode
-    if (deltaY >= SWIPE_START_THRESHOLD) {
+    if (absDeltaY >= SWIPE_START_THRESHOLD) {
       // Prevent default to stop body scroll once we're in swipe mode
       e.preventDefault()
 
@@ -223,12 +240,13 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
       isSwipingRef.current = true
 
       // Calculate progress (0 to 1) based on distance past start threshold
-      const effectiveDelta = deltaY - SWIPE_START_THRESHOLD
+      const effectiveDelta = absDeltaY - SWIPE_START_THRESHOLD
       const progress = Math.min(effectiveDelta / (SWIPE_EXIT_THRESHOLD - SWIPE_START_THRESHOLD), 1)
 
       setSwipeState({
         active: true,
-        deltaY,
+        direction: isSwipingUp ? "up" : "down",
+        deltaY: absDeltaY,
         progress
       })
     }
@@ -238,17 +256,22 @@ export function useVideoTouch(options: UseVideoTouchOptions) {
     // Handle swipe gesture completion
     if (isSwipingRef.current && swipeState.active) {
       if (swipeState.deltaY >= SWIPE_EXIT_THRESHOLD) {
-        // Exit fullscreen
-        onExitFullscreen?.()
+        if (swipeState.direction === "down") {
+          // Exit fullscreen
+          onExitFullscreen?.()
+        } else if (swipeState.direction === "up") {
+          // Enter fullscreen
+          onEnterFullscreen?.()
+        }
       }
       // Reset swipe state (will animate back via CSS transition)
-      setSwipeState({ active: false, deltaY: 0, progress: 0 })
+      setSwipeState({ active: false, direction: null, deltaY: 0, progress: 0 })
     }
 
     // Reset swipe tracking
     swipeStartRef.current = null
     isSwipingRef.current = false
-  }, [swipeState, onExitFullscreen])
+  }, [swipeState, onEnterFullscreen, onExitFullscreen])
 
   return {
     doubleTapState,

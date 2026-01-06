@@ -184,6 +184,43 @@ async def create_password_reset_token(db: AsyncSession, email: str) -> bool:
     return True
 
 
+async def admin_generate_password_reset_link(
+    db: AsyncSession, user_id: str
+) -> tuple[str, datetime] | None:
+    """
+    Generate a password reset token for a user (admin action).
+    Returns the raw token and expiration time instead of logging it.
+
+    Args:
+        db: Database session
+        user_id: The user ID to generate reset link for
+
+    Returns:
+        Tuple of (token, expires_at) if successful, None if user not found
+    """
+    # Find user by ID
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        return None
+
+    # Generate token
+    token = secrets.token_urlsafe(32)
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+    # Create record with 24-hour expiration for admin-generated links
+    expires_at = datetime.utcnow() + timedelta(hours=24)
+    reset_token = PasswordResetToken(
+        user_id=user.id, token_hash=token_hash, expires_at=expires_at
+    )
+
+    db.add(reset_token)
+    await db.commit()
+
+    return token, expires_at
+
+
 async def reset_password_with_token(
     db: AsyncSession, token: str, new_password: str
 ) -> bool:

@@ -43,3 +43,8 @@ class ForgotPasswordRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     password: str = Field(min_length=8)
+
+
+class PasswordResetLinkResponse(BaseModel):
+    reset_link: str
+    expires_at: str

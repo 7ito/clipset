@@ -73,6 +73,22 @@ export function useActivateUser() {
   })
 }
 
+export interface PasswordResetLinkResponse {
+  reset_link: string
+  expires_at: string
+}
+
+export function useGeneratePasswordResetLink() {
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await apiClient.post<PasswordResetLinkResponse>(
+        `/api/users/${userId}/generate-reset-link`
+      )
+      return response.data
+    }
+  })
+}
+
 export function useUploadAvatar() {
   const queryClient = useQueryClient()
   

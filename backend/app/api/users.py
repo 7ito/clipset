@@ -14,10 +14,13 @@ from app.schemas.user import (
     UserWithQuota,
     UserDirectoryResponse,
 )
+from app.schemas.auth import PasswordResetLinkResponse
 from app.models.user import User
 from app.models.video import Video
 from app.models.playlist import Playlist
 from app.services import storage
+from app.services.auth import admin_generate_password_reset_link
+from app.config import settings
 
 router = APIRouter()
 
@@ -396,3 +399,31 @@ async def activate_user(
     await db.commit()
 
     return {"message": "User activated successfully"}
+
+
+@router.post("/{user_id}/generate-reset-link", response_model=PasswordResetLinkResponse)
+async def generate_password_reset_link(
+    user_id: str,
+    current_user: User = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Generate a password reset link for a user (admin only).
+
+    This allows admins to manually provide password reset links to users
+    without requiring email infrastructure. The generated link expires in 24 hours.
+    """
+    result = await admin_generate_password_reset_link(db, user_id)
+
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    token, expires_at = result
+    reset_link = f"{settings.FRONTEND_BASE_URL}/reset-password?token={token}"
+
+    return PasswordResetLinkResponse(
+        reset_link=reset_link,
+        expires_at=expires_at.isoformat() + "Z",
+    )

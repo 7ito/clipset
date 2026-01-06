@@ -1,7 +1,7 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router"
+import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { useResetPassword } from "@/api/auth"
+import { useResetPassword, useVerifyResetToken } from "@/api/auth"
 import { resetPasswordSchema, type ResetPasswordFormData } from "@/lib/validations/auth"
 import { toast } from "@/lib/toast"
 import { getErrorMessage } from "@/lib/api-client"
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Field, FieldLabel } from "@/components/ui/field"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { AlertCircle } from "lucide-react"
 
 export const Route = createFileRoute("/reset-password")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -28,6 +29,7 @@ function ResetPasswordPage() {
   const { token } = Route.useSearch()
   const navigate = useNavigate()
   const resetPassword = useResetPassword()
+  const { data: tokenData, isLoading: isVerifying, isError } = useVerifyResetToken(token)
   
   const {
     register,
@@ -50,12 +52,58 @@ function ResetPasswordPage() {
     }
   }
 
+  // Loading state while verifying token
+  if (isVerifying) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Reset Password</CardTitle>
+            <CardDescription>Verifying reset link...</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex justify-center py-8">
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Invalid or expired token
+  if (isError || !tokenData) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-5 w-5" />
+              <CardTitle>Invalid Reset Link</CardTitle>
+            </div>
+            <CardDescription>
+              This password reset link is invalid or has expired.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full">
+              <Link to="/login">Back to Login</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Valid token - show reset form
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>Reset Password</CardTitle>
-          <CardDescription>Enter your new password below</CardDescription>
+          <CardDescription>
+            Resetting password for <span className="font-medium text-foreground">{tokenData.username}</span>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

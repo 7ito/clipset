@@ -74,3 +74,22 @@ export function useResetPassword() {
     }
   })
 }
+
+export interface ResetTokenVerifyResponse {
+  username: string
+}
+
+export function useVerifyResetToken(token: string) {
+  return useQuery({
+    queryKey: ["verifyResetToken", token],
+    queryFn: async () => {
+      const response = await apiClient.get<ResetTokenVerifyResponse>(
+        `/api/auth/verify-reset-token?token=${encodeURIComponent(token)}`
+      )
+      return response.data
+    },
+    enabled: !!token,
+    retry: false,
+    staleTime: 1000 * 60 * 5 // 5 minutes
+  })
+}

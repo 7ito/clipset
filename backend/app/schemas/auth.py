@@ -48,3 +48,7 @@ class ResetPasswordRequest(BaseModel):
 class PasswordResetLinkResponse(BaseModel):
     reset_link: str
     expires_at: str
+
+
+class ResetTokenVerifyResponse(BaseModel):
+    username: str

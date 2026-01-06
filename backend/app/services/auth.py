@@ -221,6 +221,42 @@ async def admin_generate_password_reset_link(
     return token, expires_at
 
 
+async def verify_reset_token(db: AsyncSession, token: str) -> str | None:
+    """
+    Verify a password reset token and return the associated username.
+
+    Args:
+        db: Database session
+        token: The raw token from the URL
+
+    Returns:
+        Username if token is valid, None if invalid or expired
+    """
+    token_hash = hashlib.sha256(token.encode()).hexdigest()
+
+    # Find token
+    result = await db.execute(
+        select(PasswordResetToken).where(PasswordResetToken.token_hash == token_hash)
+    )
+    reset_token = result.scalar_one_or_none()
+
+    if not reset_token:
+        return None
+
+    # Check expiry
+    if reset_token.is_expired():
+        return None
+
+    # Find user
+    result = await db.execute(select(User).where(User.id == reset_token.user_id))
+    user = result.scalar_one_or_none()
+
+    if not user:
+        return None
+
+    return user.username
+
+
 async def reset_password_with_token(
     db: AsyncSession, token: str, new_password: str
 ) -> bool:

@@ -7,6 +7,7 @@ from app.schemas.auth import (
     RegisterRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest,
+    ResetTokenVerifyResponse,
 )
 from app.schemas.user import UserWithQuota
 from app.services import auth as auth_service
@@ -28,6 +29,20 @@ async def forgot_password(
     return {
         "message": "If an account exists with this email, a reset link has been sent."
     }
+
+
+@router.get("/verify-reset-token", response_model=ResetTokenVerifyResponse)
+async def verify_reset_token(token: str, db: AsyncSession = Depends(get_db)):
+    """
+    Verify a password reset token and return the associated username.
+    Used to display account info on the reset password page.
+    """
+    username = await auth_service.verify_reset_token(db, token)
+    if not username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired token"
+        )
+    return ResetTokenVerifyResponse(username=username)
 
 
 @router.post("/reset-password", status_code=status.HTTP_200_OK)

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useState } from "react"
-import { useQuery } from "@tanstack/react-query"
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import { Search, VideoIcon } from "lucide-react"
 import { getVideos } from "@/api/videos"
 import { getCategories } from "@/api/categories"
@@ -21,29 +21,45 @@ function DashboardPage() {
 	const [search, setSearch] = useState("")
 	const [categoryFilter, setCategoryFilter] = useState<string>("")
 	const [sortBy, setSortBy] = useState<"newest" | "views">("newest")
-	const [skip, setSkip] = useState(0)
 	const limit = 20
 
-	// Fetch all community videos
-	const { data: videosData, isLoading } = useQuery({
-		queryKey: ["videos", "community", { search, category_id: categoryFilter, sortBy, skip, limit }],
-		queryFn: () => getVideos({
+	// Fetch all community videos with infinite scroll
+	const {
+		data,
+		fetchNextPage,
+		hasNextPage,
+		isFetchingNextPage,
+		isLoading,
+	} = useInfiniteQuery({
+		queryKey: ["videos", "community", { search, category_id: categoryFilter, sortBy }],
+		queryFn: ({ pageParam = 0 }) => getVideos({
 			search: search || undefined,
 			category_id: categoryFilter || undefined,
-			skip,
+			skip: pageParam,
 			limit
 		}),
+		initialPageParam: 0,
+		getNextPageParam: (lastPage, allPages) => {
+			const totalLoaded = allPages.reduce((sum, page) => sum + page.videos.length, 0)
+			return totalLoaded < lastPage.total ? totalLoaded : undefined
+		},
 		// Refetch every 5 seconds if there are videos being processed
 		refetchInterval: (query) => {
-			const videos = query.state.data?.videos
-			if (!videos) return false
+			const pages = query.state.data?.pages
+			if (!pages) return false
 
-			const hasProcessing = videos.some(
-				v => v.processing_status === "pending" || v.processing_status === "processing"
+			const hasProcessing = pages.some(page =>
+				page.videos.some(
+					v => v.processing_status === "pending" || v.processing_status === "processing"
+				)
 			)
 			return hasProcessing ? 5000 : false
 		}
 	})
+
+	// Flatten all pages into a single array
+	const allVideos = data?.pages.flatMap(page => page.videos) ?? []
+	const total = data?.pages[0]?.total ?? 0
 
 	// Fetch categories for filter
 	const { data: categoriesData } = useQuery({
@@ -52,40 +68,31 @@ function DashboardPage() {
 	})
 
 	// Client-side sorting (since backend doesn't support sort param yet)
-	const sortedVideos = videosData?.videos ? [...videosData.videos].sort((a, b) => {
+	const sortedVideos = [...allVideos].sort((a, b) => {
 		if (sortBy === "views") {
 			return b.view_count - a.view_count
 		}
 		// Newest first (default)
 		return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-	}) : []
+	})
 
 	const handleSearchChange = (value: string) => {
 		setSearch(value)
-		setSkip(0)
 	}
 
 	const handleCategoryChange = (value: string) => {
 		setCategoryFilter(value === "__all__" ? "" : value)
-		setSkip(0)
 	}
 
 	const handleSortChange = (value: string) => {
 		setSortBy(value as "newest" | "views")
-		setSkip(0)
 	}
-
-	const handleLoadMore = () => {
-		setSkip(skip + limit)
-	}
-
-	const hasMore = videosData && videosData.total > skip + videosData.videos.length
 
 	return (
 		<div className="space-y-8">
 			<PageHeader
 				title="Home"
-				description={`${videosData?.total || 0} video${videosData?.total === 1 ? "" : "s"}`}
+				description={`${total} video${total === 1 ? "" : "s"}`}
 			/>
 
 			{/* Unified Filter Bar */}
@@ -166,10 +173,15 @@ function DashboardPage() {
 						))}
 					</div>
 
+					{/* Loading more skeleton */}
+					{isFetchingNextPage && (
+						<VideoGridSkeleton count={4} />
+					)}
+
 					{/* Load More */}
-					{hasMore && (
+					{hasNextPage && !isFetchingNextPage && (
 						<div className="flex justify-center pt-4">
-							<Button onClick={handleLoadMore} variant="outline" size="lg">
+							<Button onClick={() => fetchNextPage()} variant="outline" size="lg">
 								Load More Videos
 							</Button>
 						</div>

@@ -1,6 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useQuery } from "@tanstack/react-query"
-import { useState } from "react"
+import { useInfiniteQuery } from "@tanstack/react-query"
 import { VideoIcon } from "lucide-react"
 import { getVideos } from "@/api/videos"
 import { Button } from "@/components/ui/button"
@@ -18,34 +17,47 @@ export const Route = createFileRoute("/_auth/profile/$username/")({
 function ProfileIndexPage() {
   const { username } = Route.useParams()
   const navigate = useNavigate()
-  const [skip, setSkip] = useState(0)
   const limit = 20
 
   // Get profileUser and isOwnProfile from parent layout context
   const { profileUser, isOwnProfile } = useProfileContext()
   
-  // Fetch user's videos
-  const { data: videosData, isLoading: isLoadingVideos } = useQuery({
-    queryKey: ["videos", "user", profileUser?.id, skip],
-    queryFn: () => getVideos({
+  // Fetch user's videos with infinite scroll
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isLoadingVideos,
+  } = useInfiniteQuery({
+    queryKey: ["videos", "user", profileUser?.id],
+    queryFn: ({ pageParam = 0 }) => getVideos({
       uploaded_by: profileUser?.id,
-      skip,
+      skip: pageParam,
       limit
     }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) => {
+      const totalLoaded = allPages.reduce((sum, page) => sum + page.videos.length, 0)
+      return totalLoaded < lastPage.total ? totalLoaded : undefined
+    },
     enabled: !!profileUser,
     // Refetch every 5 seconds if there are videos being processed
     refetchInterval: (query) => {
-      const videos = query.state.data?.videos
-      if (!videos) return false
+      const pages = query.state.data?.pages
+      if (!pages) return false
       
-      const hasProcessing = videos.some(
-        v => v.processing_status === "pending" || v.processing_status === "processing"
+      const hasProcessing = pages.some(page =>
+        page.videos.some(
+          v => v.processing_status === "pending" || v.processing_status === "processing"
+        )
       )
       return hasProcessing ? 5000 : false
     }
   })
 
-  const hasMoreVideos = videosData && videosData.total > skip + videosData.videos.length
+  // Flatten all pages into a single array
+  const allVideos = data?.pages.flatMap(page => page.videos) ?? []
 
   return (
     <Tabs defaultValue="videos" className="space-y-6">
@@ -60,7 +72,7 @@ function ProfileIndexPage() {
 
         {isLoadingVideos ? (
           <VideoGridSkeleton count={8} />
-        ) : videosData?.videos.length === 0 ? (
+        ) : allVideos.length === 0 ? (
           <EmptyState
             icon={VideoIcon}
             title={isOwnProfile ? "No videos yet" : `${profileUser?.username} hasn't uploaded any videos yet`}
@@ -81,15 +93,20 @@ function ProfileIndexPage() {
         ) : (
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {videosData?.videos.map((video) => (
+              {allVideos.map((video) => (
                 <VideoCard key={video.id} video={video} showUploader={false} />
               ))}
             </div>
 
+            {/* Loading more skeleton */}
+            {isFetchingNextPage && (
+              <VideoGridSkeleton count={4} />
+            )}
+
             {/* Load More */}
-            {hasMoreVideos && (
+            {hasNextPage && !isFetchingNextPage && (
               <div className="flex justify-center pt-4">
-                <Button onClick={() => setSkip(skip + limit)} variant="outline" size="lg">
+                <Button onClick={() => fetchNextPage()} variant="outline" size="lg">
                   Load More Videos
                 </Button>
               </div>

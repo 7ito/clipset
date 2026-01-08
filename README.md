@@ -18,7 +18,7 @@ Social media platforms compress your videos and impose restrictive upload limits
 - **Drag-and-drop uploads** with real-time progress tracking
 - **Batch uploads** - Upload multiple videos at once with shared settings
 - **Automatic transcoding** to web-optimized H.264 (GPU-accelerated with NVIDIA NVENC)
-- **Byte-range streaming** for instant seeking to any point in a video
+- **HLS streaming** - Adaptive bitrate streaming with signed URLs for secure delivery
 - **Short, shareable URLs** - Clean links like `/v/abc123` instead of long UUIDs
 
 ### Organization

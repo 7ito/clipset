@@ -61,3 +61,16 @@ docker-compose.override.yml
 backups/
 *.db.backup
 *.tar.gz
+
+# AI/Agent configuration files
+AGENTS.md
+CLAUDE.md
+.claude/
+.cursor/
+.aider*
+.continue/
+.copilot*
+
+# Project planning docs (redundant with README)
+PROJECT.md
+NEXT_STEPS.md

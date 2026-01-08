@@ -4,9 +4,7 @@ A private, self-hostable video sharing platform for friends, family, and small c
 
 Share videos without compression, file size limits, or algorithmic feeds. Deploy with Docker and own your content.
 
-## Why Clipset?
-
-Social media platforms compress your videos and impose restrictive upload limits. Clipset gives you full control:
+Social media platforms compress your videos and impose restrictive upload limits. Clipset gives you an option for full control:
 
 - **No compression** - Upload and stream videos in their original quality
 - **No file size limits** - Share that 4K gaming highlight or hour-long family video

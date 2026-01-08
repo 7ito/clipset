@@ -28,8 +28,8 @@ interface BatchFileItemProps {
   onDescriptionChange: (id: string, description: string) => void
   onRemove: (id: string) => void
   disabled?: boolean
-  showNumber?: boolean
   titlePrefix?: string
+  titleMode?: "individual" | "prefix"
 }
 
 export function BatchFileItem({
@@ -39,8 +39,8 @@ export function BatchFileItem({
   onDescriptionChange,
   onRemove,
   disabled = false,
-  showNumber = false,
-  titlePrefix = ""
+  titlePrefix = "",
+  titleMode = "individual"
 }: BatchFileItemProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
@@ -59,7 +59,7 @@ export function BatchFileItem({
   }
 
   // Determine the display title
-  const displayTitle = titlePrefix ? `${titlePrefix} ${index + 1}` : item.title
+  const displayTitle = titleMode === "prefix" && titlePrefix ? `${titlePrefix}${index + 1}` : item.title
 
   // Status colors and icons
   const statusConfig = {
@@ -119,7 +119,7 @@ export function BatchFileItem({
 
         {/* Title & Info */}
         <div className="flex-1 min-w-0 space-y-1">
-          {showNumber && titlePrefix ? (
+          {titleMode === "prefix" && titlePrefix ? (
             // When using title prefix, show the generated title as read-only
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-muted-foreground">

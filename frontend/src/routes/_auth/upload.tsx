@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label"
 import { Progress } from "@/components/ui/progress"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { toast } from "@/lib/toast"
 import { formatFileSize } from "@/lib/formatters"
 import {
@@ -41,6 +42,7 @@ function UploadPage() {
   const [isProcessingFiles, setIsProcessingFiles] = useState(false)
 
   // Shared metadata state
+  const [titleMode, setTitleMode] = useState<"individual" | "prefix">("individual")
   const [titlePrefix, setTitlePrefix] = useState("")
   const [categoryId, setCategoryId] = useState<string>("")
 
@@ -190,32 +192,7 @@ function UploadPage() {
 
     setFileQueue((prev) => [...prev, ...newQueuedFiles])
     setIsProcessingFiles(false)
-
-    // Auto-set title prefix if this is the first batch and no prefix set
-    if (fileQueue.length === 0 && !titlePrefix && validFiles.length > 1) {
-      // Try to find common prefix in filenames
-      const filenames = validFiles.map((f) => f.name.replace(/\.[^/.]+$/, ""))
-      const commonPrefix = findCommonPrefix(filenames)
-      if (commonPrefix.length >= 3) {
-        setTitlePrefix(commonPrefix.trim())
-      }
-    }
-  }, [fileQueue.length, titlePrefix, quota?.max_file_size_bytes, generateVideoThumbnail])
-
-  // Find common prefix among strings (for auto-suggesting title prefix)
-  const findCommonPrefix = (strings: string[]): string => {
-    if (strings.length === 0) return ""
-    if (strings.length === 1) return ""
-    
-    const sorted = [...strings].sort()
-    const first = sorted[0]
-    const last = sorted[sorted.length - 1]
-    
-    let i = 0
-    while (i < first.length && first[i] === last[i]) i++
-    
-    return first.substring(0, i)
-  }
+  }, [fileQueue.length, quota?.max_file_size_bytes, generateVideoThumbnail])
 
   // Handle file input change
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -255,6 +232,7 @@ function UploadPage() {
       if (f.previewUrl) URL.revokeObjectURL(f.previewUrl)
     })
     setFileQueue([])
+    setTitleMode("individual")
     setTitlePrefix("")
     setCategoryId("")
     setPlaylistOption("none")
@@ -295,7 +273,7 @@ function UploadPage() {
 
     // Validate titles
     const missingTitles = fileQueue.some((f, i) => {
-      const title = titlePrefix ? `${titlePrefix} ${i + 1}` : f.title
+      const title = titleMode === "prefix" && titlePrefix ? `${titlePrefix}${i + 1}` : f.title
       return !title.trim()
     })
 
@@ -357,7 +335,7 @@ function UploadPage() {
 
       try {
         // Generate title
-        const title = titlePrefix ? `${titlePrefix} ${i + 1}` : queuedFile.title
+        const title = titleMode === "prefix" && titlePrefix ? `${titlePrefix}${i + 1}` : queuedFile.title
 
         // Upload video
         const video = await uploadVideo(
@@ -418,6 +396,7 @@ function UploadPage() {
       if (f.previewUrl) URL.revokeObjectURL(f.previewUrl)
     })
     setFileQueue([])
+    setTitleMode("individual")
     setTitlePrefix("")
     setCategoryId("")
     setPlaylistOption("none")
@@ -572,6 +551,7 @@ function UploadPage() {
                   onFilesChange={setFileQueue}
                   onClearAll={handleClearAll}
                   titlePrefix={titlePrefix}
+                  titleMode={titleMode}
                 />
               </CardContent>
             </Card>
@@ -587,27 +567,42 @@ function UploadPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Title Prefix */}
+                {/* Title Mode Selection */}
                 {fileQueue.length > 1 && (
-                  <div className="space-y-2">
-                    <Label htmlFor="title-prefix">Title Prefix (optional)</Label>
-                    <Input
-                      id="title-prefix"
-                      value={titlePrefix}
-                      onChange={(e) => setTitlePrefix(e.target.value)}
-                      placeholder="e.g., Pickup Basketball Game"
-                      maxLength={180}
-                    />
-                    {titlePrefix && (
-                      <p className="text-xs text-muted-foreground">
-                        Preview: "{titlePrefix} 1", "{titlePrefix} 2"...
-                      </p>
-                    )}
-                    {!titlePrefix && (
-                      <p className="text-xs text-muted-foreground">
-                        Leave empty to use individual titles from the file queue
-                      </p>
-                    )}
+                  <div className="space-y-3">
+                    <Label>Video Titles</Label>
+                    <RadioGroup
+                      value={titleMode}
+                      onValueChange={(value) => setTitleMode(value as "individual" | "prefix")}
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="individual" id="title-individual" />
+                        <Label htmlFor="title-individual" className="font-normal cursor-pointer">
+                          Individual titles (edit each video's title separately)
+                        </Label>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="prefix" id="title-prefix" />
+                          <Label htmlFor="title-prefix" className="font-normal cursor-pointer">
+                            Title prefix
+                          </Label>
+                        </div>
+                        {titleMode === "prefix" && (
+                          <div className="ml-6 space-y-2">
+                            <Input
+                              value={titlePrefix}
+                              onChange={(e) => setTitlePrefix(e.target.value)}
+                              placeholder="e.g., Game #"
+                              maxLength={180}
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              Preview: "{titlePrefix}1", "{titlePrefix}2"...
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </RadioGroup>
                   </div>
                 )}
 

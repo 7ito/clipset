@@ -24,6 +24,7 @@ interface BatchFileQueueProps {
   onClearAll: () => void
   disabled?: boolean
   titlePrefix?: string
+  titleMode?: "individual" | "prefix"
 }
 
 export function BatchFileQueue({
@@ -31,7 +32,8 @@ export function BatchFileQueue({
   onFilesChange,
   onClearAll,
   disabled = false,
-  titlePrefix = ""
+  titlePrefix = "",
+  titleMode = "individual"
 }: BatchFileQueueProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -138,8 +140,8 @@ export function BatchFileQueue({
                 onDescriptionChange={handleDescriptionChange}
                 onRemove={handleRemove}
                 disabled={disabled}
-                showNumber={!!titlePrefix}
                 titlePrefix={titlePrefix}
+                titleMode={titleMode}
               />
             ))}
           </div>

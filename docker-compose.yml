@@ -1,11 +1,12 @@
-# Clipset Go Backend - Development Docker Compose
+# Clipset - Development Docker Compose
 # 
 # Usage:
-#   docker-compose up -d          # Start all services
-#   docker-compose logs -f        # View logs
-#   docker-compose down           # Stop all services
+#   docker compose up -d          # Start all services
+#   docker compose logs -f        # View logs
+#   docker compose down           # Stop all services
 #
-# For GPU support, use docker-compose.gpu.yml instead
+# For GPU support:
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
 
 services:
   # PostgreSQL Database
@@ -33,7 +34,7 @@ services:
   # Go Backend
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: clipset-backend-dev
     depends_on:
@@ -41,7 +42,7 @@ services:
         condition: service_healthy
     volumes:
       # Persistent data storage
-      - ../data:/data
+      - ./data:/data
     environment:
       # Database connection
       - DATABASE_URL=postgres://clipset:clipset_dev_password@postgres:5432/clipset?sslmode=disable
@@ -70,12 +71,12 @@ services:
   # Frontend (Vite dev server)
   frontend:
     build:
-      context: ../frontend
+      context: ./frontend
       dockerfile: Dockerfile
     container_name: clipset-frontend-dev
     volumes:
       # Hot reload - mount source code
-      - ../frontend:/app
+      - ./frontend:/app
       # Prevent node_modules from being overwritten
       - /app/node_modules
     environment:
@@ -99,7 +100,7 @@ services:
     volumes:
       - ./nginx/nginx.conf.template:/etc/nginx/nginx.conf.template:ro
       # Mount data for static file serving
-      - ../data/uploads:/data/uploads:ro
+      - ./data/uploads:/data/uploads:ro
     ports:
       - "8080:80"
     environment:

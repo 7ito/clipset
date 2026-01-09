@@ -1,17 +1,17 @@
-# Clipset Go Backend - GPU Override for Docker Compose
+# Clipset - GPU Override for Docker Compose
 #
 # Usage (with production config):
-#   docker-compose -f docker-compose.prod.yml -f docker-compose.gpu.yml up -d
+#   docker compose -f docker-compose.prod.yml -f docker-compose.gpu.yml up -d
 #
 # Usage (with dev config):
-#   docker-compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
+#   docker compose -f docker-compose.yml -f docker-compose.gpu.yml up -d
 #
 # This file overrides the backend service to use GPU-enabled Dockerfile
 
 services:
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile.gpu
     environment:
       # NVIDIA environment variables

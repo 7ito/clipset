@@ -1,10 +1,10 @@
-# Clipset Go Backend - Production Docker Compose
+# Clipset - Production Docker Compose
 #
 # Usage:
-#   docker-compose -f docker-compose.prod.yml up -d
+#   docker compose -f docker-compose.prod.yml up -d
 #
 # For GPU support:
-#   docker-compose -f docker-compose.prod.yml -f docker-compose.gpu.yml up -d
+#   docker compose -f docker-compose.prod.yml -f docker-compose.gpu.yml up -d
 
 services:
   # PostgreSQL Database
@@ -34,7 +34,7 @@ services:
   # Go Backend
   backend:
     build:
-      context: .
+      context: ./backend
       dockerfile: Dockerfile
     container_name: clipset-backend
     depends_on:
@@ -42,7 +42,7 @@ services:
         condition: service_healthy
     volumes:
       # Persistent data storage only (no source code)
-      - ../data:/data
+      - ./data:/data
     environment:
       # Database connection
       - DATABASE_URL=postgres://${POSTGRES_USER:-clipset}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-clipset}?sslmode=disable
@@ -73,7 +73,7 @@ services:
   # Frontend (Production build served by nginx)
   frontend:
     build:
-      context: ../frontend
+      context: ./frontend
       dockerfile: Dockerfile.prod
       args:
         - VITE_API_BASE_URL=
@@ -97,7 +97,7 @@ services:
     volumes:
       - ./nginx/nginx.prod.conf.template:/etc/nginx/nginx.conf.template:ro
       # Mount data for static file serving
-      - ../data/uploads:/data/uploads:ro
+      - ./data/uploads:/data/uploads:ro
     ports:
       - "80:80"
       # Uncomment for HTTPS (requires certs)

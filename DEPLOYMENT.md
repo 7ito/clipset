@@ -12,7 +12,7 @@
 ```bash
 # Clone and configure
 git clone <repository-url> clipset
-cd clipset/backend
+cd clipset
 cp .env.production.example .env
 
 # Generate secrets and add to .env
@@ -36,7 +36,7 @@ Access at **http://localhost** with credentials from your `.env` file.
 
 ### Required Settings
 
-Edit `backend/.env` before first run:
+Edit `.env` before first run:
 
 ```env
 POSTGRES_PASSWORD=<generated-password>
@@ -89,11 +89,14 @@ Add to `/etc/fstab` for persistence across reboots.
 
 ## Common Commands
 
-All commands run from `backend/` directory:
+All commands run from the project root:
 
 ```bash
 # View logs
 docker compose -f docker-compose.prod.yml logs -f
+
+# View specific service logs
+docker compose -f docker-compose.prod.yml logs -f backend
 
 # Update to latest version
 git pull && docker compose -f docker-compose.prod.yml -f docker-compose.gpu.yml up -d --build
@@ -103,6 +106,26 @@ docker compose -f docker-compose.prod.yml exec postgres pg_dump -U clipset clips
 
 # Health check
 curl http://localhost/api/health
+
+# Stop all services
+docker compose -f docker-compose.prod.yml down
+```
+
+## Development
+
+For local development with hot reload:
+
+```bash
+# Copy dev environment
+cp .env.example .env
+
+# Start development stack
+docker compose up -d
+
+# View logs
+docker compose logs -f
+
+# Access at http://localhost:8080
 ```
 
 ## Migration from SQLite (Python Backend)
@@ -111,7 +134,7 @@ If migrating from the old Python/SQLite backend:
 
 ```bash
 # 1. Backup old database
-cp /path/to/data/clipset.db /path/to/data/clipset.db.backup
+cp data/clipset.db data/clipset.db.backup
 
 # 2. Start PostgreSQL
 docker compose -f docker-compose.prod.yml up -d postgres
@@ -124,6 +147,29 @@ docker compose -f docker-compose.prod.yml run --rm backend clipset migrate \
 
 # 4. Start all services
 docker compose -f docker-compose.prod.yml -f docker-compose.gpu.yml up -d
+```
+
+## Project Structure
+
+```
+clipset/
+├── docker-compose.yml          # Development compose
+├── docker-compose.prod.yml     # Production compose
+├── docker-compose.gpu.yml      # GPU overlay
+├── .env                        # Environment config
+├── nginx/                      # Nginx configs
+│   ├── nginx.conf.template
+│   └── nginx.prod.conf.template
+├── backend/                    # Go backend
+│   ├── Dockerfile
+│   ├── Dockerfile.gpu
+│   └── ...
+├── frontend/                   # React frontend
+│   ├── Dockerfile
+│   ├── Dockerfile.prod
+│   └── ...
+└── data/                       # Persistent data
+    └── uploads/
 ```
 
 ## External Access

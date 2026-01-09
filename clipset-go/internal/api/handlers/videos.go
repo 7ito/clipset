@@ -1688,7 +1688,8 @@ func (h *VideosHandler) HLS(w http.ResponseWriter, r *http.Request) {
 }
 
 // segmentRegex matches HLS segment filenames like "segment000.ts"
-var segmentRegex = regexp.MustCompile(`(segment\d+\.ts)(?!\?)`)
+// Note: Go regexp doesn't support negative lookahead, so we handle the ? case in the replacement function
+var segmentRegex = regexp.MustCompile(`segment\d+\.ts`)
 
 // rewriteHLSManifest rewrites segment URLs in the manifest to signed nginx URLs
 func (h *VideosHandler) rewriteHLSManifest(manifest string, hlsDir string) string {

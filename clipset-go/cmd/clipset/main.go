@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/clipset/clipset-go/internal/api"
 	"github.com/clipset/clipset-go/internal/config"
 	"github.com/clipset/clipset-go/internal/db"
+	"github.com/clipset/clipset-go/internal/migrate"
 	"github.com/clipset/clipset-go/internal/worker"
 )
 
@@ -140,9 +142,71 @@ func run() error {
 }
 
 func runMigrate() {
-	// This will be expanded for SQLite migration tool
-	fmt.Println("Migration subcommand - to be implemented")
-	fmt.Println("Usage: clipset migrate --sqlite-path <path> --postgres-url <url>")
+	// Parse migration flags
+	flags := flag.NewFlagSet("migrate", flag.ExitOnError)
+
+	var sqlitePath string
+	var postgresURL string
+	var dryRun bool
+	var batchSize int
+
+	flags.StringVar(&sqlitePath, "sqlite-path", "", "Path to SQLite database (required)")
+	flags.StringVar(&postgresURL, "postgres-url", "", "PostgreSQL connection URL (required)")
+	flags.BoolVar(&dryRun, "dry-run", false, "Show what would be migrated without making changes")
+	flags.IntVar(&batchSize, "batch-size", migrate.DefaultBatchSize, "Number of rows per batch")
+
+	flags.Usage = func() {
+		fmt.Println("Usage: clipset migrate [options]")
+		fmt.Println()
+		fmt.Println("Migrate data from SQLite (Python backend) to PostgreSQL (Go backend)")
+		fmt.Println()
+		fmt.Println("Options:")
+		flags.PrintDefaults()
+		fmt.Println()
+		fmt.Println("Example:")
+		fmt.Println("  clipset migrate --sqlite-path /data/clipset.db --postgres-url postgres://user:pass@localhost:5432/clipset")
+		fmt.Println()
+		fmt.Println("Note: Run the Go server first to apply PostgreSQL schema migrations,")
+		fmt.Println("      then stop it and run this migration command.")
+	}
+
+	if err := flags.Parse(os.Args[2:]); err != nil {
+		os.Exit(1)
+	}
+
+	// Validate required flags
+	if sqlitePath == "" {
+		fmt.Println("Error: --sqlite-path is required")
+		fmt.Println()
+		flags.Usage()
+		os.Exit(1)
+	}
+
+	if postgresURL == "" {
+		fmt.Println("Error: --postgres-url is required")
+		fmt.Println()
+		flags.Usage()
+		os.Exit(1)
+	}
+
+	// Validate SQLite path exists
+	if _, err := os.Stat(sqlitePath); os.IsNotExist(err) {
+		fmt.Printf("Error: SQLite database not found: %s\n", sqlitePath)
+		os.Exit(1)
+	}
+
+	// Run migration
+	ctx := context.Background()
+	opts := migrate.Options{
+		SQLitePath:  sqlitePath,
+		PostgresURL: postgresURL,
+		DryRun:      dryRun,
+		BatchSize:   batchSize,
+	}
+
+	if err := migrate.Run(ctx, opts); err != nil {
+		log.Fatalf("Migration failed: %v", err)
+	}
 }
 
 func printHelp() {
@@ -153,11 +217,24 @@ Usage:
 
 Commands:
   (none)     Start the HTTP server
-  migrate    Run SQLite to PostgreSQL migration
+  migrate    Run SQLite to PostgreSQL data migration
   version    Show version information
   help       Show this help message
 
-Environment Variables:
+Migration Command:
+  clipset migrate [options]
+    --sqlite-path <path>   Path to SQLite database (required)
+    --postgres-url <url>   PostgreSQL connection URL (required)
+    --dry-run              Show what would be migrated without making changes
+    --batch-size <n>       Rows per batch (default: 1000)
+
+  Example:
+    clipset migrate --sqlite-path /data/clipset.db --postgres-url postgres://user:pass@localhost:5432/clipset
+
+  Note: Run the Go server first to apply PostgreSQL schema migrations,
+        then stop it and run this migration command.
+
+Environment Variables (for server):
   DATABASE_URL                PostgreSQL connection URL (required)
   JWT_SECRET                  JWT signing secret, min 32 chars (required)
   PORT                        Server port (default: 8000)

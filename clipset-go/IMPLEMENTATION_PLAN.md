@@ -612,40 +612,50 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - Migration state uses sync.RWMutex for thread safety
 - Exported functions (SetMigrationRunning, etc.) allow worker package to update state
 
-### Phase 12: Migration Tool (Week 10)
+### Phase 12: Migration Tool (Week 10) - COMPLETED
 
-- [ ] `./clipset migrate` subcommand
-- [ ] SQLite connection (read-only)
-- [ ] PostgreSQL connection
-- [ ] Table-by-table migration respecting foreign keys:
+- [x] `./clipset migrate` subcommand
+- [x] SQLite connection (read-only, using modernc.org/sqlite pure Go driver)
+- [x] PostgreSQL connection
+- [x] Table-by-table migration respecting foreign keys:
   1. users
-  2. config
+  2. config (UPDATE only, PostgreSQL already has default row)
   3. invitations
   4. categories
   5. videos
   6. playlists
   7. playlist_videos
-  8. comments
-  9. password_reset_tokens
-- [ ] UUID string to native UUID handling
-- [ ] Timestamp conversion
-- [ ] Batch inserts for performance
-- [ ] Row count verification
-- [ ] Dry-run mode (`--dry-run`)
-- [ ] Progress reporting
+  8. comments (two-pass for self-referential parent_id FK)
+  9. ~~password_reset_tokens~~ (skipped - ephemeral data)
+- [x] UUID string to native UUID handling
+- [x] Timestamp conversion (multiple ISO8601 formats supported)
+- [x] Batch inserts for performance (using pgx COPY protocol, default 1000 rows/batch)
+- [x] Row count verification (post-migration validation)
+- [x] Dry-run mode (`--dry-run`)
+- [x] Progress reporting (with progress bars and timing)
+- [x] Email/username normalization (lowercase conversion)
+- [x] Skip River queue tables during empty check
 
 **CLI Interface:**
 ```bash
 ./clipset migrate \
   --sqlite-path /path/to/clipset.db \
   --postgres-url postgres://user:pass@host:5432/clipset \
-  --dry-run
+  --dry-run \
+  --batch-size 1000
 ```
 
 **Deliverables:**
 - Working migration tool
 - Data integrity verification
 - Progress output
+
+**Implementation Notes:**
+- Password reset tokens are skipped (ephemeral data, users can request new resets)
+- Comments use two-pass insertion: first insert all with `parent_id = NULL`, then update parent_id for replies
+- Config table uses UPDATE (not INSERT) since PostgreSQL schema migration creates default row
+- River tables (`river_job`, `river_leader`, `river_migration`) and `schema_migrations` are skipped during empty table validation
+- Uses `pgx.CopyFrom` for high-performance bulk inserts
 
 ### Phase 13: Docker & Deployment (Week 10-11)
 

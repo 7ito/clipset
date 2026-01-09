@@ -295,18 +295,18 @@ INSERT INTO config (id) VALUES (1);
 
 ## Implementation Phases
 
-### Phase 1: Foundation (Week 1-2)
+### Phase 1: Foundation (Week 1-2) - COMPLETED
 
-- [ ] Initialize Go modules (`go mod init`)
-- [ ] Add dependencies to `go.mod`
-- [ ] Create project directory structure
-- [ ] Write PostgreSQL schema migration (`000001_initial_schema.up.sql`)
-- [ ] Configure sqlc (`sqlc.yaml`)
-- [ ] Write initial SQL queries for all tables
-- [ ] Generate sqlc code
-- [ ] Implement database connection pool setup
-- [ ] Implement configuration loading from environment
-- [ ] Basic HTTP server skeleton with health check endpoint
+- [x] Initialize Go modules (`go mod init`)
+- [x] Add dependencies to `go.mod`
+- [x] Create project directory structure
+- [x] Write PostgreSQL schema migration (`000001_initial_schema.up.sql`)
+- [x] Configure sqlc (`sqlc.yaml`)
+- [x] Write initial SQL queries for all tables
+- [x] Generate sqlc code
+- [x] Implement database connection pool setup
+- [x] Implement configuration loading from environment
+- [x] Basic HTTP server skeleton with health check endpoint
 
 **Deliverables:**
 - `go.mod`, `go.sum`
@@ -315,18 +315,18 @@ INSERT INTO config (id) VALUES (1);
 - Config struct
 - `/api/health` endpoint working
 
-### Phase 2: Authentication (Week 2-3)
+### Phase 2: Authentication (Week 2-3) - COMPLETED
 
-- [ ] JWT token creation and validation
-- [ ] Password hashing with bcrypt
-- [ ] Auth middleware (Bearer token extraction)
-- [ ] Query param token support for streaming endpoints
-- [ ] `POST /api/auth/login`
-- [ ] `POST /api/auth/register` (with invitation validation)
-- [ ] `GET /api/auth/me`
-- [ ] `POST /api/auth/forgot-password`
-- [ ] `GET /api/auth/verify-reset-token`
-- [ ] `POST /api/auth/reset-password`
+- [x] JWT token creation and validation
+- [x] Password hashing with bcrypt
+- [x] Auth middleware (Bearer token extraction)
+- [x] Query param token support for streaming endpoints
+- [x] `POST /api/auth/login`
+- [x] `POST /api/auth/register` (with invitation validation)
+- [x] `GET /api/auth/me`
+- [x] `POST /api/auth/forgot-password`
+- [x] `GET /api/auth/verify-reset-token`
+- [x] `POST /api/auth/reset-password`
 
 **Deliverables:**
 - Working authentication flow
@@ -632,13 +632,13 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 
 ## API Endpoint Checklist
 
-### Auth (6 endpoints)
-- [ ] `POST /api/auth/register`
-- [ ] `POST /api/auth/login`
-- [ ] `GET /api/auth/me`
-- [ ] `POST /api/auth/forgot-password`
-- [ ] `GET /api/auth/verify-reset-token`
-- [ ] `POST /api/auth/reset-password`
+### Auth (6 endpoints) - COMPLETED
+- [x] `POST /api/auth/register`
+- [x] `POST /api/auth/login`
+- [x] `GET /api/auth/me`
+- [x] `POST /api/auth/forgot-password`
+- [x] `GET /api/auth/verify-reset-token`
+- [x] `POST /api/auth/reset-password`
 
 ### Users (9 endpoints)
 - [ ] `GET /api/users/`

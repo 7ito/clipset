@@ -11,7 +11,7 @@ SELECT * FROM users WHERE LOWER(username) = LOWER($1);
 INSERT INTO users (
     email, username, password_hash, role
 ) VALUES (
-    LOWER($1), LOWER($2), $3, $4
+    @email, @username, @password_hash, @role
 ) RETURNING *;
 
 -- name: UpdateUser :one

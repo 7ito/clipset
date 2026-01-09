@@ -48,21 +48,21 @@ const createUser = `-- name: CreateUser :one
 INSERT INTO users (
     email, username, password_hash, role
 ) VALUES (
-    LOWER($1), LOWER($2), $3, $4
+    $1, $2, $3, $4
 ) RETURNING id, email, username, password_hash, role, created_at, is_active, avatar_filename, weekly_upload_bytes, last_upload_reset
 `
 
 type CreateUserParams struct {
-	Lower        string          `json:"lower"`
-	Lower_2      string          `json:"lower_2"`
+	Email        string          `json:"email"`
+	Username     string          `json:"username"`
 	PasswordHash string          `json:"password_hash"`
 	Role         domain.UserRole `json:"role"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
 	row := q.db.QueryRow(ctx, createUser,
-		arg.Lower,
-		arg.Lower_2,
+		arg.Email,
+		arg.Username,
 		arg.PasswordHash,
 		arg.Role,
 	)

@@ -5,9 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +26,7 @@ import (
 	"github.com/clipset/clipset-go/internal/db"
 	"github.com/clipset/clipset-go/internal/db/sqlc"
 	"github.com/clipset/clipset-go/internal/domain"
+	"github.com/clipset/clipset-go/internal/services/auth"
 	"github.com/clipset/clipset-go/internal/services/storage"
 	"github.com/clipset/clipset-go/internal/services/upload"
 )
@@ -114,6 +118,20 @@ type QuotaInfoResponse struct {
 type QuotaResetResponse struct {
 	ResetCount int    `json:"reset_count"`
 	Message    string `json:"message"`
+}
+
+// StreamInfoResponse represents streaming availability information
+type StreamInfoResponse struct {
+	Format           string  `json:"format"`                      // "hls", "progressive", "unknown"
+	ManifestURL      *string `json:"manifest_url,omitempty"`      // URL to HLS manifest
+	StreamURL        *string `json:"stream_url,omitempty"`        // URL to progressive stream
+	Ready            bool    `json:"ready"`                       // Whether the video is ready to stream
+	ProcessingStatus *string `json:"processing_status,omitempty"` // Status if not ready
+}
+
+// ViewCountResponse represents the view count after increment
+type ViewCountResponse struct {
+	ViewCount int32 `json:"view_count"`
 }
 
 // ChunkUploadInitRequest represents chunked upload init request
@@ -1213,5 +1231,471 @@ func (h *VideosHandler) ResetAllQuotas(w http.ResponseWriter, r *http.Request) {
 	response.OK(w, QuotaResetResponse{
 		ResetCount: int(count),
 		Message:    fmt.Sprintf("Successfully reset quotas for %d users", count),
+	})
+}
+
+// --- Streaming Handlers (Phase 7) ---
+
+// Thumbnail handles GET /api/videos/{short_id}/thumbnail
+func (h *VideosHandler) Thumbnail(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	shortID := r.PathValue("short_id")
+	if shortID == "" {
+		response.BadRequest(w, "Video ID is required")
+		return
+	}
+
+	// Get current user for access control
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		response.Unauthorized(w, "Not authenticated")
+		return
+	}
+	isAdmin := middleware.IsAdmin(ctx)
+
+	// Get video
+	video, err := h.db.Queries.GetVideoByShortID(ctx, shortID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			response.NotFound(w, "Video not found")
+			return
+		}
+		log.Printf("Error getting video: %v", err)
+		response.InternalServerError(w, "Failed to get video")
+		return
+	}
+
+	// Check access
+	if !hasVideoAccess(video, userID, isAdmin) {
+		response.Forbidden(w, "You don't have permission to view this video")
+		return
+	}
+
+	// Check if thumbnail exists
+	if video.ThumbnailFilename == nil || *video.ThumbnailFilename == "" {
+		response.NotFound(w, "Thumbnail not available")
+		return
+	}
+
+	thumbnailPath := h.storage.ThumbnailPath(*video.ThumbnailFilename)
+	if !storage.FileExists(thumbnailPath) {
+		response.NotFound(w, "Thumbnail file not found")
+		return
+	}
+
+	// Open thumbnail file
+	file, err := os.Open(thumbnailPath)
+	if err != nil {
+		log.Printf("Error opening thumbnail: %v", err)
+		response.InternalServerError(w, "Failed to read thumbnail")
+		return
+	}
+	defer file.Close()
+
+	// Get file info for content-length
+	stat, err := file.Stat()
+	if err != nil {
+		log.Printf("Error getting thumbnail stat: %v", err)
+		response.InternalServerError(w, "Failed to read thumbnail")
+		return
+	}
+
+	// Set headers
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Header().Set("Content-Length", strconv.FormatInt(stat.Size(), 10))
+	w.Header().Set("Cache-Control", "public, max-age=86400") // 24 hours
+
+	// Stream the file
+	io.Copy(w, file)
+}
+
+// IncrementView handles POST /api/videos/{short_id}/view
+func (h *VideosHandler) IncrementView(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	shortID := r.PathValue("short_id")
+	if shortID == "" {
+		response.BadRequest(w, "Video ID is required")
+		return
+	}
+
+	// Get current user (just for authentication, not used for access control on view increment)
+	_, ok := middleware.GetUserID(ctx)
+	if !ok {
+		response.Unauthorized(w, "Not authenticated")
+		return
+	}
+
+	// Get video
+	video, err := h.db.Queries.GetVideoByShortID(ctx, shortID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			response.NotFound(w, "Video not found")
+			return
+		}
+		log.Printf("Error getting video: %v", err)
+		response.InternalServerError(w, "Failed to get video")
+		return
+	}
+
+	// Increment view count
+	newCount, err := h.db.Queries.IncrementViewCount(ctx, video.ID)
+	if err != nil {
+		log.Printf("Error incrementing view count: %v", err)
+		response.InternalServerError(w, "Failed to update view count")
+		return
+	}
+
+	response.OK(w, ViewCountResponse{ViewCount: newCount})
+}
+
+// StreamInfo handles GET /api/videos/{short_id}/stream-info
+func (h *VideosHandler) StreamInfo(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	shortID := r.PathValue("short_id")
+	if shortID == "" {
+		response.BadRequest(w, "Video ID is required")
+		return
+	}
+
+	// Get current user for access control
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		response.Unauthorized(w, "Not authenticated")
+		return
+	}
+	isAdmin := middleware.IsAdmin(ctx)
+
+	// Get video
+	video, err := h.db.Queries.GetVideoByShortID(ctx, shortID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			response.NotFound(w, "Video not found")
+			return
+		}
+		log.Printf("Error getting video: %v", err)
+		response.InternalServerError(w, "Failed to get video")
+		return
+	}
+
+	// Check access
+	if !hasVideoAccess(video, userID, isAdmin) {
+		response.Forbidden(w, "You don't have permission to view this video")
+		return
+	}
+
+	// Check if video is ready
+	if video.ProcessingStatus != domain.ProcessingStatusCompleted {
+		status := string(video.ProcessingStatus)
+		response.OK(w, StreamInfoResponse{
+			Format:           "unknown",
+			Ready:            false,
+			ProcessingStatus: &status,
+		})
+		return
+	}
+
+	// Check for HLS availability first (preferred format)
+	if h.storage.IsHLSAvailable(video.Filename, video.StoragePath) {
+		manifestURL := fmt.Sprintf("/api/videos/%s/hls/master.m3u8", shortID)
+		response.OK(w, StreamInfoResponse{
+			Format:      "hls",
+			ManifestURL: &manifestURL,
+			Ready:       true,
+		})
+		return
+	}
+
+	// Check for progressive MP4
+	if h.storage.IsProgressiveAvailable(video.Filename, video.StoragePath) {
+		streamURL := fmt.Sprintf("/api/videos/%s/stream", shortID)
+		response.OK(w, StreamInfoResponse{
+			Format:    "progressive",
+			StreamURL: &streamURL,
+			Ready:     true,
+		})
+		return
+	}
+
+	// No streaming format available
+	status := string(video.ProcessingStatus)
+	response.OK(w, StreamInfoResponse{
+		Format:           "unknown",
+		Ready:            false,
+		ProcessingStatus: &status,
+	})
+}
+
+// Stream handles GET /api/videos/{short_id}/stream (progressive streaming with Range support)
+func (h *VideosHandler) Stream(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	shortID := r.PathValue("short_id")
+	if shortID == "" {
+		response.BadRequest(w, "Video ID is required")
+		return
+	}
+
+	// Get current user for access control
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		response.Unauthorized(w, "Not authenticated")
+		return
+	}
+	isAdmin := middleware.IsAdmin(ctx)
+
+	// Get video
+	video, err := h.db.Queries.GetVideoByShortID(ctx, shortID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			response.NotFound(w, "Video not found")
+			return
+		}
+		log.Printf("Error getting video: %v", err)
+		response.InternalServerError(w, "Failed to get video")
+		return
+	}
+
+	// Check access
+	if !hasVideoAccess(video, userID, isAdmin) {
+		response.Forbidden(w, "You don't have permission to view this video")
+		return
+	}
+
+	// Open video file
+	file, fileSize, err := h.storage.OpenVideoFile(video.Filename, video.StoragePath)
+	if err != nil {
+		log.Printf("Error opening video file: %v", err)
+		response.NotFound(w, "Video file not found")
+		return
+	}
+	defer file.Close()
+
+	// Parse Range header
+	rangeHeader := r.Header.Get("Range")
+
+	// Set common headers
+	w.Header().Set("Content-Type", "video/mp4")
+	w.Header().Set("Accept-Ranges", "bytes")
+	w.Header().Set("Content-Encoding", "identity")
+	w.Header().Set("Access-Control-Expose-Headers", "content-type, accept-ranges, content-length, content-range, content-encoding")
+
+	if rangeHeader == "" {
+		// No Range header - send full file
+		w.Header().Set("Content-Length", strconv.FormatInt(fileSize, 10))
+		w.WriteHeader(http.StatusOK)
+		h.streamFile(w, file, 0, fileSize-1)
+		return
+	}
+
+	// Parse Range header: "bytes=START-END" or "bytes=START-" or "bytes=-SUFFIX"
+	start, end, ok := parseRangeHeader(rangeHeader, fileSize)
+	if !ok {
+		w.Header().Set("Content-Range", fmt.Sprintf("bytes */%d", fileSize))
+		http.Error(w, "Range Not Satisfiable", http.StatusRequestedRangeNotSatisfiable)
+		return
+	}
+
+	contentLength := end - start + 1
+	w.Header().Set("Content-Length", strconv.FormatInt(contentLength, 10))
+	w.Header().Set("Content-Range", fmt.Sprintf("bytes %d-%d/%d", start, end, fileSize))
+	w.WriteHeader(http.StatusPartialContent)
+
+	h.streamFile(w, file, start, end)
+}
+
+// streamFile streams a portion of the file from start to end (inclusive)
+func (h *VideosHandler) streamFile(w http.ResponseWriter, file *os.File, start, end int64) {
+	// Seek to start position
+	if _, err := file.Seek(start, io.SeekStart); err != nil {
+		log.Printf("Error seeking file: %v", err)
+		return
+	}
+
+	chunkSize := int64(h.config.StreamChunkSize)
+	buffer := make([]byte, chunkSize)
+	remaining := end - start + 1
+
+	for remaining > 0 {
+		toRead := chunkSize
+		if remaining < chunkSize {
+			toRead = remaining
+		}
+
+		n, err := file.Read(buffer[:toRead])
+		if err != nil && err != io.EOF {
+			log.Printf("Error reading file: %v", err)
+			return
+		}
+		if n == 0 {
+			break
+		}
+
+		_, err = w.Write(buffer[:n])
+		if err != nil {
+			// Client likely disconnected
+			return
+		}
+
+		remaining -= int64(n)
+
+		// Flush if the ResponseWriter supports it
+		if flusher, ok := w.(http.Flusher); ok {
+			flusher.Flush()
+		}
+	}
+}
+
+// parseRangeHeader parses an HTTP Range header and returns start, end positions
+// Returns (start, end, ok) where ok is false if the range is invalid
+func parseRangeHeader(rangeHeader string, fileSize int64) (int64, int64, bool) {
+	// Expected format: "bytes=START-END" or "bytes=START-" or "bytes=-SUFFIX"
+	if !strings.HasPrefix(rangeHeader, "bytes=") {
+		return 0, 0, false
+	}
+
+	rangeSpec := strings.TrimPrefix(rangeHeader, "bytes=")
+	parts := strings.Split(rangeSpec, "-")
+	if len(parts) != 2 {
+		return 0, 0, false
+	}
+
+	var start, end int64
+	var err error
+
+	if parts[0] == "" {
+		// Suffix range: bytes=-500 means last 500 bytes
+		suffix, err := strconv.ParseInt(parts[1], 10, 64)
+		if err != nil || suffix <= 0 {
+			return 0, 0, false
+		}
+		start = fileSize - suffix
+		if start < 0 {
+			start = 0
+		}
+		end = fileSize - 1
+	} else {
+		// Normal range: bytes=0-499 or bytes=500-
+		start, err = strconv.ParseInt(parts[0], 10, 64)
+		if err != nil || start < 0 || start >= fileSize {
+			return 0, 0, false
+		}
+
+		if parts[1] == "" {
+			// Open-ended range: bytes=500-
+			end = fileSize - 1
+		} else {
+			end, err = strconv.ParseInt(parts[1], 10, 64)
+			if err != nil || end < start {
+				return 0, 0, false
+			}
+			// Clamp end to file size
+			if end >= fileSize {
+				end = fileSize - 1
+			}
+		}
+	}
+
+	return start, end, true
+}
+
+// HLS handles GET /api/videos/{short_id}/hls/{filename...}
+// Serves HLS manifests with signed segment URLs, returns 410 for segments (nginx should serve those)
+func (h *VideosHandler) HLS(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	shortID := r.PathValue("short_id")
+	if shortID == "" {
+		response.BadRequest(w, "Video ID is required")
+		return
+	}
+
+	// Get the HLS filename from the path
+	// The route is /api/videos/{short_id}/hls/{filename...}
+	// We need to extract everything after /hls/
+	hlsFilename := r.PathValue("filename")
+	if hlsFilename == "" {
+		response.BadRequest(w, "HLS filename is required")
+		return
+	}
+
+	// Get current user for access control
+	userID, ok := middleware.GetUserID(ctx)
+	if !ok {
+		response.Unauthorized(w, "Not authenticated")
+		return
+	}
+	isAdmin := middleware.IsAdmin(ctx)
+
+	// Get video
+	video, err := h.db.Queries.GetVideoByShortID(ctx, shortID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			response.NotFound(w, "Video not found")
+			return
+		}
+		log.Printf("Error getting video: %v", err)
+		response.InternalServerError(w, "Failed to get video")
+		return
+	}
+
+	// Check access
+	if !hasVideoAccess(video, userID, isAdmin) {
+		response.Forbidden(w, "You don't have permission to view this video")
+		return
+	}
+
+	// Handle based on file type
+	lowerFilename := strings.ToLower(hlsFilename)
+
+	if strings.HasSuffix(lowerFilename, ".ts") {
+		// Segment files should be served by nginx with secure_link validation
+		// Return 410 Gone to indicate this endpoint doesn't serve segments
+		http.Error(w, "HLS segments should be served by nginx. Configure nginx with secure_link for /hls/ path.", http.StatusGone)
+		return
+	}
+
+	if !strings.HasSuffix(lowerFilename, ".m3u8") {
+		response.BadRequest(w, "Invalid HLS file type. Only .m3u8 manifests are served here.")
+		return
+	}
+
+	// Read the manifest file
+	hlsPath := h.storage.GetHLSFilePath(video.Filename, hlsFilename, video.StoragePath)
+	content, err := os.ReadFile(hlsPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			response.NotFound(w, "HLS manifest not found")
+			return
+		}
+		log.Printf("Error reading HLS manifest: %v", err)
+		response.InternalServerError(w, "Failed to read HLS manifest")
+		return
+	}
+
+	// Rewrite segment URLs to signed nginx URLs
+	hlsDir := storage.GetHLSDirectoryName(video.Filename)
+	rewrittenContent := h.rewriteHLSManifest(string(content), hlsDir)
+
+	// Send response
+	w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
+	w.Header().Set("Cache-Control", "public, max-age=3600") // 1 hour cache
+	w.Header().Set("Content-Length", strconv.Itoa(len(rewrittenContent)))
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(rewrittenContent))
+}
+
+// segmentRegex matches HLS segment filenames like "segment000.ts"
+var segmentRegex = regexp.MustCompile(`(segment\d+\.ts)(?!\?)`)
+
+// rewriteHLSManifest rewrites segment URLs in the manifest to signed nginx URLs
+func (h *VideosHandler) rewriteHLSManifest(manifest string, hlsDir string) string {
+	return segmentRegex.ReplaceAllStringFunc(manifest, func(segment string) string {
+		// Build the full path for signing: "hlsDir/segment000.ts"
+		segmentPath := fmt.Sprintf("%s/%s", hlsDir, segment)
+		// Generate signed URL
+		return auth.GenerateSignedHLSURLWithDefaults(segmentPath, h.config.HLSSigningSecret)
 	})
 }

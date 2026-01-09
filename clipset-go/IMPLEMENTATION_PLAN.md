@@ -476,16 +476,16 @@ ffmpeg -ss 1.00 -i video.mp4 -vframes 1 -vf "scale=640:-1" -q:v 2 -y thumbnail.j
 - Thumbnail generation
 - Processing status tracking
 
-### Phase 7: Video Streaming (Week 7-8)
+### Phase 7: Video Streaming (Week 7-8) - COMPLETED
 
-- [ ] `GET /api/videos/{short_id}/stream` (progressive, Range request support)
-- [ ] `GET /api/videos/{short_id}/hls/{filename}` (manifest and segments)
-- [ ] `GET /api/videos/{short_id}/stream-info`
-- [ ] `GET /api/videos/{short_id}/thumbnail`
-- [ ] `POST /api/videos/{short_id}/view` (increment view count)
-- [ ] HTTP Range request handling for progressive streaming
-- [ ] HLS URL signing (nginx secure_link compatible)
-- [ ] Query param token authentication for all streaming endpoints
+- [x] `GET /api/videos/{short_id}/stream` (progressive, Range request support)
+- [x] `GET /api/videos/{short_id}/hls/{filename}` (manifest and segments)
+- [x] `GET /api/videos/{short_id}/stream-info`
+- [x] `GET /api/videos/{short_id}/thumbnail`
+- [x] `POST /api/videos/{short_id}/view` (increment view count)
+- [x] HTTP Range request handling for progressive streaming
+- [x] HLS URL signing (nginx secure_link compatible)
+- [x] Query param token authentication for all streaming endpoints (via existing middleware)
 
 **HLS Signing (nginx secure_link compatible):**
 ```go
@@ -499,10 +499,16 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 ```
 
 **Deliverables:**
-- Progressive video streaming
-- HLS streaming
-- Thumbnail serving
+- Progressive video streaming with Range request support (64KB configurable chunks)
+- HLS streaming with nginx secure_link compatible signed URLs
+- Thumbnail serving with 24h cache
 - View tracking
+
+**Implementation Notes:**
+- `HLS_SIGNING_SECRET` is now required (minimum 16 characters) for security
+- `STREAM_CHUNK_SIZE_BYTES` configurable (default 64KB, min 8KB, max 1MB)
+- HLS manifest endpoint rewrites segment URLs to signed nginx URLs (12h expiry)
+- Progressive streaming supports full Range header spec (bytes=START-END, bytes=START-, bytes=-SUFFIX)
 
 ### Phase 8: Playlists (Week 8)
 
@@ -664,7 +670,7 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - [x] `POST /api/users/{user_id}/activate`
 - [x] `POST /api/users/{user_id}/generate-reset-link`
 
-### Videos (15 endpoints) - Phase 5 Complete (10/15)
+### Videos (15 endpoints) - COMPLETED
 - [x] `POST /api/videos/upload`
 - [x] `POST /api/videos/upload/init`
 - [x] `POST /api/videos/upload/chunk`
@@ -673,11 +679,11 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - [x] `GET /api/videos/{short_id}`
 - [x] `PATCH /api/videos/{short_id}`
 - [x] `DELETE /api/videos/{short_id}`
-- [ ] `GET /api/videos/{short_id}/stream` (Phase 7)
-- [ ] `GET /api/videos/{short_id}/hls/{filename}` (Phase 7)
-- [ ] `GET /api/videos/{short_id}/stream-info` (Phase 7)
-- [ ] `GET /api/videos/{short_id}/thumbnail` (Phase 7)
-- [ ] `POST /api/videos/{short_id}/view` (Phase 7)
+- [x] `GET /api/videos/{short_id}/stream`
+- [x] `GET /api/videos/{short_id}/hls/{filename}`
+- [x] `GET /api/videos/{short_id}/stream-info`
+- [x] `GET /api/videos/{short_id}/thumbnail`
+- [x] `POST /api/videos/{short_id}/view`
 - [x] `GET /api/videos/quota/me`
 - [x] `POST /api/videos/admin/quota/reset-all`
 
@@ -785,8 +791,11 @@ INITIAL_ADMIN_EMAIL=admin@example.com
 INITIAL_ADMIN_USERNAME=admin
 INITIAL_ADMIN_PASSWORD=changeme
 
-# HLS signing
-HLS_SIGNING_SECRET=your-hls-signing-secret
+# HLS signing (required, minimum 16 characters)
+HLS_SIGNING_SECRET=your-hls-signing-secret-minimum-16-chars
+
+# Streaming settings
+STREAM_CHUNK_SIZE_BYTES=65536  # 64KB default (min 8KB, max 1MB)
 
 # Optional: CORS
 CORS_ORIGINS=http://localhost:5173,http://localhost:3000

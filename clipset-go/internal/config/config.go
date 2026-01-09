@@ -34,8 +34,11 @@ type Config struct {
 	InitialAdminUsername string `env:"INITIAL_ADMIN_USERNAME" envDefault:"admin"`
 	InitialAdminPassword string `env:"INITIAL_ADMIN_PASSWORD" envDefault:"changeme"`
 
-	// HLS signing
-	HLSSigningSecret string `env:"HLS_SIGNING_SECRET" envDefault:""`
+	// HLS signing (required for secure video streaming)
+	HLSSigningSecret string `env:"HLS_SIGNING_SECRET,required"`
+
+	// Streaming settings
+	StreamChunkSize int `env:"STREAM_CHUNK_SIZE_BYTES" envDefault:"65536"` // 64KB default
 
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:"," envDefault:"http://localhost:5173,http://localhost:3000"`
@@ -75,6 +78,17 @@ func Load() (*Config, error) {
 	// Validate required fields
 	if len(cfg.JWTSecret) < 32 {
 		return nil, fmt.Errorf("JWT_SECRET must be at least 32 characters")
+	}
+
+	if len(cfg.HLSSigningSecret) < 16 {
+		return nil, fmt.Errorf("HLS_SIGNING_SECRET must be at least 16 characters")
+	}
+
+	// Validate stream chunk size (minimum 8KB, maximum 1MB)
+	if cfg.StreamChunkSize < 8192 {
+		cfg.StreamChunkSize = 8192
+	} else if cfg.StreamChunkSize > 1048576 {
+		cfg.StreamChunkSize = 1048576
 	}
 
 	return cfg, nil

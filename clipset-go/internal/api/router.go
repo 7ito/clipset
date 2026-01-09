@@ -149,6 +149,13 @@ func (r *Router) registerRoutes() {
 	r.mux.Handle("PATCH /api/videos/{short_id}", r.requireAuth(http.HandlerFunc(r.videos.Update)))
 	r.mux.Handle("DELETE /api/videos/{short_id}", r.requireAuth(http.HandlerFunc(r.videos.Delete)))
 
+	// Video streaming endpoints (Phase 7)
+	r.mux.Handle("GET /api/videos/{short_id}/stream", r.requireAuth(http.HandlerFunc(r.videos.Stream)))
+	r.mux.Handle("GET /api/videos/{short_id}/hls/{filename...}", r.requireAuth(http.HandlerFunc(r.videos.HLS)))
+	r.mux.Handle("GET /api/videos/{short_id}/stream-info", r.requireAuth(http.HandlerFunc(r.videos.StreamInfo)))
+	r.mux.Handle("GET /api/videos/{short_id}/thumbnail", r.requireAuth(http.HandlerFunc(r.videos.Thumbnail)))
+	r.mux.Handle("POST /api/videos/{short_id}/view", r.requireAuth(http.HandlerFunc(r.videos.IncrementView)))
+
 	// Video routes (admin only)
 	r.mux.Handle("POST /api/videos/admin/quota/reset-all", r.requireAdmin(http.HandlerFunc(r.videos.ResetAllQuotas)))
 

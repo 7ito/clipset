@@ -282,3 +282,92 @@ func (s *Storage) DeleteVideoFiles(filename string, thumbnailFilename *string, s
 func (s *Storage) Config() StorageConfig {
 	return s.config
 }
+
+// --- Streaming helper methods ---
+
+// GetProgressiveVideoPath returns the full path to a progressive MP4 video file.
+// It handles both cases:
+// 1. filename is just the stem (e.g., "uuid_timestamp") -> returns path + ".mp4"
+// 2. filename already has .mp4 extension -> returns path as-is
+func (s *Storage) GetProgressiveVideoPath(filename string, storagePath *string) string {
+	base := s.config.VideoPath
+	if storagePath != nil && *storagePath != "" {
+		base = *storagePath
+	}
+
+	// If filename already has .mp4 extension, use it as-is
+	if strings.HasSuffix(strings.ToLower(filename), ".mp4") {
+		return filepath.Join(base, filename)
+	}
+
+	// Otherwise, append .mp4
+	return filepath.Join(base, filename+".mp4")
+}
+
+// GetHLSManifestPath returns the full path to an HLS master.m3u8 manifest file.
+// The HLS files are stored in a directory named after the video filename (without extension).
+func (s *Storage) GetHLSManifestPath(filename string, storagePath *string) string {
+	base := s.config.VideoPath
+	if storagePath != nil && *storagePath != "" {
+		base = *storagePath
+	}
+
+	hlsDir := GetHLSDirectoryName(filename)
+	return filepath.Join(base, hlsDir, "master.m3u8")
+}
+
+// GetHLSFilePath returns the full path to any HLS file (manifest or segment).
+// The hlsFilename parameter is the relative path within the HLS directory (e.g., "master.m3u8" or "segment000.ts").
+func (s *Storage) GetHLSFilePath(videoFilename string, hlsFilename string, storagePath *string) string {
+	base := s.config.VideoPath
+	if storagePath != nil && *storagePath != "" {
+		base = *storagePath
+	}
+
+	hlsDir := GetHLSDirectoryName(videoFilename)
+	return filepath.Join(base, hlsDir, hlsFilename)
+}
+
+// IsHLSAvailable checks if HLS streaming is available for a video.
+// Returns true if the master.m3u8 manifest file exists.
+func (s *Storage) IsHLSAvailable(filename string, storagePath *string) bool {
+	manifestPath := s.GetHLSManifestPath(filename, storagePath)
+	return FileExists(manifestPath)
+}
+
+// IsProgressiveAvailable checks if progressive (MP4) streaming is available for a video.
+// Returns true if the .mp4 file exists.
+func (s *Storage) IsProgressiveAvailable(filename string, storagePath *string) bool {
+	mp4Path := s.GetProgressiveVideoPath(filename, storagePath)
+	return FileExists(mp4Path)
+}
+
+// ReadHLSManifest reads the HLS manifest file content.
+// Returns the content as a string and any error encountered.
+func (s *Storage) ReadHLSManifest(filename string, storagePath *string) (string, error) {
+	manifestPath := s.GetHLSManifestPath(filename, storagePath)
+	content, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read HLS manifest: %w", err)
+	}
+	return string(content), nil
+}
+
+// OpenVideoFile opens a video file for reading (used for streaming).
+// Returns the file handle and file size.
+func (s *Storage) OpenVideoFile(filename string, storagePath *string) (*os.File, int64, error) {
+	videoPath := s.GetProgressiveVideoPath(filename, storagePath)
+
+	file, err := os.Open(videoPath)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to open video file: %w", err)
+	}
+
+	stat, err := file.Stat()
+	if err != nil {
+		file.Close()
+		return nil, 0, fmt.Errorf("failed to stat video file: %w", err)
+	}
+
+	return file, stat.Size(), nil
+}

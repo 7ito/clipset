@@ -99,6 +99,122 @@ func generateSlug(name string) string {
 	return slug
 }
 
+// HandleCategoryGet is a catch-all handler for GET /api/categories/{path...}
+// It routes internally based on the path to handle:
+//   - /api/categories/ -> List
+//   - /api/categories/{category_id} -> GetByID
+//   - /api/categories/slug/{slug} -> GetBySlug
+//   - /api/categories/{category_id}/image -> ServeImage
+func (h *CategoriesHandler) HandleCategoryGet(w http.ResponseWriter, r *http.Request) {
+	path := r.PathValue("path")
+
+	// Empty path means list all categories
+	if path == "" {
+		h.List(w, r)
+		return
+	}
+
+	parts := strings.Split(path, "/")
+
+	if len(parts) == 1 {
+		// /api/categories/{id} or /api/categories/slug (incomplete)
+		if parts[0] == "slug" {
+			response.BadRequest(w, "Slug is required")
+			return
+		}
+		// Try as UUID
+		categoryID, err := uuid.Parse(parts[0])
+		if err != nil {
+			response.BadRequest(w, "Invalid category ID format")
+			return
+		}
+		h.getByIDInternal(w, r, categoryID)
+		return
+	}
+
+	if len(parts) == 2 {
+		if parts[0] == "slug" {
+			// /api/categories/slug/{slug}
+			h.getBySlugInternal(w, r, parts[1])
+			return
+		}
+		if parts[1] == "image" {
+			// /api/categories/{category_id}/image
+			categoryID, err := uuid.Parse(parts[0])
+			if err != nil {
+				response.BadRequest(w, "Invalid category ID format")
+				return
+			}
+			h.serveImageInternal(w, r, categoryID)
+			return
+		}
+	}
+
+	response.NotFound(w, "Not found")
+}
+
+// HandleCategoryPost is a catch-all handler for POST /api/categories/{path...}
+// It routes internally based on the path to handle:
+//   - /api/categories/ -> Create
+//   - /api/categories/{category_id}/image -> UploadImage
+func (h *CategoriesHandler) HandleCategoryPost(w http.ResponseWriter, r *http.Request) {
+	path := r.PathValue("path")
+
+	// Empty path means create category
+	if path == "" {
+		h.Create(w, r)
+		return
+	}
+
+	parts := strings.Split(path, "/")
+
+	if len(parts) == 2 && parts[1] == "image" {
+		// /api/categories/{category_id}/image
+		categoryID, err := uuid.Parse(parts[0])
+		if err != nil {
+			response.BadRequest(w, "Invalid category ID format")
+			return
+		}
+		h.uploadImageInternal(w, r, categoryID)
+		return
+	}
+
+	response.NotFound(w, "Not found")
+}
+
+// HandleCategoryDelete is a catch-all handler for DELETE /api/categories/{path...}
+// It routes internally based on the path to handle:
+//   - /api/categories/{category_id} -> Delete
+//   - /api/categories/{category_id}/image -> DeleteImage
+func (h *CategoriesHandler) HandleCategoryDelete(w http.ResponseWriter, r *http.Request) {
+	path := r.PathValue("path")
+	parts := strings.Split(path, "/")
+
+	if len(parts) == 1 {
+		// /api/categories/{category_id}
+		categoryID, err := uuid.Parse(parts[0])
+		if err != nil {
+			response.BadRequest(w, "Invalid category ID format")
+			return
+		}
+		h.deleteInternal(w, r, categoryID)
+		return
+	}
+
+	if len(parts) == 2 && parts[1] == "image" {
+		// /api/categories/{category_id}/image
+		categoryID, err := uuid.Parse(parts[0])
+		if err != nil {
+			response.BadRequest(w, "Invalid category ID format")
+			return
+		}
+		h.deleteImageInternal(w, r, categoryID)
+		return
+	}
+
+	response.NotFound(w, "Not found")
+}
+
 // List handles GET /api/categories/
 func (h *CategoriesHandler) List(w http.ResponseWriter, r *http.Request) {
 	categories, err := h.db.Queries.ListCategories(r.Context())
@@ -206,6 +322,68 @@ func (h *CategoriesHandler) Create(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetByIDOrSlug handles GET /api/categories/{category_id_or_slug}
+// This is a combined handler that routes to GetByID or GetBySlug based on the path
+// It handles routes like:
+//   - /api/categories/{uuid} -> GetByID
+//   - /api/categories/slug/{slug} -> GetBySlug
+func (h *CategoriesHandler) GetByIDOrSlug(w http.ResponseWriter, r *http.Request) {
+	param := r.PathValue("category_id_or_slug")
+	if param == "" {
+		response.BadRequest(w, "Category ID or slug is required")
+		return
+	}
+
+	// Check if this is the "slug" path prefix
+	if param == "slug" {
+		// Get the actual slug from the remaining path
+		slug := r.PathValue("slug")
+		if slug == "" {
+			response.BadRequest(w, "Slug is required")
+			return
+		}
+		h.getBySlugInternal(w, r, slug)
+		return
+	}
+
+	// Try to parse as UUID first
+	categoryID, err := uuid.Parse(param)
+	if err != nil {
+		// Not a valid UUID - might be a direct slug lookup (shouldn't happen with current API)
+		response.BadRequest(w, "Invalid category ID format")
+		return
+	}
+
+	h.getByIDInternal(w, r, categoryID)
+}
+
+// getByIDInternal fetches category by UUID
+func (h *CategoriesHandler) getByIDInternal(w http.ResponseWriter, r *http.Request, categoryID uuid.UUID) {
+	category, err := h.db.Queries.GetCategoryByIDWithCount(r.Context(), categoryID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			response.NotFound(w, "Category not found")
+			return
+		}
+		log.Printf("Error getting category: %v", err)
+		response.InternalServerError(w, "Failed to get category")
+		return
+	}
+
+	response.OK(w, CategoryResponse{
+		ID:            category.ID.String(),
+		Name:          category.Name,
+		Slug:          category.Slug,
+		Description:   category.Description,
+		ImageFilename: category.ImageFilename,
+		ImageURL:      buildCategoryImageURL(category.ImageFilename),
+		CreatedBy:     category.CreatedBy.String(),
+		CreatedAt:     category.CreatedAt,
+		UpdatedAt:     category.UpdatedAt,
+		VideoCount:    category.VideoCount,
+	})
+}
+
 // GetByID handles GET /api/categories/{category_id}
 func (h *CategoriesHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	categoryIDStr := r.PathValue("category_id")
@@ -220,13 +398,18 @@ func (h *CategoriesHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	category, err := h.db.Queries.GetCategoryByIDWithCount(r.Context(), categoryID)
+	h.getByIDInternal(w, r, categoryID)
+}
+
+// getBySlugInternal fetches category by slug
+func (h *CategoriesHandler) getBySlugInternal(w http.ResponseWriter, r *http.Request, slug string) {
+	category, err := h.db.Queries.GetCategoryBySlugWithCount(r.Context(), slug)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			response.NotFound(w, "Category not found")
 			return
 		}
-		log.Printf("Error getting category: %v", err)
+		log.Printf("Error getting category by slug: %v", err)
 		response.InternalServerError(w, "Failed to get category")
 		return
 	}
@@ -253,29 +436,7 @@ func (h *CategoriesHandler) GetBySlug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	category, err := h.db.Queries.GetCategoryBySlugWithCount(r.Context(), slug)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			response.NotFound(w, "Category not found")
-			return
-		}
-		log.Printf("Error getting category by slug: %v", err)
-		response.InternalServerError(w, "Failed to get category")
-		return
-	}
-
-	response.OK(w, CategoryResponse{
-		ID:            category.ID.String(),
-		Name:          category.Name,
-		Slug:          category.Slug,
-		Description:   category.Description,
-		ImageFilename: category.ImageFilename,
-		ImageURL:      buildCategoryImageURL(category.ImageFilename),
-		CreatedBy:     category.CreatedBy.String(),
-		CreatedAt:     category.CreatedAt,
-		UpdatedAt:     category.UpdatedAt,
-		VideoCount:    category.VideoCount,
-	})
+	h.getBySlugInternal(w, r, slug)
 }
 
 // Update handles PATCH /api/categories/{category_id}
@@ -392,20 +553,8 @@ func (h *CategoriesHandler) Update(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// Delete handles DELETE /api/categories/{category_id}
-func (h *CategoriesHandler) Delete(w http.ResponseWriter, r *http.Request) {
-	categoryIDStr := r.PathValue("category_id")
-	if categoryIDStr == "" {
-		response.BadRequest(w, "Category ID is required")
-		return
-	}
-
-	categoryID, err := uuid.Parse(categoryIDStr)
-	if err != nil {
-		response.BadRequest(w, "Invalid category ID format")
-		return
-	}
-
+// deleteInternal handles the actual delete logic
+func (h *CategoriesHandler) deleteInternal(w http.ResponseWriter, r *http.Request, categoryID uuid.UUID) {
 	ctx := r.Context()
 
 	// Get category to check if it exists and get image filename
@@ -437,8 +586,8 @@ func (h *CategoriesHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	response.NoContent(w)
 }
 
-// UploadImage handles POST /api/categories/{category_id}/image
-func (h *CategoriesHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
+// Delete handles DELETE /api/categories/{category_id}
+func (h *CategoriesHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	categoryIDStr := r.PathValue("category_id")
 	if categoryIDStr == "" {
 		response.BadRequest(w, "Category ID is required")
@@ -451,6 +600,11 @@ func (h *CategoriesHandler) UploadImage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	h.deleteInternal(w, r, categoryID)
+}
+
+// uploadImageInternal handles the actual upload image logic
+func (h *CategoriesHandler) uploadImageInternal(w http.ResponseWriter, r *http.Request, categoryID uuid.UUID) {
 	ctx := r.Context()
 
 	// Check category exists
@@ -550,8 +704,8 @@ func (h *CategoriesHandler) UploadImage(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-// ServeImage handles GET /api/categories/{category_id}/image
-func (h *CategoriesHandler) ServeImage(w http.ResponseWriter, r *http.Request) {
+// UploadImage handles POST /api/categories/{category_id}/image
+func (h *CategoriesHandler) UploadImage(w http.ResponseWriter, r *http.Request) {
 	categoryIDStr := r.PathValue("category_id")
 	if categoryIDStr == "" {
 		response.BadRequest(w, "Category ID is required")
@@ -564,6 +718,11 @@ func (h *CategoriesHandler) ServeImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.uploadImageInternal(w, r, categoryID)
+}
+
+// serveImageInternal handles the actual image serving logic
+func (h *CategoriesHandler) serveImageInternal(w http.ResponseWriter, r *http.Request, categoryID uuid.UUID) {
 	// Get category
 	category, err := h.db.Queries.GetCategoryByID(r.Context(), categoryID)
 	if err != nil {
@@ -599,8 +758,8 @@ func (h *CategoriesHandler) ServeImage(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, imagePath)
 }
 
-// DeleteImage handles DELETE /api/categories/{category_id}/image
-func (h *CategoriesHandler) DeleteImage(w http.ResponseWriter, r *http.Request) {
+// ServeImage handles GET /api/categories/{category_id}/image
+func (h *CategoriesHandler) ServeImage(w http.ResponseWriter, r *http.Request) {
 	categoryIDStr := r.PathValue("category_id")
 	if categoryIDStr == "" {
 		response.BadRequest(w, "Category ID is required")
@@ -613,6 +772,11 @@ func (h *CategoriesHandler) DeleteImage(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	h.serveImageInternal(w, r, categoryID)
+}
+
+// deleteImageInternal handles the actual delete image logic
+func (h *CategoriesHandler) deleteImageInternal(w http.ResponseWriter, r *http.Request, categoryID uuid.UUID) {
 	ctx := r.Context()
 
 	// Get category
@@ -646,4 +810,21 @@ func (h *CategoriesHandler) DeleteImage(w http.ResponseWriter, r *http.Request) 
 	}
 
 	response.NoContent(w)
+}
+
+// DeleteImage handles DELETE /api/categories/{category_id}/image
+func (h *CategoriesHandler) DeleteImage(w http.ResponseWriter, r *http.Request) {
+	categoryIDStr := r.PathValue("category_id")
+	if categoryIDStr == "" {
+		response.BadRequest(w, "Category ID is required")
+		return
+	}
+
+	categoryID, err := uuid.Parse(categoryIDStr)
+	if err != nil {
+		response.BadRequest(w, "Invalid category ID format")
+		return
+	}
+
+	h.deleteImageInternal(w, r, categoryID)
 }

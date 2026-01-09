@@ -89,7 +89,7 @@ http {
             # Secure link validation
             # URL format: /hls/path/to/segment.ts?md5=<hash>&expires=<timestamp>
             secure_link $arg_md5,$arg_expires;
-            secure_link_md5 "$arg_expires/hls/$uri __HLS_SECRET__";
+            secure_link_md5 "$arg_expires$uri __HLS_SECRET__";
             
             # Deny access if validation fails
             if ($secure_link = "") {

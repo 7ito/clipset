@@ -93,10 +93,11 @@ func run() error {
 	server := &http.Server{
 		Addr:         cfg.Address(),
 		Handler:      router.Handler(),
-		ReadTimeout:  15 * time.Second,
-		WriteTimeout: 15 * time.Second,
-		IdleTimeout:  60 * time.Second,
+		ReadTimeout:  cfg.HTTPReadTimeout,
+		WriteTimeout: cfg.HTTPWriteTimeout,
+		IdleTimeout:  cfg.HTTPIdleTimeout,
 	}
+	log.Printf("HTTP timeouts: read=%v, write=%v, idle=%v", cfg.HTTPReadTimeout, cfg.HTTPWriteTimeout, cfg.HTTPIdleTimeout)
 
 	// Channel to listen for errors from server
 	serverErrors := make(chan error, 1)

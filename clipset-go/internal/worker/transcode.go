@@ -128,10 +128,12 @@ func (w *TranscodeWorker) Work(ctx context.Context, job *river.Job[TranscodeJobA
 	}
 
 	// Build final filename based on output format
+	// For HLS, we store just the base name (uuid_timestamp) - the storage layer
+	// knows to look for master.m3u8 in that directory
 	var finalFilename string
 	if result.OutputFormat == "hls" {
-		// For HLS, filename points to the manifest
-		finalFilename = filepath.Join(stemWithoutExt(outputFilename), "master.m3u8")
+		// For HLS, filename is just the directory name (stem without extension)
+		finalFilename = stemWithoutExt(outputFilename)
 	} else {
 		finalFilename = ensureMP4Ext(outputFilename)
 	}

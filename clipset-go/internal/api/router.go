@@ -128,18 +128,14 @@ func (r *Router) registerRoutes() {
 	r.mux.Handle("POST /api/users/{user_id}/activate", r.requireAdmin(http.HandlerFunc(r.users.Activate)))
 	r.mux.Handle("POST /api/users/{user_id}/generate-reset-link", r.requireAdmin(http.HandlerFunc(r.users.GenerateResetLink)))
 
-	// Category routes (authenticated)
-	r.mux.Handle("GET /api/categories/", r.requireAuth(http.HandlerFunc(r.categories.List)))
-	r.mux.Handle("GET /api/categories/{category_id}", r.requireAuth(http.HandlerFunc(r.categories.GetByID)))
-	r.mux.Handle("GET /api/categories/slug/{slug}", r.requireAuth(http.HandlerFunc(r.categories.GetBySlug)))
-	r.mux.Handle("GET /api/categories/{category_id}/image", r.requireAuth(http.HandlerFunc(r.categories.ServeImage)))
-
-	// Category routes (admin only)
-	r.mux.Handle("POST /api/categories/", r.requireAdmin(http.HandlerFunc(r.categories.Create)))
+	// Category routes
+	// Note: Go 1.22 ServeMux has strict conflict detection, so we use a catch-all pattern
+	// to handle both /api/categories/slug/{slug} and /api/categories/{id}/image without conflict
+	// The catch-all handles: /, /{id}, /slug/{slug}, /{id}/image
+	r.mux.Handle("GET /api/categories/{path...}", r.requireAuth(http.HandlerFunc(r.categories.HandleCategoryGet)))
+	r.mux.Handle("POST /api/categories/{path...}", r.requireAdmin(http.HandlerFunc(r.categories.HandleCategoryPost)))
 	r.mux.Handle("PATCH /api/categories/{category_id}", r.requireAdmin(http.HandlerFunc(r.categories.Update)))
-	r.mux.Handle("DELETE /api/categories/{category_id}", r.requireAdmin(http.HandlerFunc(r.categories.Delete)))
-	r.mux.Handle("POST /api/categories/{category_id}/image", r.requireAdmin(http.HandlerFunc(r.categories.UploadImage)))
-	r.mux.Handle("DELETE /api/categories/{category_id}/image", r.requireAdmin(http.HandlerFunc(r.categories.DeleteImage)))
+	r.mux.Handle("DELETE /api/categories/{path...}", r.requireAdmin(http.HandlerFunc(r.categories.HandleCategoryDelete)))
 
 	// Video routes (authenticated)
 	// Upload endpoints

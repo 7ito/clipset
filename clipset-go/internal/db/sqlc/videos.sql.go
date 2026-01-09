@@ -61,9 +61,9 @@ const countVideosWithAccess = `-- name: CountVideosWithAccess :one
 SELECT COUNT(*) FROM videos v
 WHERE 
     ($1::bool = true OR v.processing_status = 'completed' OR v.uploaded_by = $2)
-    AND ($3::uuid IS NULL OR v.category_id = $3)
-    AND ($4::text IS NULL OR v.processing_status::text = $4)
-    AND ($5::uuid IS NULL OR v.uploaded_by = $5)
+    AND ($3::uuid IS NULL OR $3 = '00000000-0000-0000-0000-000000000000' OR v.category_id = $3)
+    AND ($4::text IS NULL OR $4 = '' OR v.processing_status::text = $4)
+    AND ($5::uuid IS NULL OR $5 = '00000000-0000-0000-0000-000000000000' OR v.uploaded_by = $5)
     AND ($6::text IS NULL OR $6 = '' OR LOWER(v.title) LIKE '%' || LOWER($6) || '%')
 `
 
@@ -531,10 +531,10 @@ LEFT JOIN categories c ON v.category_id = c.id
 WHERE 
     -- Access control: admin sees all, others see completed or own
     ($1::bool = true OR v.processing_status = 'completed' OR v.uploaded_by = $2)
-    -- Filters (all optional)
-    AND ($3::uuid IS NULL OR v.category_id = $3)
-    AND ($4::text IS NULL OR v.processing_status::text = $4)
-    AND ($5::uuid IS NULL OR v.uploaded_by = $5)
+    -- Filters (all optional - check for NULL or zero UUID)
+    AND ($3::uuid IS NULL OR $3 = '00000000-0000-0000-0000-000000000000' OR v.category_id = $3)
+    AND ($4::text IS NULL OR $4 = '' OR v.processing_status::text = $4)
+    AND ($5::uuid IS NULL OR $5 = '00000000-0000-0000-0000-000000000000' OR v.uploaded_by = $5)
     AND ($6::text IS NULL OR $6 = '' OR LOWER(v.title) LIKE '%' || LOWER($6) || '%')
 ORDER BY
     CASE WHEN $7 = 'created_at' AND $8 = 'desc' THEN v.created_at END DESC,
@@ -584,6 +584,8 @@ type ListVideosWithAccessRow struct {
 
 // Non-admin: only COMPLETED videos OR own videos
 // Admin: all videos (is_admin = true)
+// Note: UUID filters check for both NULL and zero UUID (00000000-0000-0000-0000-000000000000)
+// because sqlc generates non-nullable UUID types with zero value when param is empty
 func (q *Queries) ListVideosWithAccess(ctx context.Context, arg ListVideosWithAccessParams) ([]ListVideosWithAccessRow, error) {
 	rows, err := q.db.Query(ctx, listVideosWithAccess,
 		arg.Column1,

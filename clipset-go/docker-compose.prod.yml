@@ -6,8 +6,6 @@
 # For GPU support:
 #   docker-compose -f docker-compose.prod.yml -f docker-compose.gpu.yml up -d
 
-version: '3.8'
-
 services:
   # PostgreSQL Database
   postgres:

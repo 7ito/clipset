@@ -66,6 +66,11 @@ type Config struct {
 
 	// Environment
 	Environment string `env:"ENVIRONMENT" envDefault:"development"`
+
+	// HTTP Server Timeouts
+	HTTPReadTimeout  time.Duration `env:"HTTP_READ_TIMEOUT" envDefault:"10m"`  // For large uploads
+	HTTPWriteTimeout time.Duration `env:"HTTP_WRITE_TIMEOUT" envDefault:"5m"`  // For video streaming
+	HTTPIdleTimeout  time.Duration `env:"HTTP_IDLE_TIMEOUT" envDefault:"120s"` // Keep-alive
 }
 
 // Load reads configuration from environment variables

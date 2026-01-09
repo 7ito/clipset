@@ -10,6 +10,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/riverqueue/river"
 	"github.com/riverqueue/river/riverdriver/riverpgxv5"
+	"github.com/riverqueue/river/rivermigrate"
 
 	"github.com/clipset/clipset-go/internal/config"
 	"github.com/clipset/clipset-go/internal/db"
@@ -60,6 +61,20 @@ func New(cfg Config) (*Worker, error) {
 
 // Start starts the River worker client
 func (w *Worker) Start(ctx context.Context) error {
+	// Run River migrations first
+	driver := riverpgxv5.New(w.pool)
+	migrator, err := rivermigrate.New(driver, nil)
+	if err != nil {
+		return err
+	}
+
+	// Migrate up to the latest version
+	_, err = migrator.Migrate(ctx, rivermigrate.DirectionUp, nil)
+	if err != nil {
+		return err
+	}
+	log.Println("River migrations completed")
+
 	// Create transcode worker with dependencies
 	transcodeWorker := NewTranscodeWorker(w.database, w.config, w.processor)
 

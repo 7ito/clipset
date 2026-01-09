@@ -70,12 +70,6 @@ type InvitationWithLinkResponse struct {
 	InvitationLink string     `json:"invitation_link"`
 }
 
-// InvitationListResponse represents a list of invitations
-type InvitationListResponse struct {
-	Invitations []InvitationResponse `json:"invitations"`
-	Total       int64                `json:"total"`
-}
-
 // InvitationValidationResponse represents the validation result
 type InvitationValidationResponse struct {
 	Valid   bool    `json:"valid"`
@@ -264,24 +258,14 @@ func (h *InvitationsHandler) List(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get total count
-	total, err := h.db.Queries.CountInvitations(ctx)
-	if err != nil {
-		log.Printf("Error counting invitations: %v", err)
-		response.InternalServerError(w, "Failed to count invitations")
-		return
-	}
-
 	// Build response
 	invResponses := make([]InvitationResponse, len(invitations))
 	for i, inv := range invitations {
 		invResponses[i] = buildInvitationResponseFromListRow(inv)
 	}
 
-	response.OK(w, InvitationListResponse{
-		Invitations: invResponses,
-		Total:       total,
-	})
+	// Return just the array to match the Python backend's response format
+	response.OK(w, invResponses)
 }
 
 // Validate handles GET /api/invitations/validate/{token}

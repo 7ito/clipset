@@ -8,8 +8,6 @@
 #
 # This file overrides the backend service to use GPU-enabled Dockerfile
 
-version: '3.8'
-
 services:
   backend:
     build:

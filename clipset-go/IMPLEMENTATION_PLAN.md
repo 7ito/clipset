@@ -356,23 +356,26 @@ INSERT INTO config (id) VALUES (1);
 `disintegration/imaging` library has better JPEG support. WebP encoding would
 require CGO or external dependencies.
 
-### Phase 4: Categories (Week 3)
+### Phase 4: Categories (Week 3) - COMPLETED
 
-- [ ] `GET /api/categories/`
-- [ ] `POST /api/categories/` (admin only)
-- [ ] `GET /api/categories/{category_id}`
-- [ ] `GET /api/categories/slug/{slug}`
-- [ ] `PATCH /api/categories/{category_id}` (admin only)
-- [ ] `DELETE /api/categories/{category_id}` (admin only)
-- [ ] `POST /api/categories/{category_id}/image` (admin only)
-- [ ] `GET /api/categories/{category_id}/image`
-- [ ] `DELETE /api/categories/{category_id}/image` (admin only)
-- [ ] Slug generation from name
-- [ ] Image processing (resize to 400x400, convert to WebP)
+- [x] `GET /api/categories/`
+- [x] `POST /api/categories/` (admin only)
+- [x] `GET /api/categories/{category_id}`
+- [x] `GET /api/categories/slug/{slug}`
+- [x] `PATCH /api/categories/{category_id}` (admin only)
+- [x] `DELETE /api/categories/{category_id}` (admin only)
+- [x] `POST /api/categories/{category_id}/image` (admin only)
+- [x] `GET /api/categories/{category_id}/image` (authenticated)
+- [x] `DELETE /api/categories/{category_id}/image` (admin only)
+- [x] Slug generation from name
+- [x] Image processing (resize to 400x400, convert to JPEG)
 
 **Deliverables:**
 - All category endpoints
 - Category image handling
+
+**Note:** Category images are converted to JPEG (consistent with avatars) and the
+image serving endpoint requires authentication for security.
 
 ### Phase 5: Video Core (Week 4-5)
 
@@ -691,16 +694,16 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - [ ] `DELETE /api/comments/{comment_id}`
 - [ ] `GET /api/videos/{video_id}/comment-markers`
 
-### Categories (9 endpoints)
-- [ ] `GET /api/categories/`
-- [ ] `POST /api/categories/`
-- [ ] `GET /api/categories/{category_id}`
-- [ ] `GET /api/categories/slug/{slug}`
-- [ ] `PATCH /api/categories/{category_id}`
-- [ ] `DELETE /api/categories/{category_id}`
-- [ ] `POST /api/categories/{category_id}/image`
-- [ ] `GET /api/categories/{category_id}/image`
-- [ ] `DELETE /api/categories/{category_id}/image`
+### Categories (9 endpoints) - COMPLETED
+- [x] `GET /api/categories/`
+- [x] `POST /api/categories/`
+- [x] `GET /api/categories/{category_id}`
+- [x] `GET /api/categories/slug/{slug}`
+- [x] `PATCH /api/categories/{category_id}`
+- [x] `DELETE /api/categories/{category_id}`
+- [x] `POST /api/categories/{category_id}/image`
+- [x] `GET /api/categories/{category_id}/image`
+- [x] `DELETE /api/categories/{category_id}/image`
 
 ### Invitations (4 endpoints)
 - [ ] `POST /api/invitations/`

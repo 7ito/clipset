@@ -8,6 +8,7 @@ import (
 	"github.com/clipset/clipset-go/internal/config"
 	"github.com/clipset/clipset-go/internal/db"
 	"github.com/clipset/clipset-go/internal/services/auth"
+	"github.com/clipset/clipset-go/internal/services/image"
 )
 
 // Router holds all HTTP handlers and dependencies
@@ -18,15 +19,32 @@ type Router struct {
 	jwtService *auth.JWTService
 
 	// Handlers
-	health *handlers.HealthHandler
-	auth   *handlers.AuthHandler
-	users  *handlers.UsersHandler
+	health     *handlers.HealthHandler
+	auth       *handlers.AuthHandler
+	users      *handlers.UsersHandler
+	categories *handlers.CategoriesHandler
 }
 
 // NewRouter creates a new router with all dependencies
 func NewRouter(database *db.DB, cfg *config.Config) *Router {
 	// Create JWT service
 	jwtService := auth.NewJWTService(cfg.JWTSecret, cfg.JWTExpiryHours)
+
+	// Create shared image processor
+	imgProcessor := image.NewProcessor(image.ProcessorConfig{
+		TempPath:          cfg.TempStoragePath,
+		AvatarPath:        cfg.AvatarStoragePath,
+		CategoryImagePath: cfg.CategoryImageStoragePath,
+		MaxAvatarSize:     cfg.MaxAvatarSizeBytes,
+		MaxCategorySize:   cfg.MaxCategoryImageSizeBytes,
+		AvatarSize:        cfg.AvatarImageSize,
+		CategoryImageSize: cfg.CategoryImageSize,
+	})
+
+	// Ensure storage directories exist
+	if err := imgProcessor.EnsureDirectories(); err != nil {
+		panic("failed to create image directories: " + err.Error())
+	}
 
 	r := &Router{
 		mux:        http.NewServeMux(),
@@ -35,7 +53,8 @@ func NewRouter(database *db.DB, cfg *config.Config) *Router {
 		jwtService: jwtService,
 		health:     handlers.NewHealthHandler(),
 		auth:       handlers.NewAuthHandler(database, jwtService),
-		users:      handlers.NewUsersHandler(database, cfg),
+		users:      handlers.NewUsersHandler(database, cfg, imgProcessor),
+		categories: handlers.NewCategoriesHandler(database, cfg, imgProcessor),
 	}
 
 	r.registerRoutes()
@@ -73,6 +92,19 @@ func (r *Router) registerRoutes() {
 	r.mux.Handle("POST /api/users/{user_id}/activate", r.requireAdmin(http.HandlerFunc(r.users.Activate)))
 	r.mux.Handle("POST /api/users/{user_id}/generate-reset-link", r.requireAdmin(http.HandlerFunc(r.users.GenerateResetLink)))
 
+	// Category routes (authenticated)
+	r.mux.Handle("GET /api/categories/", r.requireAuth(http.HandlerFunc(r.categories.List)))
+	r.mux.Handle("GET /api/categories/{category_id}", r.requireAuth(http.HandlerFunc(r.categories.GetByID)))
+	r.mux.Handle("GET /api/categories/slug/{slug}", r.requireAuth(http.HandlerFunc(r.categories.GetBySlug)))
+	r.mux.Handle("GET /api/categories/{category_id}/image", r.requireAuth(http.HandlerFunc(r.categories.ServeImage)))
+
+	// Category routes (admin only)
+	r.mux.Handle("POST /api/categories/", r.requireAdmin(http.HandlerFunc(r.categories.Create)))
+	r.mux.Handle("PATCH /api/categories/{category_id}", r.requireAdmin(http.HandlerFunc(r.categories.Update)))
+	r.mux.Handle("DELETE /api/categories/{category_id}", r.requireAdmin(http.HandlerFunc(r.categories.Delete)))
+	r.mux.Handle("POST /api/categories/{category_id}/image", r.requireAdmin(http.HandlerFunc(r.categories.UploadImage)))
+	r.mux.Handle("DELETE /api/categories/{category_id}/image", r.requireAdmin(http.HandlerFunc(r.categories.DeleteImage)))
+
 	// TODO: Add more routes as handlers are implemented
 	// Video routes
 	// ...
@@ -81,9 +113,6 @@ func (r *Router) registerRoutes() {
 	// ...
 
 	// Comment routes
-	// ...
-
-	// Category routes
 	// ...
 
 	// Invitation routes

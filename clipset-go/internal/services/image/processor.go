@@ -23,28 +23,45 @@ var supportedFormats = map[string]bool{
 	".bmp":  true,
 }
 
-// Processor handles image processing operations
+// Processor handles image processing operations for avatars and category images
 type Processor struct {
-	tempPath     string
-	avatarPath   string
-	maxSizeBytes int64
-	avatarSize   int
-	webpQuality  int
+	tempPath          string
+	avatarPath        string
+	categoryImagePath string
+	maxAvatarSize     int64
+	maxCategorySize   int64
+	avatarSize        int
+	categoryImageSize int
+	jpegQuality       int
 }
 
-// NewProcessor creates a new image processor
-func NewProcessor(tempPath, avatarPath string, maxSizeBytes int64, avatarSize int) *Processor {
+// ProcessorConfig holds configuration for the image processor
+type ProcessorConfig struct {
+	TempPath          string
+	AvatarPath        string
+	CategoryImagePath string
+	MaxAvatarSize     int64
+	MaxCategorySize   int64
+	AvatarSize        int
+	CategoryImageSize int
+}
+
+// NewProcessor creates a new image processor with the given configuration
+func NewProcessor(cfg ProcessorConfig) *Processor {
 	return &Processor{
-		tempPath:     tempPath,
-		avatarPath:   avatarPath,
-		maxSizeBytes: maxSizeBytes,
-		avatarSize:   avatarSize,
-		webpQuality:  85,
+		tempPath:          cfg.TempPath,
+		avatarPath:        cfg.AvatarPath,
+		categoryImagePath: cfg.CategoryImagePath,
+		maxAvatarSize:     cfg.MaxAvatarSize,
+		maxCategorySize:   cfg.MaxCategorySize,
+		avatarSize:        cfg.AvatarSize,
+		categoryImageSize: cfg.CategoryImageSize,
+		jpegQuality:       85,
 	}
 }
 
 // ValidateImage validates an image file's format and size
-func (p *Processor) ValidateImage(filePath string) error {
+func (p *Processor) ValidateImage(filePath string, maxSizeBytes int64) error {
 	// Check file exists
 	info, err := os.Stat(filePath)
 	if err != nil {
@@ -52,8 +69,8 @@ func (p *Processor) ValidateImage(filePath string) error {
 	}
 
 	// Check file size
-	if info.Size() > p.maxSizeBytes {
-		return fmt.Errorf("image file too large: %d bytes (max: %d bytes)", info.Size(), p.maxSizeBytes)
+	if info.Size() > maxSizeBytes {
+		return fmt.Errorf("image file too large: %d bytes (max: %d bytes)", info.Size(), maxSizeBytes)
 	}
 
 	// Check extension
@@ -77,10 +94,53 @@ func (p *Processor) ValidateImage(filePath string) error {
 	return nil
 }
 
+// ValidateAvatarImage validates an avatar image file
+func (p *Processor) ValidateAvatarImage(filePath string) error {
+	return p.ValidateImage(filePath, p.maxAvatarSize)
+}
+
+// ValidateCategoryImage validates a category image file
+func (p *Processor) ValidateCategoryImage(filePath string) error {
+	return p.ValidateImage(filePath, p.maxCategorySize)
+}
+
+// processImage is a generic image processing function
+func (p *Processor) processImage(inputPath, outputPath string, size int) error {
+	// Open the source image
+	src, err := imaging.Open(inputPath)
+	if err != nil {
+		return fmt.Errorf("failed to open image: %w", err)
+	}
+
+	// Resize to fit within target dimensions while maintaining aspect ratio
+	resized := imaging.Fit(src, size, size, imaging.Lanczos)
+
+	// Create a square canvas with white background
+	canvas := imaging.New(size, size, color.White)
+
+	// Center the resized image on the canvas
+	offsetX := (size - resized.Bounds().Dx()) / 2
+	offsetY := (size - resized.Bounds().Dy()) / 2
+	canvas = imaging.Paste(canvas, resized, image.Pt(offsetX, offsetY))
+
+	// Ensure output directory exists
+	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
+		return fmt.Errorf("failed to create output directory: %w", err)
+	}
+
+	// Save as JPEG
+	err = imaging.Save(canvas, outputPath, imaging.JPEGQuality(p.jpegQuality))
+	if err != nil {
+		return fmt.Errorf("failed to save processed image: %w", err)
+	}
+
+	return nil
+}
+
 // ProcessAvatar processes an uploaded avatar image:
 // - Resizes maintaining aspect ratio to fit within target size
 // - Centers on a square canvas
-// - Converts to JPEG format (since pure Go WebP encoding is limited)
+// - Converts to JPEG format
 // Returns the output filename
 func (p *Processor) ProcessAvatar(inputPath string, userID string) (string, error) {
 	// Generate unique filename
@@ -88,32 +148,25 @@ func (p *Processor) ProcessAvatar(inputPath string, userID string) (string, erro
 	filename := fmt.Sprintf("%s_%s.jpg", userID, uniqueSuffix)
 	outputPath := filepath.Join(p.avatarPath, filename)
 
-	// Open the source image
-	src, err := imaging.Open(inputPath)
-	if err != nil {
-		return "", fmt.Errorf("failed to open image: %w", err)
+	if err := p.processImage(inputPath, outputPath, p.avatarSize); err != nil {
+		return "", err
 	}
 
-	// Resize to fit within target dimensions while maintaining aspect ratio
-	resized := imaging.Fit(src, p.avatarSize, p.avatarSize, imaging.Lanczos)
+	return filename, nil
+}
 
-	// Create a square canvas with white background
-	canvas := imaging.New(p.avatarSize, p.avatarSize, color.White)
+// ProcessCategoryImage processes an uploaded category image:
+// - Resizes maintaining aspect ratio to fit within target size (400x400)
+// - Centers on a square canvas
+// - Converts to JPEG format
+// Returns the output filename
+func (p *Processor) ProcessCategoryImage(inputPath string, categoryID string) (string, error) {
+	// Category images use the category ID as the filename
+	filename := fmt.Sprintf("%s.jpg", categoryID)
+	outputPath := filepath.Join(p.categoryImagePath, filename)
 
-	// Center the resized image on the canvas
-	offsetX := (p.avatarSize - resized.Bounds().Dx()) / 2
-	offsetY := (p.avatarSize - resized.Bounds().Dy()) / 2
-	canvas = imaging.Paste(canvas, resized, image.Pt(offsetX, offsetY))
-
-	// Ensure output directory exists
-	if err := os.MkdirAll(filepath.Dir(outputPath), 0755); err != nil {
-		return "", fmt.Errorf("failed to create output directory: %w", err)
-	}
-
-	// Save as JPEG (imaging library has better JPEG support than WebP)
-	err = imaging.Save(canvas, outputPath, imaging.JPEGQuality(p.webpQuality))
-	if err != nil {
-		return "", fmt.Errorf("failed to save processed image: %w", err)
+	if err := p.processImage(inputPath, outputPath, p.categoryImageSize); err != nil {
+		return "", err
 	}
 
 	return filename, nil
@@ -176,11 +229,29 @@ func (p *Processor) DeleteAvatar(filename string) error {
 	return p.DeleteFile(filePath)
 }
 
+// DeleteCategoryImage deletes a category image file from the category image storage directory
+func (p *Processor) DeleteCategoryImage(filename string) error {
+	if filename == "" {
+		return nil
+	}
+
+	filePath := filepath.Join(p.categoryImagePath, filename)
+	return p.DeleteFile(filePath)
+}
+
+// GetCategoryImagePath returns the full path to a category image file
+func (p *Processor) GetCategoryImagePath(filename string) string {
+	return filepath.Join(p.categoryImagePath, filename)
+}
+
 // EnsureDirectories creates required storage directories
 func (p *Processor) EnsureDirectories() error {
-	dirs := []string{p.tempPath, p.avatarPath}
+	dirs := []string{p.tempPath, p.avatarPath, p.categoryImagePath}
 
 	for _, dir := range dirs {
+		if dir == "" {
+			continue
+		}
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", dir, err)
 		}

@@ -51,3 +51,24 @@ SELECT EXISTS(SELECT 1 FROM categories WHERE LOWER(name) = LOWER($1));
 
 -- name: CategoryExistsBySlug :one
 SELECT EXISTS(SELECT 1 FROM categories WHERE slug = $1);
+
+-- name: GetCategoryByIDWithCount :one
+SELECT 
+    c.*,
+    COUNT(v.id) as video_count
+FROM categories c
+LEFT JOIN videos v ON v.category_id = c.id AND v.processing_status = 'completed'
+WHERE c.id = $1
+GROUP BY c.id;
+
+-- name: GetCategoryBySlugWithCount :one
+SELECT 
+    c.*,
+    COUNT(v.id) as video_count
+FROM categories c
+LEFT JOIN videos v ON v.category_id = c.id AND v.processing_status = 'completed'
+WHERE c.slug = $1
+GROUP BY c.id;
+
+-- name: CategoryExistsByNameExcludingID :one
+SELECT EXISTS(SELECT 1 FROM categories WHERE LOWER(name) = LOWER($1) AND id != $2);

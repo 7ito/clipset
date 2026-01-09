@@ -28,19 +28,7 @@ type UsersHandler struct {
 }
 
 // NewUsersHandler creates a new users handler
-func NewUsersHandler(database *db.DB, cfg *config.Config) *UsersHandler {
-	imgProcessor := image.NewProcessor(
-		cfg.TempStoragePath,
-		cfg.AvatarStoragePath,
-		cfg.MaxAvatarSizeBytes,
-		cfg.AvatarImageSize,
-	)
-
-	// Ensure storage directories exist
-	if err := imgProcessor.EnsureDirectories(); err != nil {
-		log.Printf("Warning: failed to create image directories: %v", err)
-	}
-
+func NewUsersHandler(database *db.DB, cfg *config.Config, imgProcessor *image.Processor) *UsersHandler {
 	return &UsersHandler{
 		db:             database,
 		config:         cfg,
@@ -363,7 +351,7 @@ func (h *UsersHandler) UploadAvatar(w http.ResponseWriter, r *http.Request) {
 	defer h.imageProcessor.DeleteFile(tempPath) // Clean up temp file
 
 	// Validate image
-	if err := h.imageProcessor.ValidateImage(tempPath); err != nil {
+	if err := h.imageProcessor.ValidateAvatarImage(tempPath); err != nil {
 		response.BadRequest(w, err.Error())
 		return
 	}

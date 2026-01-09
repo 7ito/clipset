@@ -23,6 +23,22 @@ func (q *Queries) CategoryExistsByName(ctx context.Context, lower string) (bool,
 	return exists, err
 }
 
+const categoryExistsByNameExcludingID = `-- name: CategoryExistsByNameExcludingID :one
+SELECT EXISTS(SELECT 1 FROM categories WHERE LOWER(name) = LOWER($1) AND id != $2)
+`
+
+type CategoryExistsByNameExcludingIDParams struct {
+	Lower string    `json:"lower"`
+	ID    uuid.UUID `json:"id"`
+}
+
+func (q *Queries) CategoryExistsByNameExcludingID(ctx context.Context, arg CategoryExistsByNameExcludingIDParams) (bool, error) {
+	row := q.db.QueryRow(ctx, categoryExistsByNameExcludingID, arg.Lower, arg.ID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const categoryExistsBySlug = `-- name: CategoryExistsBySlug :one
 SELECT EXISTS(SELECT 1 FROM categories WHERE slug = $1)
 `
@@ -123,6 +139,45 @@ func (q *Queries) GetCategoryByID(ctx context.Context, id uuid.UUID) (Category, 
 	return i, err
 }
 
+const getCategoryByIDWithCount = `-- name: GetCategoryByIDWithCount :one
+SELECT 
+    c.id, c.name, c.slug, c.description, c.image_filename, c.created_by, c.created_at, c.updated_at,
+    COUNT(v.id) as video_count
+FROM categories c
+LEFT JOIN videos v ON v.category_id = c.id AND v.processing_status = 'completed'
+WHERE c.id = $1
+GROUP BY c.id
+`
+
+type GetCategoryByIDWithCountRow struct {
+	ID            uuid.UUID `json:"id"`
+	Name          string    `json:"name"`
+	Slug          string    `json:"slug"`
+	Description   *string   `json:"description"`
+	ImageFilename *string   `json:"image_filename"`
+	CreatedBy     uuid.UUID `json:"created_by"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	VideoCount    int64     `json:"video_count"`
+}
+
+func (q *Queries) GetCategoryByIDWithCount(ctx context.Context, id uuid.UUID) (GetCategoryByIDWithCountRow, error) {
+	row := q.db.QueryRow(ctx, getCategoryByIDWithCount, id)
+	var i GetCategoryByIDWithCountRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Slug,
+		&i.Description,
+		&i.ImageFilename,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.VideoCount,
+	)
+	return i, err
+}
+
 const getCategoryBySlug = `-- name: GetCategoryBySlug :one
 SELECT id, name, slug, description, image_filename, created_by, created_at, updated_at FROM categories WHERE slug = $1
 `
@@ -139,6 +194,45 @@ func (q *Queries) GetCategoryBySlug(ctx context.Context, slug string) (Category,
 		&i.CreatedBy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getCategoryBySlugWithCount = `-- name: GetCategoryBySlugWithCount :one
+SELECT 
+    c.id, c.name, c.slug, c.description, c.image_filename, c.created_by, c.created_at, c.updated_at,
+    COUNT(v.id) as video_count
+FROM categories c
+LEFT JOIN videos v ON v.category_id = c.id AND v.processing_status = 'completed'
+WHERE c.slug = $1
+GROUP BY c.id
+`
+
+type GetCategoryBySlugWithCountRow struct {
+	ID            uuid.UUID `json:"id"`
+	Name          string    `json:"name"`
+	Slug          string    `json:"slug"`
+	Description   *string   `json:"description"`
+	ImageFilename *string   `json:"image_filename"`
+	CreatedBy     uuid.UUID `json:"created_by"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
+	VideoCount    int64     `json:"video_count"`
+}
+
+func (q *Queries) GetCategoryBySlugWithCount(ctx context.Context, slug string) (GetCategoryBySlugWithCountRow, error) {
+	row := q.db.QueryRow(ctx, getCategoryBySlugWithCount, slug)
+	var i GetCategoryBySlugWithCountRow
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Slug,
+		&i.Description,
+		&i.ImageFilename,
+		&i.CreatedBy,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.VideoCount,
 	)
 	return i, err
 }

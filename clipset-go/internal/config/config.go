@@ -46,6 +46,10 @@ type Config struct {
 	MaxAvatarSizeBytes int64 `env:"MAX_AVATAR_SIZE_BYTES" envDefault:"2097152"` // 2MB
 	AvatarImageSize    int   `env:"AVATAR_IMAGE_SIZE" envDefault:"256"`         // Square dimensions
 
+	// Category image settings
+	MaxCategoryImageSizeBytes int64 `env:"MAX_CATEGORY_IMAGE_SIZE_BYTES" envDefault:"5242880"` // 5MB
+	CategoryImageSize         int   `env:"CATEGORY_IMAGE_SIZE" envDefault:"400"`               // Square dimensions
+
 	// Environment
 	Environment string `env:"ENVIRONMENT" envDefault:"development"`
 }

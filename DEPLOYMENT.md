@@ -12,13 +12,21 @@
 ```bash
 # Clone and configure
 git clone <repository-url> clipset
-cd clipset
-cp .env.example .env
+cd clipset/backend
+cp .env.production.example .env
 
-# Generate secret key and add to .env
-openssl rand -hex 32
+# Generate secrets and add to .env
+echo "JWT_SECRET=$(openssl rand -base64 32)"
+echo "HLS_SIGNING_SECRET=$(openssl rand -base64 24)"
+echo "POSTGRES_PASSWORD=$(openssl rand -base64 16)"
 
-# Start Clipset
+# Edit .env with your secrets and admin password
+nano .env
+
+# Start Clipset (with GPU)
+docker compose -f docker-compose.prod.yml -f docker-compose.gpu.yml up -d --build
+
+# Or without GPU
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
@@ -28,10 +36,12 @@ Access at **http://localhost** with credentials from your `.env` file.
 
 ### Required Settings
 
-Edit `.env` before first run:
+Edit `backend/.env` before first run:
 
 ```env
-SECRET_KEY=<generated-key>
+POSTGRES_PASSWORD=<generated-password>
+JWT_SECRET=<generated-secret>
+HLS_SIGNING_SECRET=<generated-secret>
 INITIAL_ADMIN_PASSWORD=<secure-password>
 ```
 
@@ -41,7 +51,7 @@ These can be changed at runtime via **Admin > Settings**:
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| Max File Size | Maximum upload size per file | 2 GB |
+| Max File Size | Maximum upload size per file | 3 GB |
 | Weekly Upload Quota | Per-user weekly upload limit | 4 GB |
 | Video Storage Path | Where videos are stored | `/data/uploads/videos` |
 
@@ -49,11 +59,14 @@ These can be changed at runtime via **Admin > Settings**:
 
 For 3-10x faster video processing with NVIDIA GPUs:
 
-```env
-USE_GPU_TRANSCODING=true
-NVENC_PRESET=p4          # p1 (fastest) to p7 (best quality)
-NVENC_CQ=20              # 18 (best) to 30 (most compressed)
+```bash
+# Use GPU compose overlay
+docker compose -f docker-compose.prod.yml -f docker-compose.gpu.yml up -d
 ```
+
+GPU settings can be configured in **Admin > Settings**:
+- NVENC Preset: p1 (fastest) to p7 (best quality)
+- NVENC CQ: 16-30 (lower = better quality)
 
 **Requirements**: NVIDIA drivers 530+, nvidia-container-toolkit
 
@@ -76,15 +89,41 @@ Add to `/etc/fstab` for persistence across reboots.
 
 ## Common Commands
 
+All commands run from `backend/` directory:
+
 ```bash
 # View logs
 docker compose -f docker-compose.prod.yml logs -f
 
 # Update to latest version
-git pull && docker compose -f docker-compose.prod.yml up -d --build
+git pull && docker compose -f docker-compose.prod.yml -f docker-compose.gpu.yml up -d --build
 
 # Backup database
-cp data/clipset.db backups/clipset-$(date +%Y%m%d).db
+docker compose -f docker-compose.prod.yml exec postgres pg_dump -U clipset clipset > backup-$(date +%Y%m%d).sql
+
+# Health check
+curl http://localhost/api/health
+```
+
+## Migration from SQLite (Python Backend)
+
+If migrating from the old Python/SQLite backend:
+
+```bash
+# 1. Backup old database
+cp /path/to/data/clipset.db /path/to/data/clipset.db.backup
+
+# 2. Start PostgreSQL
+docker compose -f docker-compose.prod.yml up -d postgres
+sleep 10
+
+# 3. Run migration
+docker compose -f docker-compose.prod.yml run --rm backend clipset migrate \
+  --sqlite-path /data/clipset.db \
+  --postgres-url "postgres://clipset:YOUR_PASSWORD@postgres:5432/clipset?sslmode=disable"
+
+# 4. Start all services
+docker compose -f docker-compose.prod.yml -f docker-compose.gpu.yml up -d
 ```
 
 ## External Access

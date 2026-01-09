@@ -21,13 +21,14 @@ type Router struct {
 	jwtService *auth.JWTService
 
 	// Handlers
-	health     *handlers.HealthHandler
-	auth       *handlers.AuthHandler
-	users      *handlers.UsersHandler
-	categories *handlers.CategoriesHandler
-	videos     *handlers.VideosHandler
-	playlists  *handlers.PlaylistsHandler
-	comments   *handlers.CommentsHandler
+	health      *handlers.HealthHandler
+	auth        *handlers.AuthHandler
+	users       *handlers.UsersHandler
+	categories  *handlers.CategoriesHandler
+	videos      *handlers.VideosHandler
+	playlists   *handlers.PlaylistsHandler
+	comments    *handlers.CommentsHandler
+	invitations *handlers.InvitationsHandler
 }
 
 // NewRouter creates a new router with all dependencies
@@ -71,17 +72,18 @@ func NewRouter(database *db.DB, cfg *config.Config) *Router {
 	}
 
 	r := &Router{
-		mux:        http.NewServeMux(),
-		db:         database,
-		config:     cfg,
-		jwtService: jwtService,
-		health:     handlers.NewHealthHandler(),
-		auth:       handlers.NewAuthHandler(database, jwtService),
-		users:      handlers.NewUsersHandler(database, cfg, imgProcessor),
-		categories: handlers.NewCategoriesHandler(database, cfg, imgProcessor),
-		videos:     handlers.NewVideosHandler(database, cfg, videoStorage, chunkManager),
-		playlists:  handlers.NewPlaylistsHandler(database, cfg),
-		comments:   handlers.NewCommentsHandler(database, cfg),
+		mux:         http.NewServeMux(),
+		db:          database,
+		config:      cfg,
+		jwtService:  jwtService,
+		health:      handlers.NewHealthHandler(),
+		auth:        handlers.NewAuthHandler(database, jwtService),
+		users:       handlers.NewUsersHandler(database, cfg, imgProcessor),
+		categories:  handlers.NewCategoriesHandler(database, cfg, imgProcessor),
+		videos:      handlers.NewVideosHandler(database, cfg, videoStorage, chunkManager),
+		playlists:   handlers.NewPlaylistsHandler(database, cfg),
+		comments:    handlers.NewCommentsHandler(database, cfg),
+		invitations: handlers.NewInvitationsHandler(database, cfg),
 	}
 
 	r.registerRoutes()
@@ -188,10 +190,15 @@ func (r *Router) registerRoutes() {
 	r.mux.Handle("PATCH /api/comments/{comment_id}", r.requireAuth(http.HandlerFunc(r.comments.Update)))
 	r.mux.Handle("DELETE /api/comments/{comment_id}", r.requireAuth(http.HandlerFunc(r.comments.Delete)))
 
-	// TODO: Add more routes as handlers are implemented
 	// Invitation routes
-	// ...
+	// Validate is PUBLIC - no authentication required
+	r.mux.HandleFunc("GET /api/invitations/validate/{token}", r.invitations.Validate)
+	// Admin-only routes
+	r.mux.Handle("POST /api/invitations/", r.requireAdmin(http.HandlerFunc(r.invitations.Create)))
+	r.mux.Handle("GET /api/invitations/", r.requireAdmin(http.HandlerFunc(r.invitations.List)))
+	r.mux.Handle("DELETE /api/invitations/{invitation_id}", r.requireAdmin(http.HandlerFunc(r.invitations.Delete)))
 
+	// TODO: Add more routes as handlers are implemented
 	// Config routes
 	// ...
 }

@@ -561,19 +561,27 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - `can_delete` computed as `author || video_owner || admin`
 - Sort options: `newest` (default), `oldest`, `timestamp` (ASC NULLS LAST)
 
-### Phase 10: Invitations (Week 9)
+### Phase 10: Invitations (Week 9) - COMPLETED
 
-- [ ] `POST /api/invitations/` (admin only)
-- [ ] `GET /api/invitations/` (admin only)
-- [ ] `GET /api/invitations/validate/{token}`
-- [ ] `DELETE /api/invitations/{invitation_id}` (admin only)
-- [ ] Token generation (secrets.token_urlsafe equivalent)
-- [ ] Expiration checking
-- [ ] Registration validation
+- [x] `POST /api/invitations/` (admin only)
+- [x] `GET /api/invitations/` (admin only)
+- [x] `GET /api/invitations/validate/{token}` (public)
+- [x] `DELETE /api/invitations/{invitation_id}` (admin only)
+- [x] Token generation (crypto/rand + base64.RawURLEncoding, equivalent to secrets.token_urlsafe)
+- [x] Expiration checking (7 days from creation)
+- [x] Registration validation (token validity check during auth registration)
 
 **Deliverables:**
-- Invitation system
-- Token validation for registration
+- All 4 invitation endpoints
+- Secure token generation (32 random bytes, URL-safe base64 encoded)
+- Invitation link generation using `FRONTEND_BASE_URL`
+
+**Implementation Notes:**
+- Token generation uses `crypto/rand` for cryptographic security
+- Validate endpoint is PUBLIC (no auth required) for registration flow
+- Invitation link format: `{FRONTEND_BASE_URL}/register/{token}`
+- Emails stored/compared in lowercase
+- Response includes `invitation_link` on create for easy sharing
 
 ### Phase 11: Admin Config (Week 9)
 
@@ -731,11 +739,11 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - [x] `GET /api/categories/{category_id}/image`
 - [x] `DELETE /api/categories/{category_id}/image`
 
-### Invitations (4 endpoints)
-- [ ] `POST /api/invitations/`
-- [ ] `GET /api/invitations/`
-- [ ] `GET /api/invitations/validate/{token}`
-- [ ] `DELETE /api/invitations/{invitation_id}`
+### Invitations (4 endpoints) - COMPLETED
+- [x] `POST /api/invitations/`
+- [x] `GET /api/invitations/`
+- [x] `GET /api/invitations/validate/{token}`
+- [x] `DELETE /api/invitations/{invitation_id}`
 
 ### Config (4 endpoints)
 - [ ] `GET /api/config/`

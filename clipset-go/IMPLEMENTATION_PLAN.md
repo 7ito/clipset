@@ -535,23 +535,31 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - Enhanced reorder validation: rejects duplicate positions and negative values
 - Auto-compaction: removing a video automatically decrements positions of subsequent videos
 
-### Phase 9: Comments (Week 9)
+### Phase 9: Comments (Week 9) - COMPLETED
 
-- [ ] `GET /api/videos/{video_id}/comments` (with sorting)
-- [ ] `POST /api/videos/{video_id}/comments`
-- [ ] `PATCH /api/comments/{comment_id}` (24h edit window)
-- [ ] `DELETE /api/comments/{comment_id}`
-- [ ] `GET /api/videos/{video_id}/comment-markers`
-- [ ] Reply support (single-level nesting)
-- [ ] Edit permission logic (author only, within 24 hours)
-- [ ] Delete permission logic (author, video owner, or admin)
-- [ ] Comment markers aggregation for video timeline
+- [x] `GET /api/videos/{video_id}/comments` (with sorting)
+- [x] `POST /api/videos/{video_id}/comments`
+- [x] `PATCH /api/comments/{comment_id}` (24h edit window)
+- [x] `DELETE /api/comments/{comment_id}`
+- [x] `GET /api/videos/{video_id}/comment-markers`
+- [x] Reply support (single-level nesting)
+- [x] Edit permission logic (author only, within 24 hours)
+- [x] Delete permission logic (author, video owner, or admin)
+- [x] Comment markers aggregation for video timeline
 
 **Deliverables:**
-- All comment endpoints
-- Reply system
-- Permission enforcement
-- Timeline markers
+- All 5 comment endpoints
+- Reply system with single-level nesting validation
+- Permission enforcement (edit: author+24h, delete: author/owner/admin)
+- Timeline markers aggregation
+
+**Implementation Notes:**
+- Replies are fetched eagerly (one query per top-level comment) and mapped in memory
+- Avatar URLs formatted as `/media/avatars/{filename}` for frontend compatibility
+- `is_edited` computed as `(updated_at - created_at) > 60 seconds`
+- `can_edit` computed as `author && within 24h`
+- `can_delete` computed as `author || video_owner || admin`
+- Sort options: `newest` (default), `oldest`, `timestamp` (ASC NULLS LAST)
 
 ### Phase 10: Invitations (Week 9)
 
@@ -705,12 +713,12 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - [x] `PATCH /api/playlists/{short_id}/reorder`
 - [x] `GET /api/playlists/videos/{video_id}/playlists`
 
-### Comments (5 endpoints)
-- [ ] `GET /api/videos/{video_id}/comments`
-- [ ] `POST /api/videos/{video_id}/comments`
-- [ ] `PATCH /api/comments/{comment_id}`
-- [ ] `DELETE /api/comments/{comment_id}`
-- [ ] `GET /api/videos/{video_id}/comment-markers`
+### Comments (5 endpoints) - COMPLETED
+- [x] `GET /api/videos/{video_id}/comments`
+- [x] `POST /api/videos/{video_id}/comments`
+- [x] `PATCH /api/comments/{comment_id}`
+- [x] `DELETE /api/comments/{comment_id}`
+- [x] `GET /api/videos/{video_id}/comment-markers`
 
 ### Categories (9 endpoints) - COMPLETED
 - [x] `GET /api/categories/`

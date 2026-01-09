@@ -27,6 +27,7 @@ type Router struct {
 	categories *handlers.CategoriesHandler
 	videos     *handlers.VideosHandler
 	playlists  *handlers.PlaylistsHandler
+	comments   *handlers.CommentsHandler
 }
 
 // NewRouter creates a new router with all dependencies
@@ -80,6 +81,7 @@ func NewRouter(database *db.DB, cfg *config.Config) *Router {
 		categories: handlers.NewCategoriesHandler(database, cfg, imgProcessor),
 		videos:     handlers.NewVideosHandler(database, cfg, videoStorage, chunkManager),
 		playlists:  handlers.NewPlaylistsHandler(database, cfg),
+		comments:   handlers.NewCommentsHandler(database, cfg),
 	}
 
 	r.registerRoutes()
@@ -179,10 +181,14 @@ func (r *Router) registerRoutes() {
 	r.mux.Handle("DELETE /api/playlists/{short_id}/videos/{video_id}", r.requireAuth(http.HandlerFunc(r.playlists.RemoveVideo)))
 	r.mux.Handle("PATCH /api/playlists/{short_id}/reorder", r.requireAuth(http.HandlerFunc(r.playlists.Reorder)))
 
-	// TODO: Add more routes as handlers are implemented
-	// Comment routes
-	// ...
+	// Comment routes (authenticated)
+	r.mux.Handle("GET /api/videos/{video_id}/comments", r.requireAuth(http.HandlerFunc(r.comments.ListByVideo)))
+	r.mux.Handle("POST /api/videos/{video_id}/comments", r.requireAuth(http.HandlerFunc(r.comments.Create)))
+	r.mux.Handle("GET /api/videos/{video_id}/comment-markers", r.requireAuth(http.HandlerFunc(r.comments.GetMarkers)))
+	r.mux.Handle("PATCH /api/comments/{comment_id}", r.requireAuth(http.HandlerFunc(r.comments.Update)))
+	r.mux.Handle("DELETE /api/comments/{comment_id}", r.requireAuth(http.HandlerFunc(r.comments.Delete)))
 
+	// TODO: Add more routes as handlers are implemented
 	// Invitation routes
 	// ...
 

@@ -181,6 +181,53 @@ func (q *Queries) GetUserByUsername(ctx context.Context, lower string) (User, er
 	return i, err
 }
 
+const getUserByUsernameWithCounts = `-- name: GetUserByUsernameWithCounts :one
+SELECT 
+    u.id, u.email, u.username, u.password_hash, u.role, u.created_at, u.is_active, u.avatar_filename, u.weekly_upload_bytes, u.last_upload_reset,
+    COUNT(DISTINCT v.id) as video_count,
+    COUNT(DISTINCT p.id) as playlist_count
+FROM users u
+LEFT JOIN videos v ON v.uploaded_by = u.id
+LEFT JOIN playlists p ON p.created_by = u.id
+WHERE LOWER(u.username) = LOWER($1)
+GROUP BY u.id
+`
+
+type GetUserByUsernameWithCountsRow struct {
+	ID                uuid.UUID       `json:"id"`
+	Email             string          `json:"email"`
+	Username          string          `json:"username"`
+	PasswordHash      string          `json:"password_hash"`
+	Role              domain.UserRole `json:"role"`
+	CreatedAt         time.Time       `json:"created_at"`
+	IsActive          bool            `json:"is_active"`
+	AvatarFilename    *string         `json:"avatar_filename"`
+	WeeklyUploadBytes int64           `json:"weekly_upload_bytes"`
+	LastUploadReset   time.Time       `json:"last_upload_reset"`
+	VideoCount        int64           `json:"video_count"`
+	PlaylistCount     int64           `json:"playlist_count"`
+}
+
+func (q *Queries) GetUserByUsernameWithCounts(ctx context.Context, lower string) (GetUserByUsernameWithCountsRow, error) {
+	row := q.db.QueryRow(ctx, getUserByUsernameWithCounts, lower)
+	var i GetUserByUsernameWithCountsRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Role,
+		&i.CreatedAt,
+		&i.IsActive,
+		&i.AvatarFilename,
+		&i.WeeklyUploadBytes,
+		&i.LastUploadReset,
+		&i.VideoCount,
+		&i.PlaylistCount,
+	)
+	return i, err
+}
+
 const getUserQuota = `-- name: GetUserQuota :one
 SELECT weekly_upload_bytes, last_upload_reset FROM users WHERE id = $1
 `
@@ -194,6 +241,53 @@ func (q *Queries) GetUserQuota(ctx context.Context, id uuid.UUID) (GetUserQuotaR
 	row := q.db.QueryRow(ctx, getUserQuota, id)
 	var i GetUserQuotaRow
 	err := row.Scan(&i.WeeklyUploadBytes, &i.LastUploadReset)
+	return i, err
+}
+
+const getUserWithCounts = `-- name: GetUserWithCounts :one
+SELECT 
+    u.id, u.email, u.username, u.password_hash, u.role, u.created_at, u.is_active, u.avatar_filename, u.weekly_upload_bytes, u.last_upload_reset,
+    COUNT(DISTINCT v.id) as video_count,
+    COUNT(DISTINCT p.id) as playlist_count
+FROM users u
+LEFT JOIN videos v ON v.uploaded_by = u.id
+LEFT JOIN playlists p ON p.created_by = u.id
+WHERE u.id = $1
+GROUP BY u.id
+`
+
+type GetUserWithCountsRow struct {
+	ID                uuid.UUID       `json:"id"`
+	Email             string          `json:"email"`
+	Username          string          `json:"username"`
+	PasswordHash      string          `json:"password_hash"`
+	Role              domain.UserRole `json:"role"`
+	CreatedAt         time.Time       `json:"created_at"`
+	IsActive          bool            `json:"is_active"`
+	AvatarFilename    *string         `json:"avatar_filename"`
+	WeeklyUploadBytes int64           `json:"weekly_upload_bytes"`
+	LastUploadReset   time.Time       `json:"last_upload_reset"`
+	VideoCount        int64           `json:"video_count"`
+	PlaylistCount     int64           `json:"playlist_count"`
+}
+
+func (q *Queries) GetUserWithCounts(ctx context.Context, id uuid.UUID) (GetUserWithCountsRow, error) {
+	row := q.db.QueryRow(ctx, getUserWithCounts, id)
+	var i GetUserWithCountsRow
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.Username,
+		&i.PasswordHash,
+		&i.Role,
+		&i.CreatedAt,
+		&i.IsActive,
+		&i.AvatarFilename,
+		&i.WeeklyUploadBytes,
+		&i.LastUploadReset,
+		&i.VideoCount,
+		&i.PlaylistCount,
+	)
 	return i, err
 }
 
@@ -290,6 +384,72 @@ func (q *Queries) ListUsersDirectory(ctx context.Context, arg ListUsersDirectory
 	items := []ListUsersDirectoryRow{}
 	for rows.Next() {
 		var i ListUsersDirectoryRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Email,
+			&i.Username,
+			&i.PasswordHash,
+			&i.Role,
+			&i.CreatedAt,
+			&i.IsActive,
+			&i.AvatarFilename,
+			&i.WeeklyUploadBytes,
+			&i.LastUploadReset,
+			&i.VideoCount,
+			&i.PlaylistCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUsersWithCounts = `-- name: ListUsersWithCounts :many
+SELECT 
+    u.id, u.email, u.username, u.password_hash, u.role, u.created_at, u.is_active, u.avatar_filename, u.weekly_upload_bytes, u.last_upload_reset,
+    COUNT(DISTINCT v.id) as video_count,
+    COUNT(DISTINCT p.id) as playlist_count
+FROM users u
+LEFT JOIN videos v ON v.uploaded_by = u.id
+LEFT JOIN playlists p ON p.created_by = u.id
+GROUP BY u.id
+ORDER BY u.created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type ListUsersWithCountsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+type ListUsersWithCountsRow struct {
+	ID                uuid.UUID       `json:"id"`
+	Email             string          `json:"email"`
+	Username          string          `json:"username"`
+	PasswordHash      string          `json:"password_hash"`
+	Role              domain.UserRole `json:"role"`
+	CreatedAt         time.Time       `json:"created_at"`
+	IsActive          bool            `json:"is_active"`
+	AvatarFilename    *string         `json:"avatar_filename"`
+	WeeklyUploadBytes int64           `json:"weekly_upload_bytes"`
+	LastUploadReset   time.Time       `json:"last_upload_reset"`
+	VideoCount        int64           `json:"video_count"`
+	PlaylistCount     int64           `json:"playlist_count"`
+}
+
+func (q *Queries) ListUsersWithCounts(ctx context.Context, arg ListUsersWithCountsParams) ([]ListUsersWithCountsRow, error) {
+	rows, err := q.db.Query(ctx, listUsersWithCounts, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListUsersWithCountsRow{}
+	for rows.Next() {
+		var i ListUsersWithCountsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.Email,

@@ -39,6 +39,13 @@ type Config struct {
 	// CORS
 	CORSOrigins []string `env:"CORS_ORIGINS" envSeparator:"," envDefault:"http://localhost:5173,http://localhost:3000"`
 
+	// Frontend URL (for password reset links, etc.)
+	FrontendBaseURL string `env:"FRONTEND_BASE_URL" envDefault:"http://localhost:5173"`
+
+	// Avatar settings
+	MaxAvatarSizeBytes int64 `env:"MAX_AVATAR_SIZE_BYTES" envDefault:"2097152"` // 2MB
+	AvatarImageSize    int   `env:"AVATAR_IMAGE_SIZE" envDefault:"256"`         // Square dimensions
+
 	// Environment
 	Environment string `env:"ENVIRONMENT" envDefault:"development"`
 }

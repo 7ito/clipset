@@ -333,24 +333,28 @@ INSERT INTO config (id) VALUES (1);
 - JWT middleware
 - Password reset flow
 
-### Phase 3: User Management (Week 3)
+### Phase 3: User Management (Week 3) - COMPLETED
 
-- [ ] `GET /api/users/` (admin only, paginated)
-- [ ] `GET /api/users/directory` (search, sort)
-- [ ] `GET /api/users/by-username/{username}`
-- [ ] `GET /api/users/{user_id}`
-- [ ] `POST /api/users/me/avatar`
-- [ ] `DELETE /api/users/me/avatar`
-- [ ] `DELETE /api/users/{user_id}` (soft delete, admin only)
-- [ ] `POST /api/users/{user_id}/activate` (admin only)
-- [ ] `POST /api/users/{user_id}/generate-reset-link` (admin only)
-- [ ] Image processing for avatars (resize to 256x256, convert to WebP)
-- [ ] Upload quota tracking logic
+- [x] `GET /api/users/` (admin only, paginated)
+- [x] `GET /api/users/directory` (search, sort)
+- [x] `GET /api/users/by-username/{username}`
+- [x] `GET /api/users/{user_id}`
+- [x] `POST /api/users/me/avatar`
+- [x] `DELETE /api/users/me/avatar`
+- [x] `DELETE /api/users/{user_id}` (soft delete, admin only)
+- [x] `POST /api/users/{user_id}/activate` (admin only)
+- [x] `POST /api/users/{user_id}/generate-reset-link` (admin only)
+- [x] Image processing for avatars (resize to 256x256, convert to JPEG)
+- [ ] Upload quota tracking logic (deferred to Phase 5 - Video Core)
 
 **Deliverables:**
 - All user endpoints
 - Avatar upload/serving
 - Admin user management
+
+**Note:** Avatar images are converted to JPEG instead of WebP because the pure Go
+`disintegration/imaging` library has better JPEG support. WebP encoding would
+require CGO or external dependencies.
 
 ### Phase 4: Categories (Week 3)
 
@@ -640,16 +644,16 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - [x] `GET /api/auth/verify-reset-token`
 - [x] `POST /api/auth/reset-password`
 
-### Users (9 endpoints)
-- [ ] `GET /api/users/`
-- [ ] `GET /api/users/directory`
-- [ ] `GET /api/users/by-username/{username}`
-- [ ] `GET /api/users/{user_id}`
-- [ ] `POST /api/users/me/avatar`
-- [ ] `DELETE /api/users/me/avatar`
-- [ ] `DELETE /api/users/{user_id}`
-- [ ] `POST /api/users/{user_id}/activate`
-- [ ] `POST /api/users/{user_id}/generate-reset-link`
+### Users (9 endpoints) - COMPLETED
+- [x] `GET /api/users/`
+- [x] `GET /api/users/directory`
+- [x] `GET /api/users/by-username/{username}`
+- [x] `GET /api/users/{user_id}`
+- [x] `POST /api/users/me/avatar`
+- [x] `DELETE /api/users/me/avatar`
+- [x] `DELETE /api/users/{user_id}`
+- [x] `POST /api/users/{user_id}/activate`
+- [x] `POST /api/users/{user_id}/generate-reset-link`
 
 ### Videos (15 endpoints)
 - [ ] `POST /api/videos/upload`

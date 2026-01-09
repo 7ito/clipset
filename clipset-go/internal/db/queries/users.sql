@@ -95,3 +95,37 @@ SELECT EXISTS(SELECT 1 FROM users WHERE LOWER(username) = LOWER($1));
 
 -- name: CountAdmins :one
 SELECT COUNT(*) FROM users WHERE role = 'admin' AND is_active = TRUE;
+
+-- name: ListUsersWithCounts :many
+SELECT 
+    u.*,
+    COUNT(DISTINCT v.id) as video_count,
+    COUNT(DISTINCT p.id) as playlist_count
+FROM users u
+LEFT JOIN videos v ON v.uploaded_by = u.id
+LEFT JOIN playlists p ON p.created_by = u.id
+GROUP BY u.id
+ORDER BY u.created_at DESC
+LIMIT $1 OFFSET $2;
+
+-- name: GetUserWithCounts :one
+SELECT 
+    u.*,
+    COUNT(DISTINCT v.id) as video_count,
+    COUNT(DISTINCT p.id) as playlist_count
+FROM users u
+LEFT JOIN videos v ON v.uploaded_by = u.id
+LEFT JOIN playlists p ON p.created_by = u.id
+WHERE u.id = $1
+GROUP BY u.id;
+
+-- name: GetUserByUsernameWithCounts :one
+SELECT 
+    u.*,
+    COUNT(DISTINCT v.id) as video_count,
+    COUNT(DISTINCT p.id) as playlist_count
+FROM users u
+LEFT JOIN videos v ON v.uploaded_by = u.id
+LEFT JOIN playlists p ON p.created_by = u.id
+WHERE LOWER(u.username) = LOWER($1)
+GROUP BY u.id;

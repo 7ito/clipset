@@ -20,6 +20,7 @@ type Router struct {
 	// Handlers
 	health *handlers.HealthHandler
 	auth   *handlers.AuthHandler
+	users  *handlers.UsersHandler
 }
 
 // NewRouter creates a new router with all dependencies
@@ -34,6 +35,7 @@ func NewRouter(database *db.DB, cfg *config.Config) *Router {
 		jwtService: jwtService,
 		health:     handlers.NewHealthHandler(),
 		auth:       handlers.NewAuthHandler(database, jwtService),
+		users:      handlers.NewUsersHandler(database, cfg),
 	}
 
 	r.registerRoutes()
@@ -56,11 +58,22 @@ func (r *Router) registerRoutes() {
 	// Auth routes (authenticated)
 	r.mux.Handle("GET /api/auth/me", r.requireAuth(http.HandlerFunc(r.auth.Me)))
 
-	// TODO: Add more routes as handlers are implemented
-	// User routes
-	// r.mux.Handle("GET /api/users/", r.requireAuth(http.HandlerFunc(r.users.List)))
-	// ...
+	// User routes (admin only)
+	r.mux.Handle("GET /api/users/", r.requireAdmin(http.HandlerFunc(r.users.List)))
 
+	// User routes (authenticated)
+	r.mux.Handle("GET /api/users/directory", r.requireAuth(http.HandlerFunc(r.users.Directory)))
+	r.mux.Handle("GET /api/users/by-username/{username}", r.requireAuth(http.HandlerFunc(r.users.GetByUsername)))
+	r.mux.Handle("GET /api/users/{user_id}", r.requireAuth(http.HandlerFunc(r.users.GetByID)))
+	r.mux.Handle("POST /api/users/me/avatar", r.requireAuth(http.HandlerFunc(r.users.UploadAvatar)))
+	r.mux.Handle("DELETE /api/users/me/avatar", r.requireAuth(http.HandlerFunc(r.users.DeleteAvatar)))
+
+	// User routes (admin only - management)
+	r.mux.Handle("DELETE /api/users/{user_id}", r.requireAdmin(http.HandlerFunc(r.users.Deactivate)))
+	r.mux.Handle("POST /api/users/{user_id}/activate", r.requireAdmin(http.HandlerFunc(r.users.Activate)))
+	r.mux.Handle("POST /api/users/{user_id}/generate-reset-link", r.requireAdmin(http.HandlerFunc(r.users.GenerateResetLink)))
+
+	// TODO: Add more routes as handlers are implemented
 	// Video routes
 	// ...
 

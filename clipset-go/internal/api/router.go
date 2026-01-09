@@ -29,6 +29,7 @@ type Router struct {
 	playlists   *handlers.PlaylistsHandler
 	comments    *handlers.CommentsHandler
 	invitations *handlers.InvitationsHandler
+	configH     *handlers.ConfigHandler
 }
 
 // NewRouter creates a new router with all dependencies
@@ -84,6 +85,7 @@ func NewRouter(database *db.DB, cfg *config.Config) *Router {
 		playlists:   handlers.NewPlaylistsHandler(database, cfg),
 		comments:    handlers.NewCommentsHandler(database, cfg),
 		invitations: handlers.NewInvitationsHandler(database, cfg),
+		configH:     handlers.NewConfigHandler(database, cfg),
 	}
 
 	r.registerRoutes()
@@ -198,9 +200,11 @@ func (r *Router) registerRoutes() {
 	r.mux.Handle("GET /api/invitations/", r.requireAdmin(http.HandlerFunc(r.invitations.List)))
 	r.mux.Handle("DELETE /api/invitations/{invitation_id}", r.requireAdmin(http.HandlerFunc(r.invitations.Delete)))
 
-	// TODO: Add more routes as handlers are implemented
-	// Config routes
-	// ...
+	// Config routes (admin only)
+	r.mux.Handle("GET /api/config/", r.requireAdmin(http.HandlerFunc(r.configH.Get)))
+	r.mux.Handle("PATCH /api/config/", r.requireAdmin(http.HandlerFunc(r.configH.Update)))
+	r.mux.Handle("GET /api/config/encoders", r.requireAdmin(http.HandlerFunc(r.configH.GetEncoders)))
+	r.mux.Handle("GET /api/config/hls-migration-status", r.requireAdmin(http.HandlerFunc(r.configH.GetHLSMigrationStatus)))
 }
 
 // requireAuth wraps a handler with authentication middleware

@@ -583,21 +583,34 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - Emails stored/compared in lowercase
 - Response includes `invitation_link` on create for easy sharing
 
-### Phase 11: Admin Config (Week 9)
+### Phase 11: Admin Config (Week 9) - COMPLETED
 
-- [ ] `GET /api/config/` (admin only)
-- [ ] `PATCH /api/config/` (admin only)
-- [ ] `GET /api/config/encoders` (admin only)
-- [ ] `GET /api/config/hls-migration-status` (admin only)
-- [ ] Encoder detection (`ffmpeg -encoders`)
-- [ ] GPU detection (`nvidia-smi`)
-- [ ] HLS migration background job
-- [ ] Migration status tracking
+- [x] `GET /api/config/` (admin only)
+- [x] `PATCH /api/config/` (admin only)
+- [x] `GET /api/config/encoders` (admin only)
+- [x] `GET /api/config/hls-migration-status` (admin only)
+- [x] Encoder detection (`ffmpeg -encoders`)
+- [x] GPU detection (`nvidia-smi`)
+- [x] HLS migration status tracking (in-memory state)
+- [ ] HLS migration background job (deferred - requires River worker integration)
 
 **Deliverables:**
-- Config management
-- Encoder/GPU detection
-- HLS migration job
+- All 4 config endpoints
+- Full validation for all config fields
+- Transcoding preset auto-application (quality/balanced/performance)
+- Storage path writability validation
+- FFmpeg encoder detection with 10s timeout
+- nvidia-smi GPU name detection with 5s timeout
+- Thread-safe HLS migration state tracking
+
+**Implementation Notes:**
+- Config uses singleton pattern (always id=1)
+- COALESCE-based partial updates preserve existing values
+- Preset mode changes auto-apply preset values (unless explicitly overridden)
+- Storage path validation creates directory and tests write permission
+- Encoder detection parses `ffmpeg -encoders` output for h264_nvenc, hevc_nvenc, av1_nvenc, libx264, libx265
+- Migration state uses sync.RWMutex for thread safety
+- Exported functions (SetMigrationRunning, etc.) allow worker package to update state
 
 ### Phase 12: Migration Tool (Week 10)
 
@@ -745,11 +758,11 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - [x] `GET /api/invitations/validate/{token}`
 - [x] `DELETE /api/invitations/{invitation_id}`
 
-### Config (4 endpoints)
-- [ ] `GET /api/config/`
-- [ ] `PATCH /api/config/`
-- [ ] `GET /api/config/encoders`
-- [ ] `GET /api/config/hls-migration-status`
+### Config (4 endpoints) - COMPLETED
+- [x] `GET /api/config/`
+- [x] `PATCH /api/config/`
+- [x] `GET /api/config/encoders`
+- [x] `GET /api/config/hls-migration-status`
 
 ### Utility (2 endpoints) - COMPLETED
 - [x] `GET /`

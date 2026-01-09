@@ -1,0 +1,136 @@
+# Clipset Nginx Configuration - Production
+# This file is processed to replace __HLS_SECRET__ with the actual secret
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    # Include MIME types
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    # Large uploads (2GB for videos)
+    client_max_body_size 2G;
+
+    # Gzip compression for production
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 1024;
+    gzip_proxied any;
+    gzip_types text/plain text/css text/xml text/javascript 
+               application/x-javascript application/xml+rss 
+               application/json application/javascript
+               image/svg+xml;
+
+    # Logging
+    access_log /var/log/nginx/access.log;
+    error_log /var/log/nginx/error.log;
+
+    # Upstream backend service
+    upstream backend {
+        server backend:8000;
+    }
+
+    server {
+        listen 80;
+        server_name localhost;
+
+        # Security headers
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+
+        # Frontend - static files served by frontend container's nginx
+        location / {
+            proxy_pass http://frontend:80;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+        # Backend API - proxy all /api requests
+        location /api {
+            proxy_pass http://backend;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            
+            # Extended timeouts for uploads and video streaming
+            proxy_read_timeout 300s;
+            proxy_connect_timeout 75s;
+            proxy_send_timeout 300s;
+            
+            # Disable buffering for streaming
+            proxy_buffering off;
+        }
+
+        # Static media files - served directly by nginx
+        
+        # Thumbnails - public access with caching
+        location /media/thumbnails/ {
+            alias /data/uploads/thumbnails/;
+            add_header Cache-Control "public, max-age=31536000";
+            add_header Accept-Ranges bytes;
+            
+            # Optimize for file serving
+            sendfile on;
+            sendfile_max_chunk 1m;
+            tcp_nopush on;
+        }
+
+        # Category images - public access with caching
+        location /media/category-images/ {
+            alias /data/uploads/category-images/;
+            add_header Cache-Control "public, max-age=31536000";
+            
+            sendfile on;
+            tcp_nopush on;
+        }
+
+        # User avatars - public access with caching
+        location /media/avatars/ {
+            alias /data/uploads/avatars/;
+            add_header Cache-Control "public, max-age=31536000";
+            
+            sendfile on;
+            tcp_nopush on;
+        }
+
+        # HLS segments - secured with nginx secure_link
+        # The backend rewrites m3u8 manifests to point here with signed URLs
+        location /hls/ {
+            alias /data/uploads/videos/;
+            
+            # Secure link validation
+            # URL format: /hls/path/to/segment.ts?md5=<hash>&expires=<timestamp>
+            secure_link $arg_md5,$arg_expires;
+            secure_link_md5 "$arg_expires/hls/$uri __HLS_SECRET__";
+            
+            # Deny access if validation fails
+            if ($secure_link = "") {
+                return 403;
+            }
+            
+            # Deny access if link has expired
+            if ($secure_link = "0") {
+                return 410;
+            }
+            
+            # Optimize for HLS segment serving
+            sendfile on;
+            sendfile_max_chunk 1m;
+            tcp_nopush on;
+            
+            # CORS headers for HLS playback
+            add_header Access-Control-Allow-Origin *;
+            add_header Cache-Control "public, max-age=3600";
+        }
+
+        # Videos continue through backend API for auth/view tracking
+        # Progressive streaming: /api/videos/{id}/stream
+        # HLS manifests: /api/videos/{id}/hls/master.m3u8
+    }
+}

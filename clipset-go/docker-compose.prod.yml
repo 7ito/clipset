@@ -1,0 +1,126 @@
+# Clipset Go Backend - Production Docker Compose
+#
+# Usage:
+#   docker-compose -f docker-compose.prod.yml up -d
+#
+# For GPU support:
+#   docker-compose -f docker-compose.prod.yml -f docker-compose.gpu.yml up -d
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: clipset-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-clipset}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-clipset}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-clipset} -d ${POSTGRES_DB:-clipset}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - clipset-network
+
+  # Go Backend
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clipset-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      # Persistent data storage only (no source code)
+      - ../data:/data
+    environment:
+      # Database connection
+      - DATABASE_URL=postgres://${POSTGRES_USER:-clipset}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-clipset}?sslmode=disable
+      # Storage paths
+      - VIDEO_STORAGE_PATH=/data/uploads/videos
+      - THUMBNAIL_STORAGE_PATH=/data/uploads/thumbnails
+      - TEMP_STORAGE_PATH=/data/uploads/temp
+      - CHUNKS_STORAGE_PATH=/data/uploads/chunks
+      - CATEGORY_IMAGE_STORAGE_PATH=/data/uploads/category-images
+      - AVATAR_STORAGE_PATH=/data/uploads/avatars
+    env_file:
+      - .env
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - clipset-network
+
+  # Frontend (Production build served by nginx)
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile.prod
+      args:
+        - VITE_API_BASE_URL=
+    container_name: clipset-frontend
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - clipset-network
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: clipset-nginx
+    depends_on:
+      - backend
+      - frontend
+    volumes:
+      - ./nginx/nginx.prod.conf.template:/etc/nginx/nginx.conf.template:ro
+      # Mount data for static file serving
+      - ../data/uploads:/data/uploads:ro
+    ports:
+      - "80:80"
+      # Uncomment for HTTPS (requires certs)
+      # - "443:443"
+    environment:
+      - HLS_SIGNING_SECRET=${HLS_SIGNING_SECRET:-}
+    command: /bin/sh -c "sed 's/__HLS_SECRET__/'\"$$HLS_SIGNING_SECRET\"'/g' /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+    restart: always
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    networks:
+      - clipset-network
+
+volumes:
+  postgres_data:
+    name: clipset-postgres-data
+
+networks:
+  clipset-network:
+    name: clipset-network
+    driver: bridge

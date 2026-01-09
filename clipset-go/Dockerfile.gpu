@@ -1,0 +1,97 @@
+# Clipset Go Backend - GPU Dockerfile with NVIDIA NVENC Support
+# Uses NVIDIA CUDA runtime for hardware-accelerated video encoding
+
+# ============================================
+# Stage 1: Build the Go binary
+# ============================================
+FROM golang:1.22-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates tzdata
+
+# Set working directory
+WORKDIR /build
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the binary
+# - CGO_ENABLED=0 for static binary (works on any Linux)
+# - ldflags to reduce binary size
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -ldflags="-w -s -X main.Version=1.0.0" \
+    -o clipset \
+    ./cmd/clipset
+
+# ============================================
+# Stage 2: Runtime with NVIDIA CUDA
+# ============================================
+FROM nvidia/cuda:12.3.1-runtime-ubuntu22.04
+
+# Prevent interactive prompts during package installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install runtime dependencies
+# - FFmpeg for video processing (includes NVENC support when CUDA libs available)
+# - curl for health checks
+# - ca-certificates for HTTPS
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    ffmpeg \
+    curl \
+    ca-certificates \
+    tzdata && \
+    # Clean up to reduce image size
+    rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN groupadd -g 1000 clipset && \
+    useradd -u 1000 -g clipset -s /bin/bash -m clipset
+
+# Create data directories
+RUN mkdir -p /data/uploads/videos \
+             /data/uploads/thumbnails \
+             /data/uploads/temp \
+             /data/uploads/chunks \
+             /data/uploads/category-images \
+             /data/uploads/avatars && \
+    chown -R clipset:clipset /data
+
+# Copy binary from builder
+COPY --from=builder /build/clipset /usr/local/bin/clipset
+
+# Set working directory
+WORKDIR /app
+
+# Switch to non-root user
+USER clipset
+
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || exit 1
+
+# Default environment variables
+ENV HOST=0.0.0.0 \
+    PORT=8000 \
+    VIDEO_STORAGE_PATH=/data/uploads/videos \
+    THUMBNAIL_STORAGE_PATH=/data/uploads/thumbnails \
+    TEMP_STORAGE_PATH=/data/uploads/temp \
+    CHUNKS_STORAGE_PATH=/data/uploads/chunks \
+    CATEGORY_IMAGE_STORAGE_PATH=/data/uploads/category-images \
+    AVATAR_STORAGE_PATH=/data/uploads/avatars \
+    # NVIDIA environment variables
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+
+# Run the server
+# Note: Database migrations run automatically on startup
+CMD ["clipset"]

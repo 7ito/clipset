@@ -657,24 +657,49 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - River tables (`river_job`, `river_leader`, `river_migration`) and `schema_migrations` are skipped during empty table validation
 - Uses `pgx.CopyFrom` for high-performance bulk inserts
 
-### Phase 13: Docker & Deployment (Week 10-11)
+### Phase 13: Docker & Deployment (Week 10-11) - COMPLETED
 
-- [ ] Multi-stage Dockerfile (build + minimal runtime)
-- [ ] Dockerfile.gpu with NVIDIA runtime
-- [ ] docker-compose.yml with:
+- [x] Multi-stage Dockerfile (build + minimal runtime)
+- [x] Dockerfile.gpu with NVIDIA CUDA runtime
+- [x] docker-compose.yml with:
   - Go backend
   - PostgreSQL
   - nginx (for HLS serving)
-- [ ] Environment variable documentation
-- [ ] Health check configuration
-- [ ] Graceful shutdown handling
-- [ ] Volume mounts for data persistence
-- [ ] nginx configuration for HLS secure_link
+  - Frontend
+- [x] docker-compose.prod.yml for production
+- [x] docker-compose.gpu.yml override for GPU support
+- [x] Environment variable documentation (.env.example)
+- [x] Health check configuration
+- [x] Graceful shutdown handling (built into Go server)
+- [x] Volume mounts for data persistence
+- [x] nginx configuration for HLS secure_link
 
 **Deliverables:**
 - Production-ready Docker setup
-- GPU support
-- nginx configuration
+- GPU support with NVIDIA CUDA runtime
+- nginx configuration with secure_link for HLS
+
+**Files Created:**
+- `Dockerfile` - Multi-stage build (golang:1.22-alpine -> alpine:3.19)
+- `Dockerfile.gpu` - NVIDIA CUDA 12.3.1 runtime with FFmpeg
+- `docker-compose.yml` - Development configuration with PostgreSQL
+- `docker-compose.prod.yml` - Production configuration
+- `docker-compose.gpu.yml` - GPU override (use with -f flag)
+- `nginx/nginx.conf.template` - Development nginx config
+- `nginx/nginx.prod.conf.template` - Production nginx config with gzip/security
+- `.env.example` - Fully documented environment variables
+
+**Docker Usage:**
+```bash
+# Development
+docker-compose up -d
+
+# Production
+docker-compose -f docker-compose.prod.yml up -d
+
+# Production with GPU
+docker-compose -f docker-compose.prod.yml -f docker-compose.gpu.yml up -d
+```
 
 ### Phase 14: Testing & Polish (Week 11-12)
 

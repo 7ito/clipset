@@ -82,7 +82,7 @@ WHERE pv.playlist_id = $1
 ORDER BY pv.position ASC;
 
 -- name: GetMaxPlaylistPosition :one
-SELECT COALESCE(MAX(position), 0) FROM playlist_videos WHERE playlist_id = $1;
+SELECT COALESCE(MAX(position), -1)::int AS max_position FROM playlist_videos WHERE playlist_id = $1;
 
 -- name: UpdatePlaylistVideoPosition :exec
 UPDATE playlist_videos SET position = $3
@@ -114,3 +114,52 @@ SELECT EXISTS(
 
 -- name: PlaylistExistsByShortID :one
 SELECT EXISTS(SELECT 1 FROM playlists WHERE short_id = $1);
+
+-- name: GetPlaylistVideoEntry :one
+SELECT * FROM playlist_videos 
+WHERE playlist_id = $1 AND video_id = $2;
+
+-- name: DecrementPlaylistPositions :exec
+UPDATE playlist_videos 
+SET position = position - 1 
+WHERE playlist_id = $1 AND position > $2;
+
+-- name: ListUserPlaylistsWithThumbnail :many
+SELECT 
+    p.*,
+    u.username as creator_username,
+    COUNT(pv.id) as video_count,
+    (
+        SELECT v.thumbnail_filename 
+        FROM playlist_videos pv2 
+        JOIN videos v ON v.id = pv2.video_id 
+        WHERE pv2.playlist_id = p.id 
+        ORDER BY pv2.position ASC 
+        LIMIT 1
+    ) as first_video_thumbnail
+FROM playlists p
+JOIN users u ON p.created_by = u.id
+LEFT JOIN playlist_videos pv ON pv.playlist_id = p.id
+WHERE p.created_by = $1
+GROUP BY p.id, u.username
+ORDER BY p.updated_at DESC;
+
+-- name: GetPlaylistsByUsername :many
+SELECT 
+    p.*,
+    u.username as creator_username,
+    COUNT(pv.id) as video_count,
+    (
+        SELECT v.thumbnail_filename 
+        FROM playlist_videos pv2 
+        JOIN videos v ON v.id = pv2.video_id 
+        WHERE pv2.playlist_id = p.id 
+        ORDER BY pv2.position ASC 
+        LIMIT 1
+    ) as first_video_thumbnail
+FROM playlists p
+JOIN users u ON p.created_by = u.id
+LEFT JOIN playlist_videos pv ON pv.playlist_id = p.id
+WHERE LOWER(u.username) = LOWER($1)
+GROUP BY p.id, u.username
+ORDER BY p.updated_at DESC;

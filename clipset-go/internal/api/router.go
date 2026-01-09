@@ -26,6 +26,7 @@ type Router struct {
 	users      *handlers.UsersHandler
 	categories *handlers.CategoriesHandler
 	videos     *handlers.VideosHandler
+	playlists  *handlers.PlaylistsHandler
 }
 
 // NewRouter creates a new router with all dependencies
@@ -78,6 +79,7 @@ func NewRouter(database *db.DB, cfg *config.Config) *Router {
 		users:      handlers.NewUsersHandler(database, cfg, imgProcessor),
 		categories: handlers.NewCategoriesHandler(database, cfg, imgProcessor),
 		videos:     handlers.NewVideosHandler(database, cfg, videoStorage, chunkManager),
+		playlists:  handlers.NewPlaylistsHandler(database, cfg),
 	}
 
 	r.registerRoutes()
@@ -159,10 +161,25 @@ func (r *Router) registerRoutes() {
 	// Video routes (admin only)
 	r.mux.Handle("POST /api/videos/admin/quota/reset-all", r.requireAdmin(http.HandlerFunc(r.videos.ResetAllQuotas)))
 
-	// TODO: Add more routes as handlers are implemented
-	// Playlist routes
-	// ...
+	// Playlist routes (authenticated)
+	// Specific literal paths first to avoid conflicts with {short_id} wildcard
+	r.mux.Handle("GET /api/playlists/by-user/{username}", r.requireAuth(http.HandlerFunc(r.playlists.ListByUsername)))
+	r.mux.Handle("GET /api/playlists/videos/{video_id}/playlists", r.requireAuth(http.HandlerFunc(r.playlists.GetUserPlaylists)))
 
+	// Playlist CRUD
+	r.mux.Handle("GET /api/playlists/", r.requireAuth(http.HandlerFunc(r.playlists.GetUserPlaylists))) // Alias for listing user's own playlists
+	r.mux.Handle("POST /api/playlists/", r.requireAuth(http.HandlerFunc(r.playlists.Create)))
+	r.mux.Handle("GET /api/playlists/{short_id}", r.requireAuth(http.HandlerFunc(r.playlists.GetByShortID)))
+	r.mux.Handle("PATCH /api/playlists/{short_id}", r.requireAuth(http.HandlerFunc(r.playlists.Update)))
+	r.mux.Handle("DELETE /api/playlists/{short_id}", r.requireAuth(http.HandlerFunc(r.playlists.Delete)))
+
+	// Playlist video management
+	r.mux.Handle("POST /api/playlists/{short_id}/videos/batch", r.requireAuth(http.HandlerFunc(r.playlists.AddVideosBatch)))
+	r.mux.Handle("POST /api/playlists/{short_id}/videos", r.requireAuth(http.HandlerFunc(r.playlists.AddVideo)))
+	r.mux.Handle("DELETE /api/playlists/{short_id}/videos/{video_id}", r.requireAuth(http.HandlerFunc(r.playlists.RemoveVideo)))
+	r.mux.Handle("PATCH /api/playlists/{short_id}/reorder", r.requireAuth(http.HandlerFunc(r.playlists.Reorder)))
+
+	// TODO: Add more routes as handlers are implemented
 	// Comment routes
 	// ...
 

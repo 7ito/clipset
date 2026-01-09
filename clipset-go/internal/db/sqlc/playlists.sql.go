@@ -108,6 +108,22 @@ func (q *Queries) CreatePlaylist(ctx context.Context, arg CreatePlaylistParams) 
 	return i, err
 }
 
+const decrementPlaylistPositions = `-- name: DecrementPlaylistPositions :exec
+UPDATE playlist_videos 
+SET position = position - 1 
+WHERE playlist_id = $1 AND position > $2
+`
+
+type DecrementPlaylistPositionsParams struct {
+	PlaylistID uuid.UUID `json:"playlist_id"`
+	Position   int32     `json:"position"`
+}
+
+func (q *Queries) DecrementPlaylistPositions(ctx context.Context, arg DecrementPlaylistPositionsParams) error {
+	_, err := q.db.Exec(ctx, decrementPlaylistPositions, arg.PlaylistID, arg.Position)
+	return err
+}
+
 const deletePlaylist = `-- name: DeletePlaylist :exec
 DELETE FROM playlists WHERE id = $1
 `
@@ -118,14 +134,14 @@ func (q *Queries) DeletePlaylist(ctx context.Context, id uuid.UUID) error {
 }
 
 const getMaxPlaylistPosition = `-- name: GetMaxPlaylistPosition :one
-SELECT COALESCE(MAX(position), 0) FROM playlist_videos WHERE playlist_id = $1
+SELECT COALESCE(MAX(position), -1)::int AS max_position FROM playlist_videos WHERE playlist_id = $1
 `
 
-func (q *Queries) GetMaxPlaylistPosition(ctx context.Context, playlistID uuid.UUID) (interface{}, error) {
+func (q *Queries) GetMaxPlaylistPosition(ctx context.Context, playlistID uuid.UUID) (int32, error) {
 	row := q.db.QueryRow(ctx, getMaxPlaylistPosition, playlistID)
-	var coalesce interface{}
-	err := row.Scan(&coalesce)
-	return coalesce, err
+	var max_position int32
+	err := row.Scan(&max_position)
+	return max_position, err
 }
 
 const getPlaylistByID = `-- name: GetPlaylistByID :one
@@ -164,6 +180,30 @@ func (q *Queries) GetPlaylistByShortID(ctx context.Context, shortID string) (Pla
 		&i.IsPublic,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getPlaylistVideoEntry = `-- name: GetPlaylistVideoEntry :one
+SELECT id, playlist_id, video_id, position, added_at, added_by FROM playlist_videos 
+WHERE playlist_id = $1 AND video_id = $2
+`
+
+type GetPlaylistVideoEntryParams struct {
+	PlaylistID uuid.UUID `json:"playlist_id"`
+	VideoID    uuid.UUID `json:"video_id"`
+}
+
+func (q *Queries) GetPlaylistVideoEntry(ctx context.Context, arg GetPlaylistVideoEntryParams) (PlaylistVideo, error) {
+	row := q.db.QueryRow(ctx, getPlaylistVideoEntry, arg.PlaylistID, arg.VideoID)
+	var i PlaylistVideo
+	err := row.Scan(
+		&i.ID,
+		&i.PlaylistID,
+		&i.VideoID,
+		&i.Position,
+		&i.AddedAt,
+		&i.AddedBy,
 	)
 	return i, err
 }
@@ -279,6 +319,73 @@ func (q *Queries) GetPlaylistWithVideos(ctx context.Context, shortID string) (Ge
 	return i, err
 }
 
+const getPlaylistsByUsername = `-- name: GetPlaylistsByUsername :many
+SELECT 
+    p.id, p.short_id, p.name, p.description, p.created_by, p.is_public, p.created_at, p.updated_at,
+    u.username as creator_username,
+    COUNT(pv.id) as video_count,
+    (
+        SELECT v.thumbnail_filename 
+        FROM playlist_videos pv2 
+        JOIN videos v ON v.id = pv2.video_id 
+        WHERE pv2.playlist_id = p.id 
+        ORDER BY pv2.position ASC 
+        LIMIT 1
+    ) as first_video_thumbnail
+FROM playlists p
+JOIN users u ON p.created_by = u.id
+LEFT JOIN playlist_videos pv ON pv.playlist_id = p.id
+WHERE LOWER(u.username) = LOWER($1)
+GROUP BY p.id, u.username
+ORDER BY p.updated_at DESC
+`
+
+type GetPlaylistsByUsernameRow struct {
+	ID                  uuid.UUID `json:"id"`
+	ShortID             string    `json:"short_id"`
+	Name                string    `json:"name"`
+	Description         *string   `json:"description"`
+	CreatedBy           uuid.UUID `json:"created_by"`
+	IsPublic            bool      `json:"is_public"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
+	CreatorUsername     string    `json:"creator_username"`
+	VideoCount          int64     `json:"video_count"`
+	FirstVideoThumbnail *string   `json:"first_video_thumbnail"`
+}
+
+func (q *Queries) GetPlaylistsByUsername(ctx context.Context, lower string) ([]GetPlaylistsByUsernameRow, error) {
+	rows, err := q.db.Query(ctx, getPlaylistsByUsername, lower)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetPlaylistsByUsernameRow{}
+	for rows.Next() {
+		var i GetPlaylistsByUsernameRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ShortID,
+			&i.Name,
+			&i.Description,
+			&i.CreatedBy,
+			&i.IsPublic,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CreatorUsername,
+			&i.VideoCount,
+			&i.FirstVideoThumbnail,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPlaylistsContainingVideo = `-- name: GetPlaylistsContainingVideo :many
 SELECT 
     p.id, p.short_id, p.name, p.description, p.created_by, p.is_public, p.created_at, p.updated_at,
@@ -392,6 +499,73 @@ func (q *Queries) ListPlaylistsByUser(ctx context.Context, arg ListPlaylistsByUs
 	items := []ListPlaylistsByUserRow{}
 	for rows.Next() {
 		var i ListPlaylistsByUserRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ShortID,
+			&i.Name,
+			&i.Description,
+			&i.CreatedBy,
+			&i.IsPublic,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CreatorUsername,
+			&i.VideoCount,
+			&i.FirstVideoThumbnail,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUserPlaylistsWithThumbnail = `-- name: ListUserPlaylistsWithThumbnail :many
+SELECT 
+    p.id, p.short_id, p.name, p.description, p.created_by, p.is_public, p.created_at, p.updated_at,
+    u.username as creator_username,
+    COUNT(pv.id) as video_count,
+    (
+        SELECT v.thumbnail_filename 
+        FROM playlist_videos pv2 
+        JOIN videos v ON v.id = pv2.video_id 
+        WHERE pv2.playlist_id = p.id 
+        ORDER BY pv2.position ASC 
+        LIMIT 1
+    ) as first_video_thumbnail
+FROM playlists p
+JOIN users u ON p.created_by = u.id
+LEFT JOIN playlist_videos pv ON pv.playlist_id = p.id
+WHERE p.created_by = $1
+GROUP BY p.id, u.username
+ORDER BY p.updated_at DESC
+`
+
+type ListUserPlaylistsWithThumbnailRow struct {
+	ID                  uuid.UUID `json:"id"`
+	ShortID             string    `json:"short_id"`
+	Name                string    `json:"name"`
+	Description         *string   `json:"description"`
+	CreatedBy           uuid.UUID `json:"created_by"`
+	IsPublic            bool      `json:"is_public"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
+	CreatorUsername     string    `json:"creator_username"`
+	VideoCount          int64     `json:"video_count"`
+	FirstVideoThumbnail *string   `json:"first_video_thumbnail"`
+}
+
+func (q *Queries) ListUserPlaylistsWithThumbnail(ctx context.Context, createdBy uuid.UUID) ([]ListUserPlaylistsWithThumbnailRow, error) {
+	rows, err := q.db.Query(ctx, listUserPlaylistsWithThumbnail, createdBy)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListUserPlaylistsWithThumbnailRow{}
+	for rows.Next() {
+		var i ListUserPlaylistsWithThumbnailRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ShortID,

@@ -510,24 +510,30 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - HLS manifest endpoint rewrites segment URLs to signed nginx URLs (12h expiry)
 - Progressive streaming supports full Range header spec (bytes=START-END, bytes=START-, bytes=-SUFFIX)
 
-### Phase 8: Playlists (Week 8)
+### Phase 8: Playlists (Week 8) - COMPLETED
 
-- [ ] `GET /api/playlists/by-user/{username}`
-- [ ] `POST /api/playlists/`
-- [ ] `GET /api/playlists/{short_id}`
-- [ ] `PATCH /api/playlists/{short_id}`
-- [ ] `DELETE /api/playlists/{short_id}`
-- [ ] `POST /api/playlists/{short_id}/videos/batch`
-- [ ] `POST /api/playlists/{short_id}/videos`
-- [ ] `DELETE /api/playlists/{short_id}/videos/{video_id}`
-- [ ] `PATCH /api/playlists/{short_id}/reorder`
-- [ ] `GET /api/playlists/videos/{video_id}/playlists`
-- [ ] Position management for playlist videos
-- [ ] First video thumbnail for playlist response
+- [x] `GET /api/playlists/by-user/{username}`
+- [x] `POST /api/playlists/`
+- [x] `GET /api/playlists/{short_id}`
+- [x] `PATCH /api/playlists/{short_id}`
+- [x] `DELETE /api/playlists/{short_id}`
+- [x] `POST /api/playlists/{short_id}/videos/batch`
+- [x] `POST /api/playlists/{short_id}/videos`
+- [x] `DELETE /api/playlists/{short_id}/videos/{video_id}`
+- [x] `PATCH /api/playlists/{short_id}/reorder`
+- [x] `GET /api/playlists/videos/{video_id}/playlists`
+- [x] Position management for playlist videos
+- [x] First video thumbnail for playlist response (position-based, fixing Python bug)
 
 **Deliverables:**
-- All playlist endpoints
-- Video ordering within playlists
+- All 10 playlist endpoints
+- Video ordering within playlists with auto-compaction on removal
+- Reorder validation (no duplicate positions, all positions >= 0)
+
+**Implementation Notes:**
+- Fixed Python bug: first_video_thumbnail now uses position-based query instead of alphabetical
+- Enhanced reorder validation: rejects duplicate positions and negative values
+- Auto-compaction: removing a video automatically decrements positions of subsequent videos
 
 ### Phase 9: Comments (Week 9)
 
@@ -687,17 +693,17 @@ return fmt.Sprintf("%s?md5=%s&expires=%d", uri, token, expires)
 - [x] `GET /api/videos/quota/me`
 - [x] `POST /api/videos/admin/quota/reset-all`
 
-### Playlists (10 endpoints)
-- [ ] `GET /api/playlists/by-user/{username}`
-- [ ] `POST /api/playlists/`
-- [ ] `GET /api/playlists/{short_id}`
-- [ ] `PATCH /api/playlists/{short_id}`
-- [ ] `DELETE /api/playlists/{short_id}`
-- [ ] `POST /api/playlists/{short_id}/videos/batch`
-- [ ] `POST /api/playlists/{short_id}/videos`
-- [ ] `DELETE /api/playlists/{short_id}/videos/{video_id}`
-- [ ] `PATCH /api/playlists/{short_id}/reorder`
-- [ ] `GET /api/playlists/videos/{video_id}/playlists`
+### Playlists (10 endpoints) - COMPLETED
+- [x] `GET /api/playlists/by-user/{username}`
+- [x] `POST /api/playlists/`
+- [x] `GET /api/playlists/{short_id}`
+- [x] `PATCH /api/playlists/{short_id}`
+- [x] `DELETE /api/playlists/{short_id}`
+- [x] `POST /api/playlists/{short_id}/videos/batch`
+- [x] `POST /api/playlists/{short_id}/videos`
+- [x] `DELETE /api/playlists/{short_id}/videos/{video_id}`
+- [x] `PATCH /api/playlists/{short_id}/reorder`
+- [x] `GET /api/playlists/videos/{video_id}/playlists`
 
 ### Comments (5 endpoints)
 - [ ] `GET /api/videos/{video_id}/comments`

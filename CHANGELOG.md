@@ -2,7 +2,44 @@
 
 All notable changes to Clipset will be documented in this file.
 
-## [Unreleased] - 2025-12-29
+## [Unreleased] - 2026-01-10
+
+### Changed - Phase 20: Go Backend Rewrite (COMPLETE ✅)
+
+**Complete backend rewrite from Python/FastAPI/SQLite to Go/PostgreSQL/River.**
+
+- **Backend Architecture**:
+  - Rewrote entire backend in Go 1.25 with standard library HTTP router
+  - Migrated from SQLite to PostgreSQL 16 for better performance and reliability
+  - Replaced FastAPI BackgroundTasks with River job queue for robust async processing
+  - Implemented sqlc for type-safe database queries
+  - Maintained 100% API compatibility with frontend
+
+- **Project Restructuring**:
+  - Moved docker-compose files to project root
+  - Moved nginx configs to project root
+  - Renamed `clipset-go/` to `backend/`
+  - Removed old Python backend code
+
+- **Key Improvements**:
+  - Better memory efficiency for video transcoding
+  - More robust job queue with retries and persistence
+  - Simplified deployment with single Go binary
+  - Maintained GPU (NVENC) transcoding support
+  - Maintained HLS streaming with signed URLs
+
+- **Bug Fixes During Migration**:
+  - Fixed nginx secure_link duplicate `/hls/` prefix
+  - Fixed HLS filename storage (stem vs full path)
+  - Fixed invitations API response format
+  - Fixed video listing SQL zero UUID handling
+  - Fixed Go 1.22 ServeMux route conflicts
+
+- **Documentation**: Updated README, PROJECT.md, DEPLOYMENT.md, AGENTS.md
+
+---
+
+## [Previous] - 2025-12-29
 
 ### Added - Batch Upload Feature (COMPLETE ✅)
 - **Multiple File Upload**: Enhanced upload page to support selecting and uploading multiple videos at once.

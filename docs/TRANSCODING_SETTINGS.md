@@ -16,31 +16,14 @@ Clipset now supports configurable video transcoding settings through the admin p
 
 ### 1. Database Migration
 
-The feature requires a database migration to add new columns to the `config` table.
-
-**For Docker deployments:**
-```bash
-docker compose exec backend alembic upgrade head
-```
-
-**For non-Docker deployments:**
-```bash
-cd backend
-alembic upgrade head
-```
+The Go backend automatically runs database migrations on startup. No manual migration step is required.
 
 ### 2. Restart Services
 
-After the migration, restart the backend service to load the new code:
+After updating, restart the backend service:
 
-**Docker:**
 ```bash
 docker compose restart backend
-```
-
-**Non-Docker:**
-```bash
-# Restart your backend process (uvicorn, gunicorn, etc.)
 ```
 
 ### 3. Rebuild Frontend (if not using dev mode)
@@ -149,14 +132,9 @@ Accepts new transcoding-related fields.
 
 ## Rollback
 
-To rollback the migration:
+The Go backend does not support automatic migration rollback. To reset transcoding settings, update the `config` table directly in PostgreSQL:
 
 ```bash
-# Docker
-docker compose exec backend alembic downgrade 8bfb4401e6ef
-
-# Non-Docker
-cd backend && alembic downgrade 8bfb4401e6ef
+docker compose exec postgres psql -U clipset -d clipset -c \
+  "UPDATE config SET transcode_preset_mode = 'balanced', use_gpu_transcoding = false;"
 ```
-
-Note: This will remove all transcoding settings from the database.

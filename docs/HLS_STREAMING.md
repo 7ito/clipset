@@ -24,12 +24,12 @@ Clipset uses nginx's `secure_link` module to serve HLS segments directly, bypass
 ├─────────────────────────────────────────────────────────────────────┤
 │                                                                      │
 │  MANIFEST REQUEST (requires auth):                                   │
-│  Client → Nginx → FastAPI → JWT Auth → Sign URLs → Return Manifest  │
+│  Client → Nginx → Go Backend → JWT Auth → Sign URLs → Return Manifest│
 │                                                                      │
 │  SEGMENT REQUEST (direct nginx):                                     │
 │  Client → Nginx → Validate Signature → sendfile() → Return Segment  │
 │           ↑                                                          │
-│           └── Python completely bypassed for segments                │
+│           └── Go backend completely bypassed for segments            │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
@@ -56,18 +56,18 @@ When HLS is enabled, videos are stored as:
 
 ### Components
 
-1. **Backend Video Processor** (`backend/app/services/video_processor.py`)
-   - `transcode_video_hls()`: Transcodes video to HLS format using FFmpeg
+1. **Backend Video Processor** (`backend/internal/worker/transcode.go`)
+   - `transcodeToHLS()`: Transcodes video to HLS format using FFmpeg
    - Supports both GPU (NVENC) and CPU (libx264) encoding
    - Creates 4-second segments for optimal seeking granularity
 
-2. **Backend API Endpoints** (`backend/app/api/videos.py`)
+2. **Backend API Endpoints** (`backend/internal/api/handlers/videos.go`)
    - `GET /{short_id}/stream-info`: Returns video format (hls/progressive) and URLs
    - `GET /{short_id}/hls/master.m3u8`: Serves manifest with signed segment URLs (requires JWT auth)
 
 3. **Nginx HLS Location** (`nginx/nginx.conf.template`)
    - `/hls/` location serves segments directly using `secure_link` validation
-   - Validates time-limited signed URLs without involving Python
+   - Validates time-limited signed URLs without involving Go backend
 
 4. **Frontend Video Player** (`frontend/src/components/video-player/VideoPlayer.tsx`)
    - Uses [hls.js](https://github.com/video-dev/hls.js) for HLS playback in Chrome/Firefox
@@ -75,8 +75,8 @@ When HLS is enabled, videos are stored as:
    - Automatically refetches manifest if segment URLs expire (410 response)
    - Falls back to progressive MP4 if HLS fails
 
-5. **Migration Service** (`backend/app/services/background_tasks.py`)
-   - Automatically converts existing videos to HLS on server startup
+5. **Migration Worker** (`backend/internal/worker/hls_migration.go`)
+   - Automatically converts existing videos to HLS via River job queue
    - Runs in background without blocking the application
 
 ## Configuration
@@ -134,10 +134,7 @@ The `video_output_format` setting is stored in the `config` table:
    echo "HLS_SIGNING_SECRET=$(openssl rand -hex 16)" >> .env
    ```
 
-3. **Run database migrations**
-   ```bash
-   docker-compose exec backend alembic upgrade head
-   ```
+3. **Database migrations run automatically** on backend startup
 
 4. **Restart all services** (nginx needs the new config template)
    ```bash
@@ -226,11 +223,11 @@ This indicates the signed URL signature is invalid:
 
 1. **Check HLS_SIGNING_SECRET matches** between backend and nginx
    ```bash
-   # Check backend config
-   docker-compose exec backend python -c "from app.config import settings; print(settings.hls_signing_secret)"
+   # Check backend received the secret
+   docker compose exec backend printenv HLS_SIGNING_SECRET
    
    # Check nginx received the secret
-   docker-compose exec nginx printenv HLS_SIGNING_SECRET
+   docker compose exec nginx printenv HLS_SIGNING_SECRET
    ```
 
 2. **Restart nginx** to pick up configuration changes
@@ -289,8 +286,8 @@ HLS transcoding takes approximately the same time as progressive transcoding. GP
 ### Network Performance
 
 With signed URLs:
-- **Manifest request**: ~20-50ms (involves Python + DB)
-- **Segment request**: ~2-5ms (nginx direct, no Python)
+- **Manifest request**: ~10-30ms (Go backend + DB)
+- **Segment request**: ~2-5ms (nginx direct, no backend)
 - **Improvement**: ~90% faster segment delivery
 
 This is especially noticeable when:

@@ -51,13 +51,15 @@ git clone https://github.com/your-username/clipset.git
 cd clipset
 cp .env.example .env
 
-# Generate a secure secret key
-openssl rand -hex 32  # Add this to .env as SECRET_KEY
+# Generate secrets and add to .env
+openssl rand -base64 32  # JWT_SECRET
+openssl rand -base64 24  # HLS_SIGNING_SECRET
+openssl rand -hex 16     # POSTGRES_PASSWORD
 
 # Start Clipset
 docker compose up -d
 
-# Access at http://localhost
+# Access at http://localhost:8080 (dev) or http://localhost (prod)
 ```
 
 **Default credentials:**
@@ -76,9 +78,10 @@ docker compose up -d
 | Layer | Technology |
 |-------|------------|
 | Frontend | React 19, TypeScript, Vite, TailwindCSS 4, TanStack Router |
-| Backend | FastAPI, SQLAlchemy (async), Pydantic |
-| Database | SQLite |
-| Proxy | Nginx |
+| Backend | Go 1.25, net/http, sqlc |
+| Database | PostgreSQL 16 |
+| Job Queue | River (Go-native) |
+| Proxy | Nginx with HLS signed URLs |
 | Container | Docker, Docker Compose |
 | Transcoding | FFmpeg with NVIDIA NVENC support |
 
@@ -94,40 +97,44 @@ docker compose up -d
 Key settings in `.env`:
 
 ```env
+# Database
+POSTGRES_PASSWORD=your-secure-password
+
 # Security
-SECRET_KEY=your-generated-secret-key
+JWT_SECRET=your-generated-jwt-secret
+HLS_SIGNING_SECRET=your-hls-signing-secret
 INITIAL_ADMIN_PASSWORD=change-me
 
-# Storage
-VIDEO_STORAGE_PATH=/data/uploads/videos
-MAX_FILE_SIZE_BYTES=2147483648        # 2GB
-WEEKLY_UPLOAD_LIMIT_BYTES=4294967296  # 4GB per user
-
-# GPU Transcoding (optional)
-USE_GPU_TRANSCODING=true
-NVENC_PRESET=p4    # p1 (fastest) to p7 (best quality)
-NVENC_CQ=20        # 18 (best) to 30 (most compressed)
+# CORS (for production, add your domain)
+CORS_ORIGINS=http://localhost,https://your-domain.com
+FRONTEND_BASE_URL=https://your-domain.com
 ```
+
+GPU transcoding settings are configured via **Admin > Settings** in the web UI.
 
 See `.env.example` for all available options.
 
 ## Development
 
 ```bash
-# Backend
-cd backend
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-alembic upgrade head
-uvicorn app.main:app --reload
+# Start all services (backend, frontend, postgres, nginx)
+docker compose up -d
 
-# Frontend
+# View logs
+docker compose logs -f
+
+# Frontend only (for hot reload)
 cd frontend
 npm install
 npm run dev
+
+# Backend only (requires Go 1.25+)
+cd backend
+go build ./cmd/clipset
+./clipset
 ```
 
-API documentation available at `http://localhost:8000/docs` when the backend is running.
+Access the development server at `http://localhost:8080`.
 
 ## License
 

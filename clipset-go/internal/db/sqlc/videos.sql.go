@@ -57,6 +57,39 @@ func (q *Queries) CountVideos(ctx context.Context, arg CountVideosParams) (int64
 	return count, err
 }
 
+const countVideosWithAccess = `-- name: CountVideosWithAccess :one
+SELECT COUNT(*) FROM videos v
+WHERE 
+    ($1::bool = true OR v.processing_status = 'completed' OR v.uploaded_by = $2)
+    AND ($3::uuid IS NULL OR v.category_id = $3)
+    AND ($4::text IS NULL OR v.processing_status::text = $4)
+    AND ($5::uuid IS NULL OR v.uploaded_by = $5)
+    AND ($6::text IS NULL OR $6 = '' OR LOWER(v.title) LIKE '%' || LOWER($6) || '%')
+`
+
+type CountVideosWithAccessParams struct {
+	Column1    bool      `json:"column_1"`
+	UploadedBy uuid.UUID `json:"uploaded_by"`
+	Column3    uuid.UUID `json:"column_3"`
+	Column4    string    `json:"column_4"`
+	Column5    uuid.UUID `json:"column_5"`
+	Column6    string    `json:"column_6"`
+}
+
+func (q *Queries) CountVideosWithAccess(ctx context.Context, arg CountVideosWithAccessParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countVideosWithAccess,
+		arg.Column1,
+		arg.UploadedBy,
+		arg.Column3,
+		arg.Column4,
+		arg.Column5,
+		arg.Column6,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createVideo = `-- name: CreateVideo :one
 INSERT INTO videos (
     short_id, title, description, filename, original_filename,
@@ -149,6 +182,68 @@ func (q *Queries) GetVideoByID(ctx context.Context, id uuid.UUID) (Video, error)
 	return i, err
 }
 
+const getVideoByIDWithUploader = `-- name: GetVideoByIDWithUploader :one
+SELECT 
+    v.id, v.short_id, v.title, v.description, v.filename, v.thumbnail_filename, v.original_filename, v.storage_path, v.file_size_bytes, v.duration_seconds, v.uploaded_by, v.category_id, v.view_count, v.processing_status, v.error_message, v.created_at,
+    u.username as uploader_username,
+    c.name as category_name,
+    c.slug as category_slug
+FROM videos v
+JOIN users u ON v.uploaded_by = u.id
+LEFT JOIN categories c ON v.category_id = c.id
+WHERE v.id = $1
+`
+
+type GetVideoByIDWithUploaderRow struct {
+	ID                uuid.UUID               `json:"id"`
+	ShortID           string                  `json:"short_id"`
+	Title             string                  `json:"title"`
+	Description       *string                 `json:"description"`
+	Filename          string                  `json:"filename"`
+	ThumbnailFilename *string                 `json:"thumbnail_filename"`
+	OriginalFilename  string                  `json:"original_filename"`
+	StoragePath       *string                 `json:"storage_path"`
+	FileSizeBytes     int64                   `json:"file_size_bytes"`
+	DurationSeconds   *int32                  `json:"duration_seconds"`
+	UploadedBy        uuid.UUID               `json:"uploaded_by"`
+	CategoryID        pgtype.UUID             `json:"category_id"`
+	ViewCount         int32                   `json:"view_count"`
+	ProcessingStatus  domain.ProcessingStatus `json:"processing_status"`
+	ErrorMessage      *string                 `json:"error_message"`
+	CreatedAt         time.Time               `json:"created_at"`
+	UploaderUsername  string                  `json:"uploader_username"`
+	CategoryName      *string                 `json:"category_name"`
+	CategorySlug      *string                 `json:"category_slug"`
+}
+
+// Get video by UUID with uploader and category info
+func (q *Queries) GetVideoByIDWithUploader(ctx context.Context, id uuid.UUID) (GetVideoByIDWithUploaderRow, error) {
+	row := q.db.QueryRow(ctx, getVideoByIDWithUploader, id)
+	var i GetVideoByIDWithUploaderRow
+	err := row.Scan(
+		&i.ID,
+		&i.ShortID,
+		&i.Title,
+		&i.Description,
+		&i.Filename,
+		&i.ThumbnailFilename,
+		&i.OriginalFilename,
+		&i.StoragePath,
+		&i.FileSizeBytes,
+		&i.DurationSeconds,
+		&i.UploadedBy,
+		&i.CategoryID,
+		&i.ViewCount,
+		&i.ProcessingStatus,
+		&i.ErrorMessage,
+		&i.CreatedAt,
+		&i.UploaderUsername,
+		&i.CategoryName,
+		&i.CategorySlug,
+	)
+	return i, err
+}
+
 const getVideoByShortID = `-- name: GetVideoByShortID :one
 SELECT id, short_id, title, description, filename, thumbnail_filename, original_filename, storage_path, file_size_bytes, duration_seconds, uploaded_by, category_id, view_count, processing_status, error_message, created_at FROM videos WHERE short_id = $1
 `
@@ -173,6 +268,68 @@ func (q *Queries) GetVideoByShortID(ctx context.Context, shortID string) (Video,
 		&i.ProcessingStatus,
 		&i.ErrorMessage,
 		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getVideoByShortIDWithUploader = `-- name: GetVideoByShortIDWithUploader :one
+SELECT 
+    v.id, v.short_id, v.title, v.description, v.filename, v.thumbnail_filename, v.original_filename, v.storage_path, v.file_size_bytes, v.duration_seconds, v.uploaded_by, v.category_id, v.view_count, v.processing_status, v.error_message, v.created_at,
+    u.username as uploader_username,
+    c.name as category_name,
+    c.slug as category_slug
+FROM videos v
+JOIN users u ON v.uploaded_by = u.id
+LEFT JOIN categories c ON v.category_id = c.id
+WHERE v.short_id = $1
+`
+
+type GetVideoByShortIDWithUploaderRow struct {
+	ID                uuid.UUID               `json:"id"`
+	ShortID           string                  `json:"short_id"`
+	Title             string                  `json:"title"`
+	Description       *string                 `json:"description"`
+	Filename          string                  `json:"filename"`
+	ThumbnailFilename *string                 `json:"thumbnail_filename"`
+	OriginalFilename  string                  `json:"original_filename"`
+	StoragePath       *string                 `json:"storage_path"`
+	FileSizeBytes     int64                   `json:"file_size_bytes"`
+	DurationSeconds   *int32                  `json:"duration_seconds"`
+	UploadedBy        uuid.UUID               `json:"uploaded_by"`
+	CategoryID        pgtype.UUID             `json:"category_id"`
+	ViewCount         int32                   `json:"view_count"`
+	ProcessingStatus  domain.ProcessingStatus `json:"processing_status"`
+	ErrorMessage      *string                 `json:"error_message"`
+	CreatedAt         time.Time               `json:"created_at"`
+	UploaderUsername  string                  `json:"uploader_username"`
+	CategoryName      *string                 `json:"category_name"`
+	CategorySlug      *string                 `json:"category_slug"`
+}
+
+// Get video with uploader and category info (no access control - handler checks access)
+func (q *Queries) GetVideoByShortIDWithUploader(ctx context.Context, shortID string) (GetVideoByShortIDWithUploaderRow, error) {
+	row := q.db.QueryRow(ctx, getVideoByShortIDWithUploader, shortID)
+	var i GetVideoByShortIDWithUploaderRow
+	err := row.Scan(
+		&i.ID,
+		&i.ShortID,
+		&i.Title,
+		&i.Description,
+		&i.Filename,
+		&i.ThumbnailFilename,
+		&i.OriginalFilename,
+		&i.StoragePath,
+		&i.FileSizeBytes,
+		&i.DurationSeconds,
+		&i.UploadedBy,
+		&i.CategoryID,
+		&i.ViewCount,
+		&i.ProcessingStatus,
+		&i.ErrorMessage,
+		&i.CreatedAt,
+		&i.UploaderUsername,
+		&i.CategoryName,
+		&i.CategorySlug,
 	)
 	return i, err
 }
@@ -331,6 +488,122 @@ func (q *Queries) ListVideos(ctx context.Context, arg ListVideosParams) ([]ListV
 	items := []ListVideosRow{}
 	for rows.Next() {
 		var i ListVideosRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.ShortID,
+			&i.Title,
+			&i.Description,
+			&i.Filename,
+			&i.ThumbnailFilename,
+			&i.OriginalFilename,
+			&i.StoragePath,
+			&i.FileSizeBytes,
+			&i.DurationSeconds,
+			&i.UploadedBy,
+			&i.CategoryID,
+			&i.ViewCount,
+			&i.ProcessingStatus,
+			&i.ErrorMessage,
+			&i.CreatedAt,
+			&i.UploaderUsername,
+			&i.CategoryName,
+			&i.CategorySlug,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listVideosWithAccess = `-- name: ListVideosWithAccess :many
+SELECT 
+    v.id, v.short_id, v.title, v.description, v.filename, v.thumbnail_filename, v.original_filename, v.storage_path, v.file_size_bytes, v.duration_seconds, v.uploaded_by, v.category_id, v.view_count, v.processing_status, v.error_message, v.created_at,
+    u.username as uploader_username,
+    c.name as category_name,
+    c.slug as category_slug
+FROM videos v
+JOIN users u ON v.uploaded_by = u.id
+LEFT JOIN categories c ON v.category_id = c.id
+WHERE 
+    -- Access control: admin sees all, others see completed or own
+    ($1::bool = true OR v.processing_status = 'completed' OR v.uploaded_by = $2)
+    -- Filters (all optional)
+    AND ($3::uuid IS NULL OR v.category_id = $3)
+    AND ($4::text IS NULL OR v.processing_status::text = $4)
+    AND ($5::uuid IS NULL OR v.uploaded_by = $5)
+    AND ($6::text IS NULL OR $6 = '' OR LOWER(v.title) LIKE '%' || LOWER($6) || '%')
+ORDER BY
+    CASE WHEN $7 = 'created_at' AND $8 = 'desc' THEN v.created_at END DESC,
+    CASE WHEN $7 = 'created_at' AND $8 = 'asc' THEN v.created_at END ASC,
+    CASE WHEN $7 = 'title' AND $8 = 'desc' THEN v.title END DESC,
+    CASE WHEN $7 = 'title' AND $8 = 'asc' THEN v.title END ASC,
+    CASE WHEN $7 = 'view_count' AND $8 = 'desc' THEN v.view_count END DESC,
+    CASE WHEN $7 = 'view_count' AND $8 = 'asc' THEN v.view_count END ASC,
+    v.created_at DESC
+LIMIT $9 OFFSET $10
+`
+
+type ListVideosWithAccessParams struct {
+	Column1    bool        `json:"column_1"`
+	UploadedBy uuid.UUID   `json:"uploaded_by"`
+	Column3    uuid.UUID   `json:"column_3"`
+	Column4    string      `json:"column_4"`
+	Column5    uuid.UUID   `json:"column_5"`
+	Column6    string      `json:"column_6"`
+	Column7    interface{} `json:"column_7"`
+	Column8    interface{} `json:"column_8"`
+	Limit      int32       `json:"limit"`
+	Offset     int32       `json:"offset"`
+}
+
+type ListVideosWithAccessRow struct {
+	ID                uuid.UUID               `json:"id"`
+	ShortID           string                  `json:"short_id"`
+	Title             string                  `json:"title"`
+	Description       *string                 `json:"description"`
+	Filename          string                  `json:"filename"`
+	ThumbnailFilename *string                 `json:"thumbnail_filename"`
+	OriginalFilename  string                  `json:"original_filename"`
+	StoragePath       *string                 `json:"storage_path"`
+	FileSizeBytes     int64                   `json:"file_size_bytes"`
+	DurationSeconds   *int32                  `json:"duration_seconds"`
+	UploadedBy        uuid.UUID               `json:"uploaded_by"`
+	CategoryID        pgtype.UUID             `json:"category_id"`
+	ViewCount         int32                   `json:"view_count"`
+	ProcessingStatus  domain.ProcessingStatus `json:"processing_status"`
+	ErrorMessage      *string                 `json:"error_message"`
+	CreatedAt         time.Time               `json:"created_at"`
+	UploaderUsername  string                  `json:"uploader_username"`
+	CategoryName      *string                 `json:"category_name"`
+	CategorySlug      *string                 `json:"category_slug"`
+}
+
+// Non-admin: only COMPLETED videos OR own videos
+// Admin: all videos (is_admin = true)
+func (q *Queries) ListVideosWithAccess(ctx context.Context, arg ListVideosWithAccessParams) ([]ListVideosWithAccessRow, error) {
+	rows, err := q.db.Query(ctx, listVideosWithAccess,
+		arg.Column1,
+		arg.UploadedBy,
+		arg.Column3,
+		arg.Column4,
+		arg.Column5,
+		arg.Column6,
+		arg.Column7,
+		arg.Column8,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListVideosWithAccessRow{}
+	for rows.Next() {
+		var i ListVideosWithAccessRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.ShortID,

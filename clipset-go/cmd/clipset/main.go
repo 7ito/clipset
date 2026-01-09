@@ -13,6 +13,7 @@ import (
 	"github.com/clipset/clipset-go/internal/api"
 	"github.com/clipset/clipset-go/internal/config"
 	"github.com/clipset/clipset-go/internal/db"
+	"github.com/clipset/clipset-go/internal/worker"
 )
 
 func main() {
@@ -67,6 +68,25 @@ func run() error {
 	// Create router
 	router := api.NewRouter(database, cfg)
 
+	// Create and start background worker
+	log.Println("Starting background worker...")
+	bgWorker, err := worker.New(worker.Config{
+		Database:  database,
+		Pool:      database.Pool,
+		AppConfig: cfg,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create worker: %w", err)
+	}
+
+	if err := bgWorker.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start worker: %w", err)
+	}
+
+	// Wire up the enqueue function to the videos handler
+	router.VideosHandler().SetEnqueueFunc(bgWorker.EnqueueTranscode)
+	log.Println("Background worker started")
+
 	// Create HTTP server
 	server := &http.Server{
 		Addr:         cfg.Address(),
@@ -101,6 +121,11 @@ func run() error {
 		// Create deadline context for shutdown
 		shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 30*time.Second)
 		defer shutdownCancel()
+
+		// Stop background worker first
+		if err := bgWorker.Stop(shutdownCtx); err != nil {
+			log.Printf("Warning: failed to stop worker gracefully: %v", err)
+		}
 
 		// Attempt graceful shutdown
 		if err := server.Shutdown(shutdownCtx); err != nil {
@@ -149,5 +174,8 @@ Environment Variables:
   HLS_SIGNING_SECRET          Secret for HLS URL signing
   CORS_ORIGINS                Comma-separated list of allowed origins
   ENVIRONMENT                 Environment (development/production)
+  FFMPEG_PATH                 Path to FFmpeg binary (default: ffmpeg)
+  FFPROBE_PATH                Path to FFprobe binary (default: ffprobe)
+  VIDEO_PROCESSING_TIMEOUT    Timeout for video processing (default: 2h)
 `)
 }

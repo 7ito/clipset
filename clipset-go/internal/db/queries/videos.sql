@@ -101,3 +101,65 @@ ORDER BY created_at ASC;
 
 -- name: VideoExistsByShortID :one
 SELECT EXISTS(SELECT 1 FROM videos WHERE short_id = $1);
+
+-- name: ListVideosWithAccess :many
+-- Non-admin: only COMPLETED videos OR own videos
+-- Admin: all videos (is_admin = true)
+SELECT 
+    v.*,
+    u.username as uploader_username,
+    c.name as category_name,
+    c.slug as category_slug
+FROM videos v
+JOIN users u ON v.uploaded_by = u.id
+LEFT JOIN categories c ON v.category_id = c.id
+WHERE 
+    -- Access control: admin sees all, others see completed or own
+    ($1::bool = true OR v.processing_status = 'completed' OR v.uploaded_by = $2)
+    -- Filters (all optional)
+    AND ($3::uuid IS NULL OR v.category_id = $3)
+    AND ($4::text IS NULL OR v.processing_status::text = $4)
+    AND ($5::uuid IS NULL OR v.uploaded_by = $5)
+    AND ($6::text IS NULL OR $6 = '' OR LOWER(v.title) LIKE '%' || LOWER($6) || '%')
+ORDER BY
+    CASE WHEN $7 = 'created_at' AND $8 = 'desc' THEN v.created_at END DESC,
+    CASE WHEN $7 = 'created_at' AND $8 = 'asc' THEN v.created_at END ASC,
+    CASE WHEN $7 = 'title' AND $8 = 'desc' THEN v.title END DESC,
+    CASE WHEN $7 = 'title' AND $8 = 'asc' THEN v.title END ASC,
+    CASE WHEN $7 = 'view_count' AND $8 = 'desc' THEN v.view_count END DESC,
+    CASE WHEN $7 = 'view_count' AND $8 = 'asc' THEN v.view_count END ASC,
+    v.created_at DESC
+LIMIT $9 OFFSET $10;
+
+-- name: CountVideosWithAccess :one
+SELECT COUNT(*) FROM videos v
+WHERE 
+    ($1::bool = true OR v.processing_status = 'completed' OR v.uploaded_by = $2)
+    AND ($3::uuid IS NULL OR v.category_id = $3)
+    AND ($4::text IS NULL OR v.processing_status::text = $4)
+    AND ($5::uuid IS NULL OR v.uploaded_by = $5)
+    AND ($6::text IS NULL OR $6 = '' OR LOWER(v.title) LIKE '%' || LOWER($6) || '%');
+
+-- name: GetVideoByShortIDWithUploader :one
+-- Get video with uploader and category info (no access control - handler checks access)
+SELECT 
+    v.*,
+    u.username as uploader_username,
+    c.name as category_name,
+    c.slug as category_slug
+FROM videos v
+JOIN users u ON v.uploaded_by = u.id
+LEFT JOIN categories c ON v.category_id = c.id
+WHERE v.short_id = $1;
+
+-- name: GetVideoByIDWithUploader :one
+-- Get video by UUID with uploader and category info
+SELECT 
+    v.*,
+    u.username as uploader_username,
+    c.name as category_name,
+    c.slug as category_slug
+FROM videos v
+JOIN users u ON v.uploaded_by = u.id
+LEFT JOIN categories c ON v.category_id = c.id
+WHERE v.id = $1;

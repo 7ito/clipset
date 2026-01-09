@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/caarlos0/env/v11"
@@ -50,6 +51,16 @@ type Config struct {
 	MaxCategoryImageSizeBytes int64 `env:"MAX_CATEGORY_IMAGE_SIZE_BYTES" envDefault:"5242880"` // 5MB
 	CategoryImageSize         int   `env:"CATEGORY_IMAGE_SIZE" envDefault:"400"`               // Square dimensions
 
+	// Video upload settings (fallback defaults - actual limits come from DB config)
+	AcceptedVideoFormats []string `env:"ACCEPTED_VIDEO_FORMATS" envSeparator:"," envDefault:"mp4,mov,avi,mkv,webm,m4v"`
+	MaxFileSizeBytes     int64    `env:"MAX_FILE_SIZE_BYTES" envDefault:"2147483648"`       // 2GB fallback
+	WeeklyUploadLimit    int64    `env:"WEEKLY_UPLOAD_LIMIT_BYTES" envDefault:"4294967296"` // 4GB fallback
+
+	// FFmpeg settings
+	FFmpegPath             string        `env:"FFMPEG_PATH" envDefault:"ffmpeg"`
+	FFprobePath            string        `env:"FFPROBE_PATH" envDefault:"ffprobe"`
+	VideoProcessingTimeout time.Duration `env:"VIDEO_PROCESSING_TIMEOUT" envDefault:"2h"`
+
 	// Environment
 	Environment string `env:"ENVIRONMENT" envDefault:"development"`
 }
@@ -82,4 +93,20 @@ func (c *Config) IsDevelopment() bool {
 // IsProduction returns true if running in production mode
 func (c *Config) IsProduction() bool {
 	return c.Environment == "production"
+}
+
+// IsAcceptedVideoFormat checks if the extension is in the accepted list
+func (c *Config) IsAcceptedVideoFormat(ext string) bool {
+	ext = strings.ToLower(strings.TrimPrefix(ext, "."))
+	for _, accepted := range c.AcceptedVideoFormats {
+		if strings.ToLower(accepted) == ext {
+			return true
+		}
+	}
+	return false
+}
+
+// AcceptedFormatsString returns comma-separated accepted formats for error messages
+func (c *Config) AcceptedFormatsString() string {
+	return strings.Join(c.AcceptedVideoFormats, ", ")
 }

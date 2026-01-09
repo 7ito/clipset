@@ -9,6 +9,8 @@ import (
 	"github.com/clipset/clipset-go/internal/db"
 	"github.com/clipset/clipset-go/internal/services/auth"
 	"github.com/clipset/clipset-go/internal/services/image"
+	"github.com/clipset/clipset-go/internal/services/storage"
+	"github.com/clipset/clipset-go/internal/services/upload"
 )
 
 // Router holds all HTTP handlers and dependencies
@@ -23,6 +25,7 @@ type Router struct {
 	auth       *handlers.AuthHandler
 	users      *handlers.UsersHandler
 	categories *handlers.CategoriesHandler
+	videos     *handlers.VideosHandler
 }
 
 // NewRouter creates a new router with all dependencies
@@ -46,6 +49,25 @@ func NewRouter(database *db.DB, cfg *config.Config) *Router {
 		panic("failed to create image directories: " + err.Error())
 	}
 
+	// Create video storage service
+	videoStorage := storage.NewStorage(storage.StorageConfig{
+		VideoPath:     cfg.VideoStoragePath,
+		ThumbnailPath: cfg.ThumbnailStoragePath,
+		TempPath:      cfg.TempStoragePath,
+		ChunksPath:    cfg.ChunksStoragePath,
+	})
+
+	// Ensure video storage directories exist
+	if err := videoStorage.EnsureDirectories(); err != nil {
+		panic("failed to create video storage directories: " + err.Error())
+	}
+
+	// Create chunked upload manager
+	chunkManager := upload.NewChunkedUploadManager(cfg.ChunksStoragePath)
+	if err := chunkManager.EnsureBasePath(); err != nil {
+		panic("failed to create chunks directory: " + err.Error())
+	}
+
 	r := &Router{
 		mux:        http.NewServeMux(),
 		db:         database,
@@ -55,10 +77,16 @@ func NewRouter(database *db.DB, cfg *config.Config) *Router {
 		auth:       handlers.NewAuthHandler(database, jwtService),
 		users:      handlers.NewUsersHandler(database, cfg, imgProcessor),
 		categories: handlers.NewCategoriesHandler(database, cfg, imgProcessor),
+		videos:     handlers.NewVideosHandler(database, cfg, videoStorage, chunkManager),
 	}
 
 	r.registerRoutes()
 	return r
+}
+
+// VideosHandler returns the videos handler for external configuration
+func (r *Router) VideosHandler() *handlers.VideosHandler {
+	return r.videos
 }
 
 // registerRoutes registers all HTTP routes
@@ -105,10 +133,26 @@ func (r *Router) registerRoutes() {
 	r.mux.Handle("POST /api/categories/{category_id}/image", r.requireAdmin(http.HandlerFunc(r.categories.UploadImage)))
 	r.mux.Handle("DELETE /api/categories/{category_id}/image", r.requireAdmin(http.HandlerFunc(r.categories.DeleteImage)))
 
-	// TODO: Add more routes as handlers are implemented
-	// Video routes
-	// ...
+	// Video routes (authenticated)
+	// Upload endpoints
+	r.mux.Handle("POST /api/videos/upload", r.requireAuth(http.HandlerFunc(r.videos.Upload)))
+	r.mux.Handle("POST /api/videos/upload/init", r.requireAuth(http.HandlerFunc(r.videos.InitChunkedUpload)))
+	r.mux.Handle("POST /api/videos/upload/chunk", r.requireAuth(http.HandlerFunc(r.videos.UploadChunk)))
+	r.mux.Handle("POST /api/videos/upload/complete", r.requireAuth(http.HandlerFunc(r.videos.CompleteChunkedUpload)))
 
+	// Quota endpoints
+	r.mux.Handle("GET /api/videos/quota/me", r.requireAuth(http.HandlerFunc(r.videos.GetMyQuota)))
+
+	// Video CRUD endpoints
+	r.mux.Handle("GET /api/videos/", r.requireAuth(http.HandlerFunc(r.videos.List)))
+	r.mux.Handle("GET /api/videos/{short_id}", r.requireAuth(http.HandlerFunc(r.videos.GetByShortID)))
+	r.mux.Handle("PATCH /api/videos/{short_id}", r.requireAuth(http.HandlerFunc(r.videos.Update)))
+	r.mux.Handle("DELETE /api/videos/{short_id}", r.requireAuth(http.HandlerFunc(r.videos.Delete)))
+
+	// Video routes (admin only)
+	r.mux.Handle("POST /api/videos/admin/quota/reset-all", r.requireAdmin(http.HandlerFunc(r.videos.ResetAllQuotas)))
+
+	// TODO: Add more routes as handlers are implemented
 	// Playlist routes
 	// ...
 

@@ -6,9 +6,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"sync"
@@ -26,19 +24,18 @@ import (
 
 // Validation constants
 const (
-	minFileSizeBytes       = 1048576      // 1MB
-	maxFileSizeBytes       = 10737418240  // 10GB
-	minWeeklyUploadBytes   = 1048576      // 1MB
-	maxWeeklyUploadBytes   = 107374182400 // 100GB
-	maxVideoStoragePathLen = 500
-	minGPUDeviceID         = 0
-	maxGPUDeviceID         = 15
-	minCQ                  = 0
-	maxCQ                  = 51
-	minCRF                 = 0
-	maxCRF                 = 51
-	ffmpegEncoderTimeout   = 10 * time.Second
-	nvidiaSmiTimeout       = 5 * time.Second
+	minFileSizeBytes     = 1048576      // 1MB
+	maxFileSizeBytes     = 10737418240  // 10GB
+	minWeeklyUploadBytes = 1048576      // 1MB
+	maxWeeklyUploadBytes = 107374182400 // 100GB
+	minGPUDeviceID       = 0
+	maxGPUDeviceID       = 15
+	minCQ                = 0
+	maxCQ                = 51
+	minCRF               = 0
+	maxCRF               = 51
+	ffmpegEncoderTimeout = 10 * time.Second
+	nvidiaSmiTimeout     = 5 * time.Second
 )
 
 // Valid option sets
@@ -123,7 +120,6 @@ func NewConfigHandler(database *db.DB, cfg *config.Config) *ConfigHandler {
 type ConfigResponse struct {
 	MaxFileSizeBytes       int64     `json:"max_file_size_bytes"`
 	WeeklyUploadLimitBytes int64     `json:"weekly_upload_limit_bytes"`
-	VideoStoragePath       string    `json:"video_storage_path"`
 	UseGPUTranscoding      bool      `json:"use_gpu_transcoding"`
 	GPUDeviceID            int32     `json:"gpu_device_id"`
 	NvencPreset            string    `json:"nvenc_preset"`
@@ -163,7 +159,6 @@ type HLSMigrationStatusResponse struct {
 type ConfigUpdateRequest struct {
 	MaxFileSizeBytes       *int64  `json:"max_file_size_bytes"`
 	WeeklyUploadLimitBytes *int64  `json:"weekly_upload_limit_bytes"`
-	VideoStoragePath       *string `json:"video_storage_path"`
 	UseGPUTranscoding      *bool   `json:"use_gpu_transcoding"`
 	GPUDeviceID            *int32  `json:"gpu_device_id"`
 	NvencPreset            *string `json:"nvenc_preset"`
@@ -192,7 +187,6 @@ func buildConfigResponse(cfg sqlc.Config) ConfigResponse {
 	return ConfigResponse{
 		MaxFileSizeBytes:       cfg.MaxFileSizeBytes,
 		WeeklyUploadLimitBytes: cfg.WeeklyUploadLimitBytes,
-		VideoStoragePath:       cfg.VideoStoragePath,
 		UseGPUTranscoding:      cfg.UseGpuTranscoding,
 		GPUDeviceID:            cfg.GpuDeviceID,
 		NvencPreset:            cfg.NvencPreset,
@@ -209,23 +203,6 @@ func buildConfigResponse(cfg sqlc.Config) ConfigResponse {
 		UpdatedAt:              cfg.UpdatedAt,
 		UpdatedBy:              updatedBy,
 	}
-}
-
-// validateStoragePath checks if a path is writable
-func validateStoragePath(path string) error {
-	// Create directory if it doesn't exist
-	if err := os.MkdirAll(path, 0755); err != nil {
-		return err
-	}
-
-	// Test write permission by creating and removing a temp file
-	testFile := filepath.Join(path, ".write_test_"+uuid.New().String())
-	f, err := os.Create(testFile)
-	if err != nil {
-		return err
-	}
-	f.Close()
-	return os.Remove(testFile)
 }
 
 // detectEncoders runs ffmpeg to detect available encoders
@@ -284,7 +261,6 @@ func detectGPUName(ctx context.Context) *string {
 func (r *ConfigUpdateRequest) hasAnyField() bool {
 	return r.MaxFileSizeBytes != nil ||
 		r.WeeklyUploadLimitBytes != nil ||
-		r.VideoStoragePath != nil ||
 		r.UseGPUTranscoding != nil ||
 		r.GPUDeviceID != nil ||
 		r.NvencPreset != nil ||
@@ -371,20 +347,6 @@ func (h *ConfigHandler) Update(w http.ResponseWriter, r *http.Request) {
 			response.BadRequest(w, "weekly_upload_limit_bytes must be between 1MB and 100GB")
 			return
 		}
-	}
-
-	// video_storage_path
-	if req.VideoStoragePath != nil {
-		path := strings.TrimSpace(*req.VideoStoragePath)
-		if path == "" || len(path) > maxVideoStoragePathLen {
-			response.BadRequest(w, "video_storage_path must be 1-500 characters")
-			return
-		}
-		if err := validateStoragePath(path); err != nil {
-			response.BadRequest(w, "Invalid or unwritable storage path: "+err.Error())
-			return
-		}
-		req.VideoStoragePath = &path
 	}
 
 	// gpu_device_id
@@ -579,11 +541,7 @@ func (h *ConfigHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// String fields: pass empty string to keep existing (SQL uses NULLIF to convert empty to NULL)
-	if req.VideoStoragePath != nil {
-		params.Column3 = *req.VideoStoragePath
-	} else {
-		params.Column3 = ""
-	}
+	params.Column3 = ""
 
 	if req.NvencPreset != nil {
 		params.Column6 = *req.NvencPreset

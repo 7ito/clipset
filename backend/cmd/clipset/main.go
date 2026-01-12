@@ -211,7 +211,7 @@ func runMigrate() {
 }
 
 func printHelp() {
-	fmt.Println(`Clipset - Video sharing platform
+	fmt.Print(`Clipset - Video sharing platform
 
 Usage:
   clipset [command]

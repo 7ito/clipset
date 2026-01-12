@@ -6,7 +6,6 @@ export interface SystemConfig {
   // Upload & Storage Settings
   max_file_size_bytes: number
   weekly_upload_limit_bytes: number
-  video_storage_path: string
 
   // GPU Settings
   use_gpu_transcoding: boolean
@@ -42,7 +41,6 @@ export interface ConfigUpdate {
   // Upload & Storage Settings
   max_file_size_bytes?: number
   weekly_upload_limit_bytes?: number
-  video_storage_path?: string
 
   // GPU Settings
   use_gpu_transcoding?: boolean

@@ -179,20 +179,20 @@ func (h *VideosHandler) generateUniqueShortID(ctx context.Context) (string, erro
 	return "", fmt.Errorf("failed to generate unique short ID after %d attempts", maxShortIDRetries)
 }
 
-// getDBConfig gets config from database, falling back to env config
-func (h *VideosHandler) getDBConfig(ctx context.Context) (maxFileSize int64, weeklyLimit int64, videoStoragePath string) {
+// getDBConfig gets upload/quota settings from database, falling back to env config
+func (h *VideosHandler) getDBConfig(ctx context.Context) (maxFileSize int64, weeklyLimit int64) {
 	dbConfig, err := h.db.Queries.GetConfig(ctx)
 	if err != nil {
 		log.Printf("Warning: failed to get DB config, using env defaults: %v", err)
-		return h.config.MaxFileSizeBytes, h.config.WeeklyUploadLimit, h.config.VideoStoragePath
+		return h.config.MaxFileSizeBytes, h.config.WeeklyUploadLimit
 	}
 
-	return dbConfig.MaxFileSizeBytes, dbConfig.WeeklyUploadLimitBytes, dbConfig.VideoStoragePath
+	return dbConfig.MaxFileSizeBytes, dbConfig.WeeklyUploadLimitBytes
 }
 
 // checkUserQuota checks if user can upload a file of given size
 func (h *VideosHandler) checkUserQuota(ctx context.Context, userID uuid.UUID, fileSize int64) (bool, string) {
-	_, weeklyLimit, _ := h.getDBConfig(ctx)
+	_, weeklyLimit := h.getDBConfig(ctx)
 
 	quota, err := h.db.Queries.GetUserQuota(ctx, userID)
 	if err != nil {
@@ -397,7 +397,7 @@ func (h *VideosHandler) Upload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get DB config
-	maxFileSize, _, videoStoragePath := h.getDBConfig(ctx)
+	maxFileSize, _ := h.getDBConfig(ctx)
 
 	// Check file size
 	if header.Size > maxFileSize {
@@ -480,7 +480,7 @@ func (h *VideosHandler) Upload(w http.ResponseWriter, r *http.Request) {
 		FileSizeBytes:    bytesWritten,
 		UploadedBy:       userID,
 		CategoryID:       categoryID,
-		StoragePath:      &videoStoragePath,
+		StoragePath:      nil,
 	})
 	if err != nil {
 		h.storage.DeleteFile(tempPath)
@@ -555,7 +555,7 @@ func (h *VideosHandler) InitChunkedUpload(w http.ResponseWriter, r *http.Request
 	}
 
 	// Get DB config
-	maxFileSize, _, _ := h.getDBConfig(ctx)
+	maxFileSize, _ := h.getDBConfig(ctx)
 
 	// Pre-check file size
 	if req.ExpectedSize > maxFileSize {
@@ -693,7 +693,7 @@ func (h *VideosHandler) CompleteChunkedUpload(w http.ResponseWriter, r *http.Req
 	}
 
 	// Get DB config
-	maxFileSize, _, videoStoragePath := h.getDBConfig(ctx)
+	maxFileSize, _ := h.getDBConfig(ctx)
 
 	// Validate total size
 	if totalSize > maxFileSize {
@@ -767,7 +767,7 @@ func (h *VideosHandler) CompleteChunkedUpload(w http.ResponseWriter, r *http.Req
 		FileSizeBytes:    totalSize,
 		UploadedBy:       userID,
 		CategoryID:       categoryID,
-		StoragePath:      &videoStoragePath,
+		StoragePath:      nil,
 	})
 	if err != nil {
 		h.storage.DeleteFile(tempPath)
@@ -1146,7 +1146,7 @@ func (h *VideosHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Delete video files
-	if err := h.storage.DeleteVideoFiles(video.Filename, video.ThumbnailFilename, video.StoragePath); err != nil {
+	if err := h.storage.DeleteVideoFiles(video.Filename, video.ThumbnailFilename, nil); err != nil {
 		log.Printf("Warning: failed to delete video files: %v", err)
 	}
 
@@ -1174,7 +1174,7 @@ func (h *VideosHandler) GetMyQuota(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Get DB config
-	maxFileSize, weeklyLimit, _ := h.getDBConfig(ctx)
+	maxFileSize, weeklyLimit := h.getDBConfig(ctx)
 
 	// Get user quota
 	quota, err := h.db.Queries.GetUserQuota(ctx, userID)
@@ -1398,7 +1398,7 @@ func (h *VideosHandler) StreamInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check for HLS availability first (preferred format)
-	if h.storage.IsHLSAvailable(video.Filename, video.StoragePath) {
+	if h.storage.IsHLSAvailable(video.Filename, nil) {
 		manifestURL := fmt.Sprintf("/api/videos/%s/hls/master.m3u8", shortID)
 		response.OK(w, StreamInfoResponse{
 			Format:      "hls",
@@ -1409,7 +1409,7 @@ func (h *VideosHandler) StreamInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check for progressive MP4
-	if h.storage.IsProgressiveAvailable(video.Filename, video.StoragePath) {
+	if h.storage.IsProgressiveAvailable(video.Filename, nil) {
 		streamURL := fmt.Sprintf("/api/videos/%s/stream", shortID)
 		response.OK(w, StreamInfoResponse{
 			Format:    "progressive",
@@ -1465,7 +1465,7 @@ func (h *VideosHandler) Stream(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Open video file
-	file, fileSize, err := h.storage.OpenVideoFile(video.Filename, video.StoragePath)
+	file, fileSize, err := h.storage.OpenVideoFile(video.Filename, nil)
 	if err != nil {
 		log.Printf("Error opening video file: %v", err)
 		response.NotFound(w, "Video file not found")
@@ -1663,7 +1663,7 @@ func (h *VideosHandler) HLS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Read the manifest file
-	hlsPath := h.storage.GetHLSFilePath(video.Filename, hlsFilename, video.StoragePath)
+	hlsPath := h.storage.GetHLSFilePath(video.Filename, hlsFilename, nil)
 	content, err := os.ReadFile(hlsPath)
 	if err != nil {
 		if os.IsNotExist(err) {

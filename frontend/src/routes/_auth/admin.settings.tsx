@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/shared/PageHeader"
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner"
 import { FileSizeInput } from "@/components/admin/FileSizeInput"
-import { PathInput } from "@/components/admin/PathInput"
 import { TranscodingSettings } from "@/components/admin/TranscodingSettings"
 import { toast } from "@/lib/toast"
 import type { ConfigUpdate, SystemConfig } from "@/types/config"
@@ -23,7 +22,6 @@ function AdminSettingsPage() {
   // Local state for form fields - upload/storage
   const [maxFileSize, setMaxFileSize] = useState(0)
   const [weeklyLimit, setWeeklyLimit] = useState(0)
-  const [storagePath, setStoragePath] = useState("")
 
   // Local state for transcoding settings
   const [transcodingConfig, setTranscodingConfig] = useState<Partial<SystemConfig>>({})
@@ -47,7 +45,6 @@ function AdminSettingsPage() {
     if (config) {
       setMaxFileSize(config.max_file_size_bytes)
       setWeeklyLimit(config.weekly_upload_limit_bytes)
-      setStoragePath(config.video_storage_path)
       setTranscodingConfig({
         use_gpu_transcoding: config.use_gpu_transcoding,
         gpu_device_id: config.gpu_device_id,
@@ -72,8 +69,7 @@ function AdminSettingsPage() {
     
     const uploadStorageChanged = 
       maxFileSize !== config.max_file_size_bytes ||
-      weeklyLimit !== config.weekly_upload_limit_bytes ||
-      storagePath !== config.video_storage_path
+      weeklyLimit !== config.weekly_upload_limit_bytes
 
     const transcodingChanged =
       transcodingConfig.use_gpu_transcoding !== config.use_gpu_transcoding ||
@@ -91,7 +87,7 @@ function AdminSettingsPage() {
       transcodingConfig.video_output_format !== config.video_output_format
     
     setHasChanges(uploadStorageChanged || transcodingChanged)
-  }, [maxFileSize, weeklyLimit, storagePath, transcodingConfig, config])
+  }, [maxFileSize, weeklyLimit, transcodingConfig, config])
 
   // Update mutation
   const updateMutation = useMutation({
@@ -136,9 +132,6 @@ function AdminSettingsPage() {
       }
       if (weeklyLimit !== config.weekly_upload_limit_bytes) {
         updates.weekly_upload_limit_bytes = weeklyLimit
-      }
-      if (storagePath !== config.video_storage_path) {
-        updates.video_storage_path = storagePath
       }
 
       // Transcoding changes
@@ -195,7 +188,6 @@ function AdminSettingsPage() {
     if (config) {
       setMaxFileSize(config.max_file_size_bytes)
       setWeeklyLimit(config.weekly_upload_limit_bytes)
-      setStoragePath(config.video_storage_path)
       setTranscodingConfig({
         use_gpu_transcoding: config.use_gpu_transcoding,
         gpu_device_id: config.gpu_device_id,
@@ -237,7 +229,7 @@ function AdminSettingsPage() {
     <div className="space-y-6">
       <PageHeader
         title="System Settings"
-        description="Configure upload limits, storage paths, and transcoding settings"
+        description="Configure upload limits and transcoding settings"
       />
 
       {/* Info Banner */}
@@ -274,15 +266,15 @@ function AdminSettingsPage() {
         </Card>
       )}
 
-      {/* Upload & Storage Settings */}
+      {/* Upload Settings */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="w-5 h-5" />
-            Upload & Storage Settings
+            Upload Settings
           </CardTitle>
           <CardDescription>
-            Configure file size limits, upload quotas, and storage locations
+            Configure file size limits and upload quotas
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -300,13 +292,6 @@ function AdminSettingsPage() {
             helperText="Maximum total upload size per user per week (1MB - 100GB)"
           />
 
-          <PathInput
-            label="Video Storage Path"
-            value={storagePath}
-            onChange={setStoragePath}
-            helperText="Absolute or relative path where uploaded videos are stored"
-            placeholder="/data/uploads/videos"
-          />
         </CardContent>
       </Card>
 
